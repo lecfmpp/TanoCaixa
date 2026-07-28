@@ -40,6 +40,17 @@ service cloud.firestore {
       allow read, write: if logado() && request.auth.uid == userId;
     }
 
+    // ---- TENANT DE DEMONSTRAÇÃO ----
+    // Aberto (sem auth) enquanto o login por e-mail/senha não é habilitado
+    // no console. É um dataset de exemplo, sem dados reais. Remover quando
+    // a autenticação estiver ativa.
+    match /restaurants/demo-zaatar {
+      allow read, write: if true;
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+
     // ---- Restaurante e subcoleções ---- //
     match /restaurants/{rid} {
 

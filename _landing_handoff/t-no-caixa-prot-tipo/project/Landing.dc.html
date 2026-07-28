@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#CDCCB8; font-family:'Archivo',system-ui,sans-serif; color:#1C2A2E; -webkit-font-smoothing:antialiased; }
+  a { color:#2E5F73; text-decoration:none; border-bottom:1px solid rgba(46,95,115,.35); }
+  a:hover { color:#C05437; border-bottom-color:rgba(192,84,55,.5); }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+
+<section style="display:flex;justify-content:flex-start;align-items:flex-start;gap:44px;padding:40px 40px 90px">
+  <div style="width:1440px;flex:none;background:#F0EEE2;border-radius:26px;overflow:hidden;box-shadow:0 40px 90px rgba(22,48,58,.22)">
+
+    <div style="position:relative;overflow:hidden;background:#16303A">
+      <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro visto do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%;filter:saturate(.3) contrast(1.06)">
+      <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(22,48,58,.94) 0%,rgba(22,48,58,.5) 55%,rgba(22,48,58,.72) 100%)"></div>
+      <div style="position:absolute;top:120px;right:150px;width:190px;height:190px;border-radius:50%;background:#EFAB5C;opacity:.92"></div>
+
+      <div style="position:relative;padding:26px 56px;display:flex;align-items:center;justify-content:space-between;gap:24px">
+        <div style="display:flex;align-items:center;gap:11px">
+          <div style="width:32px;height:32px;border-radius:11px;background:#C05437"></div>
+          <div style="font-size:19px;font-weight:800;color:#F7F5EA;letter-spacing:-.01em">Tá no Caixa</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:28px">
+          <div style="font-size:15px;font-weight:600;color:rgba(247,245,234,.78);cursor:pointer">Como funciona</div>
+          <div style="font-size:15px;font-weight:600;color:rgba(247,245,234,.78);cursor:pointer">O que você vê</div>
+          <div style="font-size:15px;font-weight:600;color:rgba(247,245,234,.78);cursor:pointer">Preço</div>
+          <div style="font-size:15px;font-weight:600;color:rgba(247,245,234,.78);cursor:pointer">Dúvidas</div>
+          <div style="font-size:15px;font-weight:700;color:#F7F5EA;cursor:pointer">Entrar</div>
+          <div style="padding:12px 22px;border-radius:13px;background:#C05437;color:#F7F5EA;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(192,84,55,.35)">Testar de graça</div>
+        </div>
+      </div>
+
+      <div style="position:relative;padding:70px 56px 84px;display:flex;gap:56px;align-items:center">
+        <div style="flex:1.15;min-width:0">
+          <div style="display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:12px;background:rgba(247,245,234,.14);color:#F7F5EA;font-size:13px;font-weight:700">
+            <div style="width:8px;height:8px;border-radius:50%;background:#EFAB5C"></div>Feito no Rio, pra restaurante do Rio
+          </div>
+          <div style="font-size:64px;font-weight:800;color:#F7F5EA;letter-spacing:-.035em;line-height:1.02;margin-top:22px;text-wrap:pretty">Saber se sobrou dinheiro não pode dar trabalho</div>
+          <div style="font-size:19px;color:rgba(247,245,234,.8);margin-top:20px;line-height:1.5;max-width:540px;text-wrap:pretty">Você tira foto da nota, a gente lê. O iFood e a maquininha entram sozinhos. Toda segunda chega um recado dizendo onde o seu lucro está vazando — sem planilha, sem palavra de contador.</div>
+          <div style="display:flex;gap:12px;margin-top:30px;flex-wrap:wrap">
+            <div style="padding:17px 28px;border-radius:15px;background:#C05437;color:#F7F5EA;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 10px 22px rgba(192,84,55,.4)">Começar de graça por 14 dias</div>
+            <div style="padding:17px 28px;border-radius:15px;background:rgba(247,245,234,.14);border:1px solid rgba(247,245,234,.25);color:#F7F5EA;font-size:16px;font-weight:700;cursor:pointer">Ver o painel por dentro</div>
+          </div>
+          <div style="display:flex;gap:34px;margin-top:34px;flex-wrap:wrap">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#EFAB5C">40s</div><div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:2px">pra lançar uma nota</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#EFAB5C">3s</div><div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:2px">pra saber se sobrou</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#EFAB5C">0</div><div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:2px">planilha pra manter</div></div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+          <div style="padding:22px;border-radius:20px;background:#FBFAF2;box-shadow:0 26px 60px rgba(22,48,58,.3)">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+              <div style="font-size:13px;font-weight:600;color:#6A7A7E">Sobrou até agora · julho</div>
+              <div style="font-size:12px;color:#8A9698">Zaatar Cozinha Árabe</div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:700;color:#2F6B4A;letter-spacing:-.03em;white-space:nowrap">R$ 8.140</div>
+              <div style="font-size:15px;font-weight:700;color:#2F6B4A">+17,2%</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <div style="flex:1;padding:12px 14px;border-radius:14px;background:#E8E6D7"><div style="font-size:11px;font-weight:700;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Entrou</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;margin-top:3px">R$ 47.320</div></div>
+              <div style="flex:1;padding:12px 14px;border-radius:14px;background:#E8E6D7"><div style="font-size:11px;font-weight:700;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Saiu</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;margin-top:3px">R$ 39.180</div></div>
+            </div>
+          </div>
+          <div style="padding:20px;border-radius:20px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);box-shadow:0 20px 44px rgba(22,48,58,.24)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:9px;height:9px;border-radius:50%;background:#C05437"></div>
+              <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">Recado de segunda</div>
+            </div>
+            <div style="font-size:15px;color:#3A3327;margin-top:10px;line-height:1.5;text-wrap:pretty">O hortifrúti subiu 12% na semana. Vale pedir preço no Cadeg antes da próxima compra — ou subir R$ 2 no Beirute.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:13px;padding:15px 18px;border-radius:16px;background:#FBFAF2;box-shadow:0 16px 34px rgba(22,48,58,.2)">
+            <div style="width:10px;height:10px;border-radius:50%;background:#2F6B4A;flex:none"></div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:700">Tá no caixa!</div><div style="font-size:13px;color:#45585D;margin-top:2px">R$ 486,30 entraram em Mercadoria.</div></div>
+            <div style="font-size:13px;font-weight:700;color:#2E5F73">Desfazer</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:70px 56px;display:flex;flex-direction:column;gap:34px">
+      <div style="text-align:center">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">O problema</div>
+        <div style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:12px;max-width:820px;margin-left:auto;margin-right:auto;text-wrap:pretty">Todo mundo sabe o que vendeu. Quase ninguém sabe o que sobrou.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1.25fr;gap:20px;align-items:stretch">
+        <div style="position:relative;isolation:isolate;min-height:380px;border-radius:20px;overflow:hidden;background:#16303A">
+          <img src="https://images.pexels.com/photos/25391579/pexels-photo-25391579.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Cozinheira trabalhando na cozinha do restaurante" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%;filter:saturate(.3) contrast(1.06)">
+          <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.8"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,0) 45%,rgba(22,48,58,.9) 100%)"></div>
+          <div style="position:absolute;left:24px;right:24px;bottom:22px;font-size:16px;color:#F7F5EA;line-height:1.45;text-wrap:pretty">Enquanto o serviço roda, ninguém para pra digitar nota em sistema.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px">
+        <div style="padding:22px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:16px;font-weight:700;line-height:1.3">O sistema é do tempo do computador de mesa</div>
+          <div style="font-size:14px;color:#45585D;margin-top:8px;line-height:1.5;text-wrap:pretty">Cheio de aba, campo e relatório que ninguém abre. Você vive no salão, não na frente da tela.</div>
+        </div>
+        <div style="padding:22px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:16px;font-weight:700;line-height:1.3">A nota fica no bolso do avental</div>
+          <div style="font-size:14px;color:#45585D;margin-top:8px;line-height:1.5;text-wrap:pretty">Quando chega a hora de digitar, já passou uma semana. Aí ninguém digita mais.</div>
+        </div>
+        <div style="padding:22px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:16px;font-weight:700;line-height:1.3">O app come a margem calado</div>
+          <div style="font-size:14px;color:#45585D;margin-top:8px;line-height:1.5;text-wrap:pretty">Cada R$ 100 no iFood viram R$ 73 no seu bolso — e isso não aparece em lugar nenhum.</div>
+        </div>
+        <div style="padding:22px;border-radius:20px;background:#2E5F73;color:#F7F5EA;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:16px;font-weight:700;line-height:1.3">Resultado: você opera no escuro</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.78);margin-top:8px;line-height:1.5;text-wrap:pretty">Descobre que o mês foi ruim quando o dinheiro já foi. A gente existe pra te avisar no dia 12, não no dia 31.</div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:16px 56px 70px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Como funciona</div>
+      <div style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:12px;max-width:620px;text-wrap:pretty">Três coisas acontecem sozinhas. A quarta leva 40 segundos.</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px">
+        <div style="padding:24px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+          <div style="width:40px;height:40px;border-radius:13px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700">1</div>
+          <div style="font-size:17px;font-weight:700;line-height:1.25">Conecta uma vez</div>
+          <div style="font-size:14px;color:#45585D;line-height:1.5">iFood, Rappi, maquininha e PDV. Depois disso o faturamento entra sozinho todo dia às 6 da manhã.</div>
+        </div>
+        <div style="padding:24px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+          <div style="width:40px;height:40px;border-radius:13px;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700">2</div>
+          <div style="font-size:17px;font-weight:700;line-height:1.25">Tira foto da nota</div>
+          <div style="font-size:14px;color:#45585D;line-height:1.5">Fornecedor, itens, preços e categoria saem prontos em 5 segundos. Você só confere e confirma.</div>
+          <div style="position:relative;isolation:isolate;height:130px;border-radius:14px;overflow:hidden;background:#16303A;margin-top:2px">
+            <img src="https://images.pexels.com/photos/6653633/pexels-photo-6653633.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Cozinheira de avental preparando comida" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.78"></div>
+            <div style="position:absolute;inset:0;background:#F7F5EA;mix-blend-mode:screen;opacity:.14"></div>
+          </div>
+        </div>
+        <div style="padding:24px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+          <div style="width:40px;height:40px;border-radius:13px;background:#EFAB5C;color:#1E4354;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700">3</div>
+          <div style="font-size:17px;font-weight:700;line-height:1.25">Olha o painel em 3 segundos</div>
+          <div style="font-size:14px;color:#45585D;line-height:1.5">Entrou, saiu, sobrou e quanto falta pro ponto de equilíbrio. Sem relatório pra rodar.</div>
+        </div>
+        <div style="padding:24px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+          <div style="width:40px;height:40px;border-radius:13px;background:#2F6B4A;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700">4</div>
+          <div style="font-size:17px;font-weight:700;line-height:1.25">Recebe o recado de segunda</div>
+          <div style="font-size:14px;color:#45585D;line-height:1.5">Um e-mail curto com o que mudou na semana e uma coisa só pra fazer. No WhatsApp quando estoura um teto.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:relative;overflow:hidden;background:#16303A;padding:64px 56px">
+      <img src="uploads/pasted-1785209420737-0.png" alt="Bondinho de Santa Teresa" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;filter:saturate(.3) contrast(1.06)">
+      <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.86"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(22,48,58,.92) 0%,rgba(22,48,58,.55) 100%)"></div>
+      <div style="position:relative;display:flex;gap:44px;align-items:center">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(247,245,234,.6)">O que você vê</div>
+          <div style="font-size:38px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.1;margin-top:12px;text-wrap:pretty">Os quatro números que mandam no seu restaurante</div>
+          <div style="font-size:17px;color:rgba(247,245,234,.78);margin-top:16px;line-height:1.5;max-width:420px;text-wrap:pretty">Sem jargão. A gente escreve do jeito que se fala no balcão e sempre diz o que fazer com o número.</div>
+        </div>
+        <div style="flex:1.25;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="padding:20px;border-radius:18px;background:#FBFAF2">
+            <div style="font-size:13px;color:#6A7A7E;font-weight:600">Custo da comida (CMV)</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#B4462F;margin-top:4px">30,9%</div>
+            <div style="font-size:13px;color:#45585D;margin-top:6px;line-height:1.45">Passou o teto de 30%. Vale rever o hortifrúti.</div>
+          </div>
+          <div style="padding:20px;border-radius:18px;background:#FBFAF2">
+            <div style="font-size:13px;color:#6A7A7E;font-weight:600">Ponto de equilíbrio</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#2F6B4A;margin-top:4px">R$ 41.400</div>
+            <div style="font-size:13px;color:#45585D;margin-top:6px;line-height:1.45">Virou no dia 21. Daqui pra frente é lucro.</div>
+          </div>
+          <div style="padding:20px;border-radius:18px;background:#FBFAF2">
+            <div style="font-size:13px;color:#6A7A7E;font-weight:600">Peso dos apps</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#B4462F;margin-top:4px">15,5%</div>
+            <div style="font-size:13px;color:#45585D;margin-top:6px;line-height:1.45">R$ 7.340 em taxas. Empurre pedidos pro WhatsApp.</div>
+          </div>
+          <div style="padding:20px;border-radius:18px;background:#FBFAF2">
+            <div style="font-size:13px;color:#6A7A7E;font-weight:600">Custo da equipe</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#2F6B4A;margin-top:4px">23,0%</div>
+            <div style="font-size:13px;color:#45585D;margin-top:6px;line-height:1.45">Dentro do combinado, sem hora extra.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:70px 56px">
+      <div style="display:flex;gap:44px;align-items:flex-start">
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Serve pra você</div>
+          <div style="font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.12;text-wrap:pretty">Delivery, boteco, rede de duas lojas — o trabalho é o mesmo.</div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap">
+            <div style="padding:11px 16px;border-radius:13px;background:#E8E6D7;font-size:14px;font-weight:600;color:#45585D">Dark kitchen</div>
+            <div style="padding:11px 16px;border-radius:13px;background:#E8E6D7;font-size:14px;font-weight:600;color:#45585D">Boteco de bairro</div>
+            <div style="padding:11px 16px;border-radius:13px;background:#E8E6D7;font-size:14px;font-weight:600;color:#45585D">À la carte</div>
+            <div style="padding:11px 16px;border-radius:13px;background:#E8E6D7;font-size:14px;font-weight:600;color:#45585D">Cozinha árabe, japonesa, pizza</div>
+            <div style="padding:11px 16px;border-radius:13px;background:#E8E6D7;font-size:14px;font-weight:600;color:#45585D">2 a 5 lojas</div>
+          </div>
+          <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);font-size:14px;color:#45585D;line-height:1.55;text-wrap:pretty">Cada um da equipe vê só o que precisa: o gerente lança nota e conta estoque, mas não vê seu lucro. Toda ação fica registrada com nome e hora.</div>
+        </div>
+        <div style="flex:1;position:relative;border-radius:22px;overflow:hidden;min-height:320px;background:#16303A;display:flex;align-items:flex-end;padding:34px">
+          <img src="https://images.pexels.com/photos/16849778/pexels-photo-16849778.jpeg?auto=compress&cs=tinysrgb&w=1400" alt="Dona de restaurante trabalhando no salão" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:saturate(.3) contrast(1.06)">
+          <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.15) 30%,rgba(22,48,58,.93) 100%)"></div>
+          <div style="position:relative">
+            <div style="font-size:21px;font-weight:700;color:#F7F5EA;line-height:1.4;max-width:440px;text-wrap:pretty">"Eu descobri que o delivery de sexta era o pedido que menos me dava dinheiro. Mudei o cardápio do app e no mês seguinte sobraram R$ 2.300 a mais."</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:18px">
+              <div style="width:38px;height:38px;border-radius:50%;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">H</div>
+              <div><div style="font-size:14px;font-weight:700;color:#F7F5EA">Halim Nassar</div><div style="font-size:13px;color:rgba(247,245,234,.7)">Zaatar Cozinha Árabe · Botafogo</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:relative;overflow:hidden;background:#1E4354;padding:70px 56px">
+      <div style="position:absolute;top:-70px;left:44%;width:260px;height:260px;border-radius:50%;background:#EFAB5C;opacity:.16"></div>
+      <div style="position:absolute;bottom:-120px;left:-60px;width:340px;height:200px;border-radius:50% 50% 0 0;background:rgba(46,95,115,.5)"></div>
+      <div style="position:relative;display:flex;gap:56px;align-items:center">
+
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(247,245,234,.55)">No bolso</div>
+          <div style="font-size:40px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.08;margin-top:12px;max-width:460px;text-wrap:pretty">Baixe o app e lance a nota ali mesmo, no balcão</div>
+          <div style="font-size:17px;color:rgba(247,245,234,.78);margin-top:16px;line-height:1.5;max-width:460px;text-wrap:pretty">A câmera abre direto no app, a contagem de estoque cabe em uma mão e, sem sinal no depósito, ele guarda e manda depois. Mesma conta do computador.</div>
+
+          <div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 22px;border-radius:14px;background:#F7F5EA;cursor:pointer">
+              <div style="width:26px;height:30px;border-radius:8px 8px 9px 9px;background:#1C2A2E;flex:none"></div>
+              <div>
+                <div style="font-size:11px;color:#45585D;letter-spacing:.02em">Baixe na</div>
+                <div style="font-size:18px;font-weight:700;color:#1C2A2E;line-height:1.15">App Store</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 22px;border-radius:14px;background:#F7F5EA;cursor:pointer">
+              <div style="width:26px;height:28px;border-radius:5px;background:linear-gradient(135deg,#2F6B4A 0%,#EFAB5C 50%,#C05437 100%);flex:none"></div>
+              <div>
+                <div style="font-size:11px;color:#45585D;letter-spacing:.02em">Disponível no</div>
+                <div style="font-size:18px;font-weight:700;color:#1C2A2E;line-height:1.15">Google Play</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px;margin-top:26px">
+            <div style="width:86px;height:86px;border-radius:14px;background:#F7F5EA;padding:9px;flex:none">
+              <div style="width:100%;height:100%;background:repeating-conic-gradient(#1C2A2E 0% 25%,#F7F5EA 0% 50%);background-size:14px 14px;border-radius:5px"></div>
+            </div>
+            <div style="font-size:14px;color:rgba(247,245,234,.72);line-height:1.5;max-width:260px;text-wrap:pretty">Aponta a câmera pra baixar. Prefere não instalar nada? <b style="color:#F7F5EA">Funciona igual no navegador do celular.</b></div>
+          </div>
+        </div>
+
+        <div style="flex:1.05;min-width:0;display:flex;gap:18px;justify-content:flex-end;align-items:flex-end">
+
+          <div style="width:216px;flex:none;border-radius:30px;background:#F0EEE2;padding:9px;box-shadow:0 26px 56px rgba(22,48,58,.4);transform:rotate(-4deg)">
+            <div style="border-radius:23px;overflow:hidden;background:#F0EEE2">
+              <div style="position:relative;overflow:hidden;padding:24px 14px 14px;background:#2E5F73">
+                <div style="position:absolute;top:8px;right:10px;width:52px;height:52px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+                <div style="position:relative;font-size:12px;font-weight:700;color:#F7F5EA">Zaatar</div>
+                <div style="position:relative;font-size:9px;color:rgba(247,245,234,.65);margin-top:2px">julho · dia 27</div>
+              </div>
+              <div style="padding:11px;display:flex;flex-direction:column;gap:9px">
+                <div style="padding:12px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:9px;color:#6A7A7E;font-weight:600">Sobrou até agora</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#2F6B4A;letter-spacing:-.03em;white-space:nowrap">R$ 8.140</div>
+                  <div style="display:flex;gap:6px;margin-top:9px">
+                    <div style="flex:1;padding:7px 8px;border-radius:9px;background:#E8E6D7"><div style="font-size:8px;color:#8A9698;font-weight:700">ENTROU</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;white-space:nowrap">R$ 47.320</div></div>
+                    <div style="flex:1;padding:7px 8px;border-radius:9px;background:#E8E6D7"><div style="font-size:8px;color:#8A9698;font-weight:700">SAIU</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;white-space:nowrap">R$ 39.180</div></div>
+                  </div>
+                </div>
+                <div style="padding:12px;border-radius:14px;background:#2E5F73;color:#F7F5EA">
+                  <div style="font-size:9px;color:rgba(247,245,234,.65);font-weight:600">Ponto de equilíbrio</div>
+                  <div style="font-size:11px;font-weight:700;margin-top:4px;line-height:1.3">Virou o jogo dia 21. Daqui é lucro.</div>
+                  <div style="margin-top:8px;height:5px;border-radius:3px;background:rgba(255,255,255,.16)"><div style="width:87%;height:100%;border-radius:3px;background:#EFAB5C"></div></div>
+                </div>
+                <div style="padding:12px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:7px">
+                  <div style="font-size:10px;font-weight:700">Onde tá indo</div>
+                  <div style="display:flex;justify-content:space-between;font-size:9px"><div>Mercadoria</div><div style="color:#B4462F;font-weight:700">30,9%</div></div>
+                  <div style="height:5px;border-radius:3px;background:#E1DFCE"><div style="width:62%;height:100%;border-radius:3px;background:#2E5F73"></div></div>
+                  <div style="display:flex;justify-content:space-between;font-size:9px"><div>Taxas de app</div><div style="color:#B4462F;font-weight:700">15,5%</div></div>
+                  <div style="height:5px;border-radius:3px;background:#E1DFCE"><div style="width:44%;height:100%;border-radius:3px;background:#C05437"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:230px;flex:none;border-radius:32px;background:#F0EEE2;padding:9px;box-shadow:0 34px 70px rgba(22,48,58,.5);z-index:2">
+            <div style="border-radius:25px;overflow:hidden;background:#12222A">
+              <div style="position:relative;height:262px;background:#16303A">
+                <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0 9px,transparent 9px 18px)"></div>
+                <div style="position:absolute;top:16px;left:16px;width:26px;height:26px;border-top:3px solid #C05437;border-left:3px solid #C05437;border-radius:7px 0 0 0"></div>
+                <div style="position:absolute;top:16px;right:16px;width:26px;height:26px;border-top:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 7px 0 0"></div>
+                <div style="position:absolute;bottom:16px;left:16px;width:26px;height:26px;border-bottom:3px solid #C05437;border-left:3px solid #C05437;border-radius:0 0 0 7px"></div>
+                <div style="position:absolute;bottom:16px;right:16px;width:26px;height:26px;border-bottom:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 0 7px 0"></div>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 28px">
+                  <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(247,245,234,.5);letter-spacing:.08em">[ nota do fornecedor ]</div>
+                    <div style="font-size:12px;color:#F7F5EA;font-weight:600;margin-top:7px;line-height:1.4">Aponta pra nota inteira,<br>mesmo torta que a gente lê</div>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#F0EEE2;padding:14px 12px 16px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;justify-content:center;gap:18px">
+                  <div style="font-size:9px;color:#8A9698;width:44px;text-align:right">Galeria</div>
+                  <div style="width:48px;height:48px;border-radius:50%;background:#C05437;border:4px solid #FBFAF2;box-shadow:0 0 0 2px #C05437"></div>
+                  <div style="font-size:9px;color:#8A9698;width:44px">Na mão</div>
+                </div>
+                <div style="padding:10px 12px;border-radius:12px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:9px;color:#8A9698;font-weight:700">LIDO EM 4S</div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px">
+                    <div style="font-size:11px;font-weight:700">Hortifrúti Zona Sul</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">R$ 486,30</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:216px;flex:none;border-radius:30px;background:#F0EEE2;padding:9px;box-shadow:0 26px 56px rgba(22,48,58,.4);transform:rotate(4deg)">
+            <div style="border-radius:23px;overflow:hidden;background:#F0EEE2">
+              <div style="padding:22px 14px 12px;background:#F0EEE2">
+                <div style="font-size:13px;font-weight:800;letter-spacing:-.02em">Contagem de julho</div>
+                <div style="font-size:9px;color:#6A7A7E;margin-top:2px">aberta dia 1º · fecha dia 31</div>
+              </div>
+              <div style="padding:0 11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="padding:11px 12px;border-radius:13px;background:#2E5F73;color:#F7F5EA">
+                  <div style="font-size:8px;font-weight:700;color:rgba(247,245,234,.6);letter-spacing:.08em">VALOR CONTADO</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;white-space:nowrap">R$ 12.418,20</div>
+                </div>
+                <div style="padding:10px 11px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;align-items:center;gap:8px">
+                  <div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700">Grão de bico</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#8A9698">R$ 9,80 / kg</div></div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:13px;color:#2E5F73">−</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;min-width:20px;text-align:center">24</div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:13px">+</div>
+                </div>
+                <div style="padding:10px 11px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;align-items:center;gap:8px">
+                  <div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700">Tahine</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#8A9698">R$ 38,00 / kg</div></div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:13px;color:#2E5F73">−</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;min-width:20px;text-align:center">6</div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:13px">+</div>
+                </div>
+                <div style="padding:10px 11px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;align-items:center;gap:8px">
+                  <div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700">Pão sírio</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#8A9698">R$ 6,50 / pct</div></div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:13px;color:#2E5F73">−</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;min-width:20px;text-align:center">30</div>
+                  <div style="width:24px;height:24px;border-radius:8px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:13px">+</div>
+                </div>
+                <div style="padding:9px 11px;border-radius:12px;background:rgba(46,95,115,.08);font-size:9px;color:#45585D;line-height:1.4">Pode parar no meio e voltar depois — fica salvo.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:16px 56px 70px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Preço</div>
+          <div style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:12px">Menos que um dia de faturamento</div>
+        </div>
+        <div style="font-size:15px;color:#6A7A7E;max-width:380px;line-height:1.5;text-wrap:pretty">14 dias de graça, sem cartão. Cancela quando quiser, leva seus dados junto.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px">
+        <sc-for list="{{ planos }}" as="p" hint-placeholder-count="3">
+          <div style="{{ p.cartao }}">
+            <div style="{{ p.selo }}">{{ p.destaqueTexto }}</div>
+            <div style="{{ p.nome }}">{{ p.titulo }}</div>
+            <div style="{{ p.descricao }}">{{ p.sub }}</div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-top:16px">
+              <div style="{{ p.preco }}">{{ p.valor }}</div>
+              <div style="{{ p.periodo }}">/mês</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+              <sc-for list="{{ p.itens }}" as="i" hint-placeholder-count="5">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="{{ i.marca }}"></div>
+                  <div style="{{ i.texto }}">{{ i.nome }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="{{ p.botao }}">{{ p.cta }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding:16px 56px 80px;display:flex;flex-direction:column;align-items:center;gap:30px">
+      <div style="text-align:center;max-width:720px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Dúvidas</div>
+        <div style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:12px;text-wrap:pretty">O que todo dono pergunta antes de assinar</div>
+        <div style="font-size:16px;color:#6A7A7E;margin-top:14px;line-height:1.55;text-wrap:pretty">Ficou outra coisa na cabeça? Chama no WhatsApp que a gente responde de gente pra gente.</div>
+      </div>
+      <div style="width:100%;max-width:880px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ perguntas }}" as="q" hint-placeholder-count="6">
+          <div style="{{ q.cartao }}">
+            <div onClick="{{ q.alternar }}" style="display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 24px;cursor:pointer">
+              <div style="font-size:17px;font-weight:700;text-align:left">{{ q.titulo }}</div>
+              <div style="{{ q.seta }}"></div>
+            </div>
+            <div style="{{ q.corpo }}">
+              <div style="padding:0 24px 20px;font-size:15px;color:#45585D;line-height:1.55;text-align:left;text-wrap:pretty">{{ q.resposta }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position:relative;overflow:hidden;background:#16303A;padding:80px 56px">
+      <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 36%;filter:saturate(.3) contrast(1.06)">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.8"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.35) 0%,rgba(22,48,58,.9) 100%)"></div>
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:44px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:44px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.08;max-width:620px;text-wrap:pretty">Começa hoje e na segunda você já recebe o primeiro recado</div>
+          <div style="font-size:17px;color:rgba(247,245,234,.8);margin-top:14px;line-height:1.5;max-width:520px;text-wrap:pretty">Cadastro em 40 segundos, sem cartão. Se não valer a pena, você sai levando seus dados.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="padding:19px 34px;border-radius:16px;background:#F7F5EA;color:#1E4354;font-size:17px;font-weight:700;text-align:center;cursor:pointer">Testar de graça por 14 dias</div>
+          <div style="padding:19px 34px;border-radius:16px;background:rgba(247,245,234,.14);border:1px solid rgba(247,245,234,.25);color:#F7F5EA;font-size:17px;font-weight:700;text-align:center;cursor:pointer">Falar no WhatsApp</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#1E4354;padding:44px 56px;display:flex;gap:44px;justify-content:space-between;flex-wrap:wrap">
+      <div style="max-width:300px">
+        <div style="display:flex;align-items:center;gap:11px">
+          <div style="width:28px;height:28px;border-radius:9px;background:#C05437"></div>
+          <div style="font-size:17px;font-weight:800;color:#F7F5EA">Tá no Caixa</div>
+        </div>
+        <div style="font-size:14px;color:rgba(247,245,234,.6);margin-top:12px;line-height:1.5">tanocaixa.com · Rio de Janeiro, RJ. Gestão financeira para quem cozinha.</div>
+        <div style="font-size:12px;color:rgba(247,245,234,.4);margin-top:10px;line-height:1.5">Fotos de cozinha: Pexels (uso livre, sem atribuição obrigatória).</div>
+      </div>
+      <div style="display:flex;gap:56px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(247,245,234,.45)">Produto</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Como funciona</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Preço</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Integrações</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Pro contador</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(247,245,234,.45)">Ajuda</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Central de dúvidas</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">WhatsApp</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Status do sistema</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(247,245,234,.45)">Legal</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Termos de uso</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Privacidade e LGPD</div>
+          <div style="font-size:14px;color:rgba(247,245,234,.75)">Segurança</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="width:430px;flex:none;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#45585D">Mesma página em 430px</div>
+    <div style="width:430px;border-radius:26px;overflow:hidden;background:#F0EEE2;box-shadow:0 40px 90px rgba(22,48,58,.22)">
+
+      <div style="position:relative;overflow:hidden;background:#16303A">
+        <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro visto do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:56% 58%;filter:saturate(.3) contrast(1.06)">
+        <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.55) 0%,rgba(22,48,58,.35) 40%,rgba(22,48,58,.95) 100%)"></div>
+        <div style="position:absolute;top:96px;right:26px;width:112px;height:112px;border-radius:50%;background:#EFAB5C;opacity:.92"></div>
+
+        <div style="position:relative;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:28px;height:28px;border-radius:9px;background:#C05437"></div>
+            <div style="font-size:17px;font-weight:800;color:#F7F5EA;letter-spacing:-.01em">Tá no Caixa</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="font-size:14px;font-weight:700;color:#F7F5EA">Entrar</div>
+            <div style="width:30px;height:22px;display:flex;flex-direction:column;justify-content:center;gap:5px">
+              <div style="height:2px;background:rgba(247,245,234,.85)"></div>
+              <div style="height:2px;background:rgba(247,245,234,.85)"></div>
+              <div style="height:2px;background:rgba(247,245,234,.85)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:relative;padding:34px 20px 30px">
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:11px;background:rgba(247,245,234,.14);color:#F7F5EA;font-size:12px;font-weight:700">
+            <div style="width:7px;height:7px;border-radius:50%;background:#EFAB5C"></div>Feito no Rio, pra restaurante do Rio
+          </div>
+          <div style="font-size:38px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.05;margin-top:18px;text-wrap:pretty">Saber se sobrou dinheiro não pode dar trabalho</div>
+          <div style="font-size:16px;color:rgba(247,245,234,.8);margin-top:14px;line-height:1.5;text-wrap:pretty">Foto da nota, iFood e maquininha entrando sozinhos e um recado toda segunda com o que fazer.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+            <div style="padding:17px;border-radius:15px;background:#C05437;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center;box-shadow:0 10px 22px rgba(192,84,55,.4)">Começar de graça</div>
+            <div style="padding:17px;border-radius:15px;background:rgba(247,245,234,.14);border:1px solid rgba(247,245,234,.25);color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Ver o painel por dentro</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:12px;margin-top:26px">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#EFAB5C">40s</div><div style="font-size:12px;color:rgba(247,245,234,.7);margin-top:2px">pra lançar<br>uma nota</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#EFAB5C">3s</div><div style="font-size:12px;color:rgba(247,245,234,.7);margin-top:2px">pra saber<br>se sobrou</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#EFAB5C">0</div><div style="font-size:12px;color:rgba(247,245,234,.7);margin-top:2px">planilha<br>pra manter</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 20px;display:flex;flex-direction:column;gap:12px;background:#F0EEE2;margin-top:-14px;border-radius:22px 22px 0 0;position:relative">
+        <div style="padding:20px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);box-shadow:0 16px 34px rgba(22,48,58,.08)">
+          <div style="font-size:13px;font-weight:600;color:#6A7A7E">Sobrou até agora · julho</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;color:#2F6B4A;letter-spacing:-.03em;white-space:nowrap">R$ 8.140</div>
+            <div style="font-size:14px;font-weight:700;color:#2F6B4A">+17,2%</div>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:14px">
+            <div style="flex:1;padding:11px 13px;border-radius:13px;background:#E8E6D7"><div style="font-size:11px;font-weight:700;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Entrou</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;margin-top:2px;white-space:nowrap">R$ 47.320</div></div>
+            <div style="flex:1;padding:11px 13px;border-radius:13px;background:#E8E6D7"><div style="font-size:11px;font-weight:700;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Saiu</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;margin-top:2px;white-space:nowrap">R$ 39.180</div></div>
+          </div>
+        </div>
+        <div style="padding:18px 20px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#C05437"></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">Recado de segunda</div>
+          </div>
+          <div style="font-size:15px;color:#3A3327;margin-top:9px;line-height:1.5;text-wrap:pretty">O hortifrúti subiu 12% na semana. Vale pedir preço no Cadeg antes da próxima compra.</div>
+        </div>
+      </div>
+
+      <div style="padding:30px 20px;display:flex;flex-direction:column;gap:16px">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">O problema</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-top:10px;text-wrap:pretty">Todo mundo sabe o que vendeu. Quase ninguém sabe o que sobrou.</div>
+        </div>
+        <div style="position:relative;isolation:isolate;height:210px;border-radius:18px;overflow:hidden;background:#16303A">
+          <img src="https://images.pexels.com/photos/25391579/pexels-photo-25391579.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Cozinheira trabalhando na cozinha do restaurante" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%;filter:saturate(.3) contrast(1.06)">
+          <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.8"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,0) 40%,rgba(22,48,58,.9) 100%)"></div>
+          <div style="position:absolute;left:18px;right:18px;bottom:16px;font-size:14px;color:#F7F5EA;line-height:1.45;text-wrap:pretty">Enquanto o serviço roda, ninguém para pra digitar nota em sistema.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)"><div style="font-size:15px;font-weight:700">A nota fica no bolso do avental</div><div style="font-size:14px;color:#45585D;margin-top:6px;line-height:1.5">Quando chega a hora de digitar, já passou uma semana.</div></div>
+          <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)"><div style="font-size:15px;font-weight:700">O app come a margem calado</div><div style="font-size:14px;color:#45585D;margin-top:6px;line-height:1.5">Cada R$ 100 no iFood viram R$ 73 no seu bolso.</div></div>
+          <div style="padding:18px;border-radius:18px;background:#2E5F73;color:#F7F5EA"><div style="font-size:15px;font-weight:700">Resultado: você opera no escuro</div><div style="font-size:14px;color:rgba(247,245,234,.78);margin-top:6px;line-height:1.5">A gente te avisa no dia 12, não no dia 31.</div></div>
+        </div>
+      </div>
+
+      <div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:14px">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Como funciona</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-top:10px;text-wrap:pretty">Três coisas sozinhas. A quarta leva 40 segundos.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;gap:14px;padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+            <div style="width:34px;height:34px;border-radius:11px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;flex:none">1</div>
+            <div><div style="font-size:15px;font-weight:700">Conecta uma vez</div><div style="font-size:14px;color:#45585D;margin-top:5px;line-height:1.5">iFood, Rappi, maquininha e PDV. Depois o faturamento entra sozinho.</div></div>
+          </div>
+          <div style="display:flex;gap:14px;padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+            <div style="width:34px;height:34px;border-radius:11px;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;flex:none">2</div>
+            <div><div style="font-size:15px;font-weight:700">Tira foto da nota</div><div style="font-size:14px;color:#45585D;margin-top:5px;line-height:1.5">Fornecedor, itens e preços saem prontos em 5 segundos.</div></div>
+          </div>
+          <div style="display:flex;gap:14px;padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+            <div style="width:34px;height:34px;border-radius:11px;background:#EFAB5C;color:#1E4354;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;flex:none">3</div>
+            <div><div style="font-size:15px;font-weight:700">Olha em 3 segundos</div><div style="font-size:14px;color:#45585D;margin-top:5px;line-height:1.5">Entrou, saiu, sobrou e quanto falta pro ponto de equilíbrio.</div></div>
+          </div>
+          <div style="display:flex;gap:14px;padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+            <div style="width:34px;height:34px;border-radius:11px;background:#2F6B4A;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;flex:none">4</div>
+            <div><div style="font-size:15px;font-weight:700">Recebe o recado de segunda</div><div style="font-size:14px;color:#45585D;margin-top:5px;line-height:1.5">Uma coisa só pra fazer na semana. No WhatsApp quando estoura um teto.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;background:#16303A;padding:34px 20px">
+        <img src="uploads/pasted-1785209420737-0.png" alt="Bondinho de Santa Teresa" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;filter:saturate(.3) contrast(1.06)">
+        <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.88"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.75) 0%,rgba(22,48,58,.92) 100%)"></div>
+        <div style="position:relative">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(247,245,234,.6)">O que você vê</div>
+          <div style="font-size:28px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.12;margin-top:10px;text-wrap:pretty">Os quatro números que mandam no seu restaurante</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:20px">
+            <div style="padding:16px;border-radius:16px;background:#FBFAF2"><div style="font-size:12px;color:#6A7A7E;font-weight:600">Custo da comida</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#B4462F;margin-top:3px">30,9%</div><div style="font-size:12px;color:#45585D;margin-top:5px;line-height:1.4">Passou o teto de 30%.</div></div>
+            <div style="padding:16px;border-radius:16px;background:#FBFAF2"><div style="font-size:12px;color:#6A7A7E;font-weight:600">Ponto de equilíbrio</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#2F6B4A;margin-top:3px;white-space:nowrap">R$ 41.400</div><div style="font-size:12px;color:#45585D;margin-top:5px;line-height:1.4">Virou no dia 21.</div></div>
+            <div style="padding:16px;border-radius:16px;background:#FBFAF2"><div style="font-size:12px;color:#6A7A7E;font-weight:600">Peso dos apps</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#B4462F;margin-top:3px">15,5%</div><div style="font-size:12px;color:#45585D;margin-top:5px;line-height:1.4">R$ 7.340 em taxas.</div></div>
+            <div style="padding:16px;border-radius:16px;background:#FBFAF2"><div style="font-size:12px;color:#6A7A7E;font-weight:600">Custo da equipe</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#2F6B4A;margin-top:3px">23,0%</div><div style="font-size:12px;color:#45585D;margin-top:5px;line-height:1.4">Dentro do combinado.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;background:#1E4354;padding:34px 20px">
+        <div style="position:absolute;top:-50px;right:-30px;width:180px;height:180px;border-radius:50%;background:#EFAB5C;opacity:.16"></div>
+        <div style="position:relative">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(247,245,234,.55)">No bolso</div>
+          <div style="font-size:28px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.12;margin-top:10px;text-wrap:pretty">Baixe o app e lance a nota ali mesmo, no balcão</div>
+          <div style="font-size:15px;color:rgba(247,245,234,.78);margin-top:12px;line-height:1.5;text-wrap:pretty">A câmera abre direto no app e a contagem de estoque cabe em uma mão. Sem sinal, ele guarda e manda depois.</div>
+
+          <div style="display:flex;justify-content:center;margin:22px 0 20px">
+            <div style="width:210px;border-radius:28px;background:#F0EEE2;padding:8px;box-shadow:0 26px 56px rgba(22,48,58,.45)">
+              <div style="border-radius:22px;overflow:hidden;background:#12222A">
+                <div style="position:relative;height:200px;background:#16303A">
+                  <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0 9px,transparent 9px 18px)"></div>
+                  <div style="position:absolute;top:14px;left:14px;width:24px;height:24px;border-top:3px solid #C05437;border-left:3px solid #C05437;border-radius:7px 0 0 0"></div>
+                  <div style="position:absolute;top:14px;right:14px;width:24px;height:24px;border-top:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 7px 0 0"></div>
+                  <div style="position:absolute;bottom:14px;left:14px;width:24px;height:24px;border-bottom:3px solid #C05437;border-left:3px solid #C05437;border-radius:0 0 0 7px"></div>
+                  <div style="position:absolute;bottom:14px;right:14px;width:24px;height:24px;border-bottom:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 0 7px 0"></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 26px">
+                    <div style="font-size:12px;color:#F7F5EA;font-weight:600;line-height:1.4">Aponta pra nota inteira,<br>mesmo torta que a gente lê</div>
+                  </div>
+                </div>
+                <div style="background:#F0EEE2;padding:14px 12px;display:flex;align-items:center;justify-content:center;gap:16px">
+                  <div style="font-size:9px;color:#8A9698;width:40px;text-align:right">Galeria</div>
+                  <div style="width:46px;height:46px;border-radius:50%;background:#C05437;border:4px solid #FBFAF2;box-shadow:0 0 0 2px #C05437"></div>
+                  <div style="font-size:9px;color:#8A9698;width:40px">Na mão</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 20px;border-radius:14px;background:#F7F5EA">
+              <div style="width:24px;height:28px;border-radius:8px 8px 9px 9px;background:#1C2A2E;flex:none"></div>
+              <div><div style="font-size:11px;color:#45585D">Baixe na</div><div style="font-size:17px;font-weight:700;color:#1C2A2E;line-height:1.15">App Store</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 20px;border-radius:14px;background:#F7F5EA">
+              <div style="width:24px;height:26px;border-radius:5px;background:linear-gradient(135deg,#2F6B4A 0%,#EFAB5C 50%,#C05437 100%);flex:none"></div>
+              <div><div style="font-size:11px;color:#45585D">Disponível no</div><div style="font-size:17px;font-weight:700;color:#1C2A2E;line-height:1.15">Google Play</div></div>
+            </div>
+          </div>
+          <div style="font-size:13px;color:rgba(247,245,234,.65);margin-top:14px;line-height:1.5;text-wrap:pretty">Prefere não instalar nada? Funciona igual no navegador do celular.</div>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;min-height:290px;background:#16303A;display:flex;align-items:flex-end;padding:24px 20px">
+        <img src="https://images.pexels.com/photos/16849778/pexels-photo-16849778.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Dona de restaurante trabalhando no salão" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:saturate(.3) contrast(1.06)">
+        <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.15) 25%,rgba(22,48,58,.94) 100%)"></div>
+        <div style="position:relative">
+          <div style="font-size:17px;font-weight:700;color:#F7F5EA;line-height:1.45;text-wrap:pretty">"Descobri que o delivery de sexta era o pedido que menos me dava dinheiro. Mudei o cardápio do app e sobraram R$ 2.300 a mais."</div>
+          <div style="display:flex;align-items:center;gap:11px;margin-top:14px">
+            <div style="width:34px;height:34px;border-radius:50%;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">H</div>
+            <div><div style="font-size:13px;font-weight:700;color:#F7F5EA">Halim Nassar</div><div style="font-size:12px;color:rgba(247,245,234,.7)">Zaatar Cozinha Árabe · Botafogo</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:30px 20px;display:flex;flex-direction:column;gap:16px">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Preço</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-top:10px">Menos que um dia de faturamento</div>
+          <div style="font-size:14px;color:#6A7A7E;margin-top:10px;line-height:1.5;text-wrap:pretty">14 dias de graça, sem cartão. Cancela quando quiser.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <sc-for list="{{ planos }}" as="p" hint-placeholder-count="3">
+            <div style="{{ p.cartao }}">
+              <div style="{{ p.selo }}">{{ p.destaqueTexto }}</div>
+              <div style="{{ p.nome }}">{{ p.titulo }}</div>
+              <div style="{{ p.descricao }}">{{ p.sub }}</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-top:14px">
+                <div style="{{ p.preco }}">{{ p.valor }}</div>
+                <div style="{{ p.periodo }}">/mês</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+                <sc-for list="{{ p.itens }}" as="i" hint-placeholder-count="5">
+                  <div style="display:flex;gap:10px;align-items:flex-start">
+                    <div style="{{ i.marca }}"></div>
+                    <div style="{{ i.texto }}">{{ i.nome }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="{{ p.botao }}">{{ p.cta }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:14px">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Dúvidas</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-top:10px;text-wrap:pretty">O que todo dono pergunta antes de assinar</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ perguntas }}" as="q" hint-placeholder-count="6">
+            <div style="{{ q.cartao }}">
+              <div onClick="{{ q.alternar }}" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 18px;cursor:pointer">
+                <div style="font-size:15px;font-weight:700;text-align:left">{{ q.titulo }}</div>
+                <div style="{{ q.seta }}"></div>
+              </div>
+              <div style="{{ q.corpo }}">
+                <div style="padding:0 18px 17px;font-size:14px;color:#45585D;line-height:1.55;text-align:left;text-wrap:pretty">{{ q.resposta }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="position:relative;overflow:hidden;background:#16303A;padding:40px 20px">
+        <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 36%;filter:saturate(.3) contrast(1.06)">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.8"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.3) 0%,rgba(22,48,58,.92) 100%)"></div>
+        <div style="position:relative">
+          <div style="font-size:32px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.08;text-wrap:pretty">Começa hoje e na segunda já chega o primeiro recado</div>
+          <div style="font-size:15px;color:rgba(247,245,234,.8);margin-top:12px;line-height:1.5;text-wrap:pretty">Cadastro em 40 segundos, sem cartão. Se não valer a pena, você sai levando seus dados.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+            <div style="padding:17px;border-radius:15px;background:#F7F5EA;color:#1E4354;font-size:16px;font-weight:700;text-align:center">Testar de graça por 14 dias</div>
+            <div style="padding:17px;border-radius:15px;background:rgba(247,245,234,.14);border:1px solid rgba(247,245,234,.25);color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Falar no WhatsApp</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1E4354;padding:28px 20px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:26px;height:26px;border-radius:9px;background:#C05437"></div>
+          <div style="font-size:16px;font-weight:800;color:#F7F5EA">Tá no Caixa</div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Como funciona</div>
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Preço</div>
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Integrações</div>
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Ajuda</div>
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Termos</div>
+          <div style="font-size:13px;color:rgba(247,245,234,.7)">Privacidade e LGPD</div>
+        </div>
+        <div style="font-size:12px;color:rgba(247,245,234,.45);line-height:1.5">tanocaixa.com · Rio de Janeiro, RJ. Fotos de cozinha: Pexels.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;planoDestacado&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sozinho&quot;,&quot;loja&quot;,&quot;rede&quot;],&quot;default&quot;:&quot;loja&quot;,&quot;tsType&quot;:&quot;'sozinho' | 'loja' | 'rede'&quot;,&quot;section&quot;:&quot;Página&quot;}}">
+const PLANOS = [
+  {
+    id: 'sozinho', titulo: 'Cozinha só', sub: 'Uma loja, você tocando sozinho', valor: 'R$ 79',
+    cta: 'Começar de graça',
+    itens: ['Painel, despesas e estoque', 'Foto de nota com leitura por IA (60/mês)', 'Uma integração de delivery', 'Resumo semanal por e-mail', '1 pessoa']
+  },
+  {
+    id: 'loja', titulo: 'Casa cheia', sub: 'Uma loja com equipe e gerente', valor: 'R$ 149',
+    cta: 'Testar 14 dias de graça', destaque: true,
+    itens: ['Tudo do plano anterior', 'Notas por foto sem limite', 'Todas as integrações e maquininhas', 'Plano do mês, DRE e exportação pro contador', 'Alerta de teto no WhatsApp', 'Até 5 pessoas com papéis']
+  },
+  {
+    id: 'rede', titulo: 'Mais de uma casa', sub: 'De 2 a 5 lojas, com visão junta', valor: 'R$ 299',
+    cta: 'Falar com a gente',
+    itens: ['Tudo do plano anterior', 'Comparativo entre lojas', 'Transferência de estoque', 'Usuários sem limite', 'Suporte no WhatsApp em até 2h']
+  }
+];
+
+const FAQ = [
+  { q: 'Preciso trocar meu sistema de PDV?', a: 'Não. A gente conversa com o que você já usa. Se não der pra conectar, o fechamento do dia leva 20 segundos na mão.' },
+  { q: 'Meu contador some com isso?', a: 'Pelo contrário: ele recebe o DRE em PDF, a planilha e os XMLs das notas todo dia 5, automático.' },
+  { q: 'E se a foto da nota sair torta?', a: 'Tudo bem. A leitura funciona com nota amassada, torta e cupom pequeno. O que ficar duvidoso vem marcado pra você conferir.' },
+  { q: 'Minha equipe vai ver quanto eu lucro?', a: 'Só se você deixar. O gerente vê custo de mercadoria e estoque; lucro, folha e faturamento total ficam com o dono.' },
+  { q: 'Funciona no celular?', a: 'Funciona no navegador do celular, do tablet e do computador. Sem internet no estoque, ele salva e manda quando o sinal voltar.' },
+  { q: 'Meus números ficam seguros?', a: 'Criptografados e dentro da LGPD. Dá pra baixar tudo ou apagar tudo quando quiser, sem pedir por favor.' }
+];
+
+class Component extends DCLogic {
+  state = { faqAberta: 0 };
+
+  renderVals() {
+    const escolhido = this.props.planoDestacado || 'loja';
+    const aberta = this.state.faqAberta;
+    return {
+      perguntas: FAQ.map((item, i) => {
+        const on = i === aberta;
+        return {
+          titulo: item.q, resposta: item.a,
+          cartao: 'border-radius:18px;overflow:hidden;background:#FBFAF2;transition:box-shadow .25s ease,border-color .25s ease;border:1px solid '
+            + (on ? 'rgba(46,95,115,.3);box-shadow:0 14px 30px rgba(22,48,58,.1)' : 'rgba(46,95,115,.1)'),
+          seta: 'width:11px;height:11px;flex:none;border-right:2.5px solid #2E5F73;border-bottom:2.5px solid #2E5F73;transition:transform .25s ease;transform:rotate('
+            + (on ? '-135deg) translate(-3px,-3px)' : '45deg) translateY(-3px)'),
+          corpo: 'overflow:hidden;transition:max-height .3s ease,opacity .25s ease;max-height:' + (on ? '260px' : '0px') + ';opacity:' + (on ? '1' : '0'),
+          alternar: () => this.setState(s => ({ faqAberta: s.faqAberta === i ? -1 : i }))
+        };
+      }),
+      planos: PLANOS.map(p => {
+        const on = p.id === escolhido;
+        return {
+          titulo: p.titulo, sub: p.sub, valor: p.valor, cta: p.cta,
+          destaqueTexto: on ? 'O mais escolhido' : '',
+          cartao: 'position:relative;display:flex;flex-direction:column;padding:26px;border-radius:22px;'
+            + (on ? 'background:#2E5F73;color:#F7F5EA;box-shadow:0 24px 50px rgba(22,48,58,.24)'
+                  : 'background:#FBFAF2;border:1px solid rgba(46,95,115,.12)'),
+          selo: on
+            ? 'position:absolute;top:-13px;left:26px;padding:6px 13px;border-radius:10px;background:#EFAB5C;color:#1E4354;font-size:12px;font-weight:700'
+            : 'display:none',
+          nome: 'font-size:20px;font-weight:800;letter-spacing:-.02em;color:' + (on ? '#F7F5EA' : '#1C2A2E'),
+          descricao: 'font-size:14px;margin-top:4px;color:' + (on ? 'rgba(247,245,234,.72)' : '#6A7A7E'),
+          preco: "font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;letter-spacing:-.03em;color:" + (on ? '#F7F5EA' : '#1C2A2E'),
+          periodo: 'font-size:14px;color:' + (on ? 'rgba(247,245,234,.65)' : '#8A9698'),
+          botao: 'margin-top:auto;padding:16px;border-radius:15px;font-size:15px;font-weight:700;text-align:center;cursor:pointer;'
+            + (on ? 'background:#C05437;color:#F7F5EA;box-shadow:0 10px 22px rgba(192,84,55,.35)' : 'background:#E8E6D7;color:#1E4354'),
+          itens: p.itens.map(nome => ({
+            nome,
+            marca: 'width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none;background:' + (on ? '#EFAB5C' : '#2F6B4A'),
+            texto: 'font-size:14px;line-height:1.5;color:' + (on ? 'rgba(247,245,234,.85)' : '#45585D')
+          }))
+        };
+      })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

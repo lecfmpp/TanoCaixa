@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/auth/AuthContext'
 
 export function EntrarPage() {
-  const { entrarComEmail, entrarDemo } = useAuth()
+  const { entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
   const navegar = useNavigate()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -105,7 +105,18 @@ export function EntrarPage() {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <Button variante="secundario" bloco>
+        <Button
+          variante="secundario"
+          bloco
+          onClick={async () => {
+            try {
+              await entrarComGoogle()
+              navegar('/painel')
+            } catch {
+              setErro('Login com Google indisponível — habilite o provedor no Firebase.')
+            }
+          }}
+        >
           Continuar com Google
         </Button>
         <Button variante="secundario" bloco>

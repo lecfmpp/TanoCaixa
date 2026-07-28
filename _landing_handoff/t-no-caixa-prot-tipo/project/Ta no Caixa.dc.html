@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#CDCCB8; font-family:'Archivo',system-ui,sans-serif; color:#1C2A2E; -webkit-font-smoothing:antialiased; }
+  a { color:#2E5F73; text-decoration:none; border-bottom:1px solid rgba(46,95,115,.35); }
+  a:hover { color:#C05437; border-bottom-color:rgba(232,112,58,.5); }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+
+<section style="padding:56px 56px 96px;display:flex;flex-direction:column;gap:36px">
+
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+    <div style="display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 10px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;letter-spacing:.04em">1a</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1">Tá no Caixa <span style="color:#8A9698;font-weight:500">· Zaatar Cozinha Árabe</span></div>
+      <div style="font-size:15px;color:#6A7A7E;max-width:660px;text-wrap:pretty">App mobile-first pro dono e pro gerente: dá pra ver se sobrou dinheiro em 3 segundos e lançar uma nota em menos de 1 minuto. Painel no computador e resumo semanal por e-mail ao lado.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:44px;align-items:flex-start;flex-wrap:wrap">
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Celular · protótipo clicável</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;display:flex;flex-direction:column;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif">
+
+          <div style="position:relative;overflow:hidden;flex:none;padding:60px 18px 18px;background:linear-gradient(158deg,#2E5F73 0%,#1E4354 100%)">
+            <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro visto do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(22,48,58,.9) 0%,rgba(22,48,58,.35) 58%,rgba(22,48,58,.55) 100%)"></div>
+            <div style="position:absolute;top:22px;right:22px;width:96px;height:96px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+            <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-size:19px;font-weight:700;color:#F7F5EA;letter-spacing:-.01em">Zaatar Cozinha Árabe</div>
+                <div style="font-size:13px;color:rgba(246,242,234,.6)">Julho de 2026 · dia 27 de 31</div>
+              </div>
+              <div style="display:flex;padding:3px;border-radius:11px;background:rgba(255,255,255,.12)">
+                <div onClick="{{ verDono }}" style="{{ abaDono }}">Dono</div>
+                <div onClick="{{ verGerente }}" style="{{ abaGerente }}">Gerente</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;overflow:auto;padding:16px 16px 24px">
+
+            <sc-if value="{{ telaInicio }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+
+                <sc-if value="{{ ehDono }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);box-shadow:0 10px 24px rgba(46,95,115,.06)">
+                      <div style="font-size:13px;font-weight:600;color:#6A7A7E;letter-spacing:.01em">Sobrou até agora</div>
+                      <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;color:#2F6B4A;letter-spacing:-.03em">R$ 8.140</div>
+                        <div style="font-size:14px;font-weight:700;color:#2F6B4A">+17,2%</div>
+                      </div>
+                      <div style="margin-top:12px;display:flex;gap:8px">
+                        <div style="flex:1;padding:10px 12px;border-radius:13px;background:#E8E6D7">
+                          <div style="font-size:11px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Entrou</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;margin-top:2px">R$ 47.320</div>
+                        </div>
+                        <div style="flex:1;padding:10px 12px;border-radius:13px;background:#E8E6D7">
+                          <div style="font-size:11px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Saiu</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;margin-top:2px">R$ 39.180</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="padding:18px;border-radius:20px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+                      <div style="position:absolute;top:-40px;right:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(239,171,92,.75) 0%,rgba(239,171,92,0) 70%)"></div>
+                      <div style="position:relative">
+                        <div style="font-size:13px;font-weight:600;color:rgba(246,242,234,.65)">Ponto de equilíbrio</div>
+                        <div style="font-size:17px;font-weight:700;margin-top:6px;line-height:1.35;text-wrap:pretty">Você virou o jogo no dia 21. Daqui pra frente é lucro.</div>
+                        <div style="margin-top:14px;height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden">
+                          <div style="width:87%;height:100%;border-radius:4px;background:linear-gradient(90deg,#C05437,#EFAB5C)"></div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(246,242,234,.7)">
+                          <div>precisa: R$ 41.400</div>
+                          <div>já fez: R$ 47.320</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ ehGerente }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:13px;font-weight:600;color:#6A7A7E">Custo de mercadoria (CMV) do mês</div>
+                      <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;color:#B4462F;letter-spacing:-.03em">30,9%</div>
+                        <div style="font-size:14px;font-weight:700;color:#B4462F">teto 30%</div>
+                      </div>
+                      <div style="margin-top:10px;font-size:14px;color:#45585D;line-height:1.45;text-wrap:pretty">Passou 0,9 ponto do combinado. Segura a mão nas compras de hortifrúti até dia 31.</div>
+                    </div>
+                    <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:13px;font-weight:700;color:#1C2A2E">Suas tarefas de hoje</div>
+                      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+                        <div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border-radius:6px;border:2px solid #C05437"></div><div style="font-size:14px">Contagem de estoque — faltam 26 itens</div></div>
+                        <div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border-radius:6px;border:2px solid #C05437"></div><div style="font-size:14px">Lançar a nota do Hortifrúti Zona Sul</div></div>
+                        <div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border-radius:6px;background:#2F6B4A"></div><div style="font-size:14px;color:#8A9698;text-decoration:line-through">Fechamento de caixa de ontem</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between">
+                    <div style="font-size:14px;font-weight:700">De onde vem o dinheiro</div>
+                    <div style="font-size:12px;color:#8A9698">mês até hoje</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:600">iFood</div><div style="font-family:'JetBrains Mono',monospace;color:#45585D">R$ 27.446 · 58%</div></div>
+                      <div style="height:9px;border-radius:5px;background:#E1DFCE;overflow:hidden"><div style="width:58%;height:100%;background:#C05437;border-radius:5px"></div></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:600">WhatsApp / site próprio</div><div style="font-family:'JetBrains Mono',monospace;color:#45585D">R$ 10.410 · 22%</div></div>
+                      <div style="height:9px;border-radius:5px;background:#E1DFCE;overflow:hidden"><div style="width:22%;height:100%;background:#2E5F73;border-radius:5px"></div></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:600">Rappi</div><div style="font-family:'JetBrains Mono',monospace;color:#45585D">R$ 5.678 · 12%</div></div>
+                      <div style="height:9px;border-radius:5px;background:#E1DFCE;overflow:hidden"><div style="width:12%;height:100%;background:#EFAB5C;border-radius:5px"></div></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:600">Balcão / retirada</div><div style="font-family:'JetBrains Mono',monospace;color:#45585D">R$ 3.786 · 8%</div></div>
+                      <div style="height:9px;border-radius:5px;background:#E1DFCE;overflow:hidden"><div style="width:8%;height:100%;background:#8A9698;border-radius:5px"></div></div>
+                    </div>
+                  </div>
+                  <div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(46,95,115,.18);font-size:12px;color:#8A9698">Puxado automático do iFood, Rappi e da maquininha. Você não digita nada.</div>
+                </div>
+
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Onde tá indo</div>
+                  <div style="display:flex;flex-direction:column;gap:2px;margin-top:12px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7">
+                      <div style="font-size:14px;font-weight:600">Mercadoria (CMV)</div>
+                      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 14.640</div><div style="padding:3px 9px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:12px;font-weight:700">30,9%</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7">
+                      <div style="font-size:14px;font-weight:600">Pessoal</div>
+                      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 10.900</div><div style="padding:3px 9px;border-radius:9px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:12px;font-weight:700">23,0%</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7">
+                      <div style="font-size:14px;font-weight:600">Taxas de app e maquininha</div>
+                      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 7.340</div><div style="padding:3px 9px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:12px;font-weight:700">15,5%</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0">
+                      <div style="font-size:14px;font-weight:600">Aluguel, luz, gás e água</div>
+                      <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 6.300</div><div style="padding:3px 9px;border-radius:9px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:12px;font-weight:700">13,3%</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <sc-if value="{{ mostrarInsight }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:18px;border-radius:20px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3)">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:9px;height:9px;border-radius:50%;background:#C05437"></div>
+                      <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">Recado da semana</div>
+                    </div>
+                    <div style="margin-top:10px;font-size:15px;line-height:1.5;color:#3A3327;text-wrap:pretty">O hortifrúti subiu <b>12%</b> em relação à semana passada — quem puxou foi o tomate e a berinjela. Vale pedir preço no Zé do Cadeg antes da próxima compra, ou subir R$ 2 no Beirute e no Kafta Plate.</div>
+                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                      <div style="padding:9px 14px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:600">Ver os itens que subiram</div>
+                      <div style="padding:9px 14px;border-radius:12px;background:rgba(46,95,115,.08);color:#2E5F73;font-size:13px;font-weight:600">Depois eu vejo</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaLancar }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">O que você quer lançar?</div>
+                <div style="font-size:14px;color:#6A7A7E;margin-top:-8px">Leva menos de um minuto. Escolhe aí:</div>
+
+                <div onClick="{{ abrirFoto }}" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:#2E5F73;color:#F7F5EA;cursor:pointer">
+                  <div style="width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center">
+                    <div style="width:20px;height:15px;border:2px solid #F7F5EA;border-radius:4px;display:flex;align-items:center;justify-content:center"><div style="width:7px;height:7px;border-radius:50%;border:2px solid #F7F5EA"></div></div>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:16px;font-weight:700">Nota do fornecedor</div>
+                    <div style="font-size:13px;color:rgba(246,242,234,.65)">Tira a foto que a gente lê pra você</div>
+                  </div>
+                  <div style="width:9px;height:9px;border-top:2px solid rgba(246,242,234,.6);border-right:2px solid rgba(246,242,234,.6);transform:rotate(45deg)"></div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div onClick="{{ irAvulsa }}" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);cursor:pointer">
+                    <div style="width:44px;height:44px;border-radius:14px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;color:#2E5F73">R$</div>
+                    <div style="flex:1">
+                      <div style="font-size:16px;font-weight:700">Despesa avulsa</div>
+                      <div style="font-size:13px;color:#8A9698">Gás, gelo, feira, conserto</div>
+                    </div>
+                    <div style="width:9px;height:9px;border-top:2px solid #AEB9B8;border-right:2px solid #AEB9B8;transform:rotate(45deg)"></div>
+                  </div>
+                  <div onClick="{{ irFechamento }}" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);cursor:pointer">
+                    <div style="width:44px;height:44px;border-radius:14px;background:#E8E6D7;display:flex;align-items:center;justify-content:center"><div style="width:18px;height:18px;border-radius:5px;border:2px solid #2E5F73"></div></div>
+                    <div style="flex:1">
+                      <div style="font-size:16px;font-weight:700">Fechamento do dia</div>
+                      <div style="font-size:13px;color:#8A9698">Já veio do iFood e da maquininha — só confirmar</div>
+                    </div>
+                    <div style="padding:4px 10px;border-radius:10px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:12px;font-weight:700">pronto</div>
+                  </div>
+                  <div onClick="{{ irEstoque }}" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);cursor:pointer">
+                    <div style="width:44px;height:44px;border-radius:14px;background:#E8E6D7;display:flex;align-items:center;justify-content:center"><div style="width:18px;height:18px;border-radius:50%;border:2px solid #2E5F73"></div></div>
+                    <div style="flex:1">
+                      <div style="font-size:16px;font-weight:700">Contagem de estoque</div>
+                      <div style="font-size:13px;color:#8A9698">Aberta desde dia 1º · faltam 26 itens</div>
+                    </div>
+                    <div style="width:9px;height:9px;border-top:2px solid #AEB9B8;border-right:2px solid #AEB9B8;transform:rotate(45deg)"></div>
+                  </div>
+                </div>
+
+                <div style="margin-top:6px;font-size:13px;font-weight:700;color:#8A9698;letter-spacing:.08em;text-transform:uppercase">Últimos lançamentos</div>
+                <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div><div style="font-size:14px;font-weight:600">Frigorífico Salomão</div><div style="font-size:12px;color:#8A9698">ontem · Mercadoria</div></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 1.284,00</div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div><div style="font-size:14px;font-weight:600">Gás — Ultragaz (2 P45)</div><div style="font-size:12px;color:#8A9698">25/07 · Ocupação</div></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 720,00</div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px">
+                    <div><div style="font-size:14px;font-weight:600">Embalagens Delivery RJ</div><div style="font-size:12px;color:#8A9698">24/07 · Mercadoria</div></div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 468,90</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaEstoque }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div>
+                    <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Contagem de julho</div>
+                    <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Aberta dia 1º · fecha dia 31</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+                    <div style="padding:5px 11px;border-radius:11px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700;white-space:nowrap">em aberto</div>
+                    <div onClick="{{ irProdutos }}" style="font-size:13px;font-weight:700;color:#2E5F73;cursor:pointer;white-space:nowrap">Produtos →</div>
+                  </div>
+                </div>
+
+                <div style="padding:16px 18px;border-radius:18px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <div>
+                    <div style="font-size:12px;color:rgba(246,242,234,.6);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Valor contado</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:3px">{{ totalEstoque }}</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-size:12px;color:rgba(246,242,234,.6)">{{ contados }}</div>
+                    <div style="font-size:12px;color:rgba(246,242,234,.6)">mês passado: R$ 11.870</div>
+                  </div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ itens }}" as="item" hint-placeholder-count="6">
+                    <div style="padding:14px 16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                        <div style="flex:1;min-width:0">
+                          <div style="font-size:15px;font-weight:700;line-height:1.25">{{ item.nome }}</div>
+                          <div style="font-size:12px;color:#8A9698;margin-top:3px;font-family:'JetBrains Mono',monospace">{{ item.custo }} / {{ item.un }}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px">
+                          <div onClick="{{ item.menos }}" style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;font-weight:600;color:#2E5F73;user-select:none">−</div>
+                          <div style="min-width:52px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700">{{ item.qtd }}</div>
+                          <div onClick="{{ item.mais }}" style="width:40px;height:40px;border-radius:13px;background:#2E5F73;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;font-weight:600;color:#F7F5EA;user-select:none">+</div>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="padding:14px 16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Conta na ordem que você anda pelo estoque. Pode parar no meio e voltar depois — fica salvo.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaPlano }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">O plano do mês</div>
+                  <div style="font-size:13px;color:#6A7A7E;margin-top:2px">O que você combinou × o que tá acontecendo</div>
+                </div>
+                <div style="display:flex;padding:3px;border-radius:12px;background:#E8E6D7">
+                  <div style="flex:1;text-align:center;padding:9px;border-radius:10px;background:#FBFAF2;color:#1E4354;font-size:13px;font-weight:700">Plano</div>
+                  <div onClick="{{ irNumeros }}" style="flex:1;text-align:center;padding:9px;border-radius:10px;color:#6A7A7E;font-size:13px;font-weight:700;cursor:pointer">Números</div>
+                </div>
+
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <div style="font-size:14px;font-weight:700">Meta de faturamento</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#45585D">R$ 50.000</div>
+                  </div>
+                  <div style="margin-top:12px;height:12px;border-radius:6px;background:#E1DFCE;overflow:hidden"><div style="width:94.6%;height:100%;border-radius:6px;background:linear-gradient(90deg,#2E5F73,#2F6B4A)"></div></div>
+                  <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:700;color:#2F6B4A">R$ 47.320 feitos · 95%</div><div style="color:#8A9698">faltam R$ 2.680 em 4 dias</div></div>
+                </div>
+
+                <div style="border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                  <div style="display:flex;padding:12px 16px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">
+                    <div style="flex:1.5">Categoria</div><div style="flex:1;text-align:right">Teto</div><div style="flex:1;text-align:right">Tá em</div><div style="width:74px;text-align:right">Situação</div>
+                  </div>
+                  <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div style="flex:1.5;font-size:14px;font-weight:600">Mercadoria</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">30%</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">30,9%</div>
+                    <div style="width:74px;display:flex;justify-content:flex-end"><div style="padding:3px 9px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">estourou</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div style="flex:1.5;font-size:14px;font-weight:600">Pessoal</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">25%</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">23,0%</div>
+                    <div style="width:74px;display:flex;justify-content:flex-end"><div style="padding:3px 9px;border-radius:9px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:11px;font-weight:700">tranquilo</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div style="flex:1.5;font-size:14px;font-weight:600">Taxas de app</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">12%</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">15,5%</div>
+                    <div style="width:74px;display:flex;justify-content:flex-end"><div style="padding:3px 9px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">estourou</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                    <div style="flex:1.5;font-size:14px;font-weight:600">Ocupação</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">15%</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">13,3%</div>
+                    <div style="width:74px;display:flex;justify-content:flex-end"><div style="padding:3px 9px;border-radius:9px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:11px;font-weight:700">tranquilo</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;padding:14px 16px">
+                    <div style="flex:1.5;font-size:14px;font-weight:700">Sobra</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">18%</div>
+                    <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#2F6B4A">17,2%</div>
+                    <div style="width:74px;display:flex;justify-content:flex-end"><div style="padding:3px 9px;border-radius:9px;background:rgba(239,171,92,.3);color:#8A5A28;font-size:11px;font-weight:700">quase lá</div></div>
+                  </div>
+                </div>
+
+                <div style="padding:16px 18px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">Onde a margem tá vazando: <b>taxa de app</b>. Cada R$ 100 no iFood viram R$ 73 no seu bolso. Empurrar 10% dos pedidos pro WhatsApp devolve uns <b>R$ 1.100</b> por mês.</div>
+                <div onClick="{{ irWizard }}" style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Montar o plano de agosto</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ fluxoFoto }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+
+                <sc-if value="{{ fotoPasso1 }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:16px">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <div onClick="{{ irLancar }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">← Voltar</div>
+                      <div style="font-size:13px;color:#8A9698">Passo 1 de 3</div>
+                    </div>
+                    <div style="position:relative;border-radius:22px;overflow:hidden;background:#16303A;height:400px;display:flex;align-items:center;justify-content:center">
+                      <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 10px,transparent 10px 20px)"></div>
+                      <div style="position:absolute;top:24px;left:24px;width:38px;height:38px;border-top:3px solid #C05437;border-left:3px solid #C05437;border-radius:8px 0 0 0"></div>
+                      <div style="position:absolute;top:24px;right:24px;width:38px;height:38px;border-top:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 8px 0 0"></div>
+                      <div style="position:absolute;bottom:24px;left:24px;width:38px;height:38px;border-bottom:3px solid #C05437;border-left:3px solid #C05437;border-radius:0 0 0 8px"></div>
+                      <div style="position:absolute;bottom:24px;right:24px;width:38px;height:38px;border-bottom:3px solid #C05437;border-right:3px solid #C05437;border-radius:0 0 8px 0"></div>
+                      <div style="position:relative;text-align:center;padding:0 40px">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(246,242,234,.5);letter-spacing:.08em">[ câmera do celular ]</div>
+                        <div style="margin-top:10px;font-size:16px;color:#F7F5EA;font-weight:600;line-height:1.4">Aponta pra nota inteira,<br>mesmo torta que a gente lê</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:24px">
+                      <div style="font-size:13px;color:#8A9698;width:70px;text-align:right">Galeria</div>
+                      <div onClick="{{ tirarFoto }}" style="width:74px;height:74px;border-radius:50%;background:#C05437;border:5px solid #FBFAF2;box-shadow:0 0 0 2px #C05437;cursor:pointer"></div>
+                      <div style="font-size:13px;color:#8A9698;width:70px">Digitar na mão</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ fotoPasso2 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:120px 20px;text-align:center">
+                    <div style="width:64px;height:64px;border-radius:50%;border:4px solid rgba(46,95,115,.15);border-top-color:#C05437;animation:girar 1s linear infinite"></div>
+                    <div style="font-size:19px;font-weight:700">Lendo sua nota…</div>
+                    <div style="font-size:14px;color:#6A7A7E;max-width:250px;line-height:1.5">Tirando fornecedor, valores e itens. Uns 5 segundinhos.</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ fotoPasso3 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <div onClick="{{ irLancar }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">← Voltar</div>
+                      <div style="font-size:13px;color:#8A9698">Passo 2 de 3</div>
+                    </div>
+                    <div>
+                      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Confere se tá certo</div>
+                      <div style="font-size:14px;color:#6A7A7E;margin-top:2px">Toca em qualquer linha pra corrigir.</div>
+                    </div>
+                    <div style="border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                      <div style="padding:14px 16px;border-bottom:1px solid #E8E6D7;display:flex;justify-content:space-between;align-items:center">
+                        <div><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Fornecedor</div><div style="font-size:16px;font-weight:700;margin-top:3px">Hortifrúti Zona Sul</div></div>
+                        <div style="padding:3px 9px;border-radius:9px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:11px;font-weight:700">novo</div>
+                      </div>
+                      <div style="display:flex;border-bottom:1px solid #E8E6D7">
+                        <div style="flex:1;padding:14px 16px;border-right:1px solid #E8E6D7"><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Data</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;margin-top:3px">26/07/2026</div></div>
+                        <div style="flex:1;padding:14px 16px"><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Total</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;margin-top:3px">R$ 486,30</div></div>
+                      </div>
+                      <div style="padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                        <div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Vai entrar como</div>
+                        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                          <div style="padding:7px 13px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:600">Mercadoria (CMV)</div>
+                          <div style="padding:7px 13px;border-radius:11px;background:#E8E6D7;color:#6A7A7E;font-size:13px;font-weight:600">Ocupação</div>
+                          <div style="padding:7px 13px;border-radius:11px;background:#E8E6D7;color:#6A7A7E;font-size:13px;font-weight:600">Pessoal</div>
+                        </div>
+                      </div>
+                      <div style="padding:12px 16px 6px;font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">4 itens lidos</div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 16px"><div style="font-size:14px">Tomate italiano · 8 kg</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 71,20</div></div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 16px"><div style="font-size:14px">Berinjela · 12 kg</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 86,40</div></div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 16px"><div style="font-size:14px">Salsinha e hortelã · 20 maços</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 58,00</div></div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 16px 16px"><div style="font-size:14px">Grão de bico · 25 kg</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 270,70</div></div>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                      <div onClick="{{ irLancar }}" style="flex:1;padding:16px;border-radius:16px;background:#E8E6D7;color:#45585D;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Ajustar</div>
+                      <div onClick="{{ confirmar }}" style="flex:2;padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Tá certo, lançar</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ fotoPasso4 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:90px 16px 20px;text-align:center">
+                    <div style="width:76px;height:76px;border-radius:50%;background:rgba(47,107,74,.14);display:flex;align-items:center;justify-content:center">
+                      <div style="width:26px;height:14px;border-left:4px solid #2F6B4A;border-bottom:4px solid #2F6B4A;transform:rotate(-45deg) translate(2px,-3px)"></div>
+                    </div>
+                    <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">Tá no caixa!</div>
+                    <div style="font-size:15px;color:#45585D;line-height:1.5;max-width:280px;text-wrap:pretty">R$ 486,30 entraram em <b>Mercadoria</b>. O Hortifrúti Zona Sul e 4 produtos foram cadastrados sozinhos.</div>
+                    <div style="width:100%;margin-top:8px;padding:16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);text-align:left">
+                      <div style="font-size:13px;color:#6A7A7E">Com essa nota, seu CMV do mês foi de</div>
+                      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#8A9698;text-decoration:line-through">29,9%</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#B4462F">30,9%</div>
+                      </div>
+                      <div style="font-size:13px;color:#45585D;margin-top:6px;line-height:1.45">Passou o teto de 30%. Nada grave — dá pra ajustar até dia 31.</div>
+                    </div>
+                    <div onClick="{{ irInicio }}" style="width:100%;padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;cursor:pointer">Voltar pro início</div>
+                    <div onClick="{{ abrirFoto }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">Lançar outra nota</div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+
+            <sc-if value="{{ telaNumeros }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Seus números</div>
+                  <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Os quatro que mandam no restaurante</div>
+                </div>
+                <div style="display:flex;padding:3px;border-radius:12px;background:#E8E6D7">
+                  <div onClick="{{ irPlano }}" style="flex:1;text-align:center;padding:9px;border-radius:10px;color:#6A7A7E;font-size:13px;font-weight:700;cursor:pointer">Plano</div>
+                  <div style="flex:1;text-align:center;padding:9px;border-radius:10px;background:#FBFAF2;color:#1E4354;font-size:13px;font-weight:700">Números</div>
+                </div>
+                <div style="display:flex;padding:3px;border-radius:12px;background:#E8E6D7">
+                  <div onClick="{{ verKpiSemana }}" style="{{ kpiChipSemana }}">Semana</div>
+                  <div onClick="{{ verKpiMes }}" style="{{ kpiChipMes }}">Mês</div>
+                </div>
+
+                <sc-if value="{{ kpiMes }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Custo da mercadoria (CMV)</div>
+                      <div style="font-size:12px;color:#8A9698">teto 30%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#B4462F;margin-top:6px;letter-spacing:-.03em">30,9%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">De cada R$ 100 vendidos, R$ 30,90 viraram comida. Passou <b>R$ 425</b> do combinado.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Custo de pessoal</div>
+                      <div style="font-size:12px;color:#8A9698">teto 25%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#2F6B4A;margin-top:6px;letter-spacing:-.03em">23,0%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">R$ 10.900 de folha, encargos e vale. Dentro do combinado.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Peso dos apps de delivery</div>
+                      <div style="font-size:12px;color:#8A9698">teto 12%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#B4462F;margin-top:6px;letter-spacing:-.03em">15,5%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">R$ 7.340 em taxas de iFood, Rappi e maquininha. É o maior vazamento do mês.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Ponto de equilíbrio</div>
+                      <div style="font-size:12px;color:#8A9698">virou dia 21</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#2F6B4A;margin-top:6px;letter-spacing:-.03em">R$ 41.400</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">É o quanto precisa vender pra não ter prejuízo. Você passou disso há 6 dias.</div>
+                  </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ kpiSemana }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Custo da mercadoria (CMV)</div>
+                      <div style="font-size:12px;color:#8A9698">teto 30%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#B4462F;margin-top:6px;letter-spacing:-.03em">31,8%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">Semana de 20 a 26. O hortifrúti subiu 12% e puxou o índice.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Custo de pessoal</div>
+                      <div style="font-size:12px;color:#8A9698">teto 25%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#2F6B4A;margin-top:6px;letter-spacing:-.03em">22,4%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">R$ 2.795 na semana. Nenhuma hora extra.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Peso dos apps de delivery</div>
+                      <div style="font-size:12px;color:#8A9698">teto 12%</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#B4462F;margin-top:6px;letter-spacing:-.03em">16,1%</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">R$ 2.010 em taxas. Sexta foi o dia de maior peso.</div>
+                  </div>
+                  <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                      <div style="font-size:14px;font-weight:700">Ponto de equilíbrio</div>
+                      <div style="font-size:12px;color:#8A9698">virou na quinta</div>
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#2F6B4A;margin-top:6px;letter-spacing:-.03em">R$ 9.600</div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">Da quinta em diante, tudo que vendeu virou sobra.</div>
+                  </div>
+                  </div>
+                </sc-if>
+
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Quanto sobrou, mês a mês</div>
+                  <div style="display:flex;align-items:flex-end;gap:8px;margin-top:14px">
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#8A9698;white-space:nowrap">4.320</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:52px;border-radius:6px 6px 0 0;background:#AEB9B8"></div></div>
+                      <div style="font-size:11px;color:#8A9698">fev</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#8A9698;white-space:nowrap">5.180</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:63px;border-radius:6px 6px 0 0;background:#AEB9B8"></div></div>
+                      <div style="font-size:11px;color:#8A9698">mar</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#8A9698;white-space:nowrap">3.960</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:48px;border-radius:6px 6px 0 0;background:#AEB9B8"></div></div>
+                      <div style="font-size:11px;color:#8A9698">abr</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#8A9698;white-space:nowrap">6.740</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:82px;border-radius:6px 6px 0 0;background:#AEB9B8"></div></div>
+                      <div style="font-size:11px;color:#8A9698">mai</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#8A9698;white-space:nowrap">7.020</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:85px;border-radius:6px 6px 0 0;background:#AEB9B8"></div></div>
+                      <div style="font-size:11px;color:#8A9698">jun</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#2E5F73;white-space:nowrap">8.140</div>
+                      <div style="width:100%;display:flex;align-items:flex-end;height:110px"><div style="width:100%;height:99px;border-radius:6px 6px 0 0;background:#2E5F73"></div></div>
+                      <div style="font-size:11px;color:#8A9698">jul</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:12px;padding-top:10px;border-top:1px dashed rgba(46,95,115,.2);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Quatro meses seguidos de alta desde abril. Julho ainda tem 4 dias pela frente.</div>
+                </div>
+
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Estoque fechado</div>
+                  <div style="display:flex;flex-direction:column;gap:2px;margin-top:10px">
+                    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Maio</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 10.940</div></div>
+                    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Junho</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 11.870</div></div>
+                    <div style="display:flex;justify-content:space-between;padding:9px 0"><div style="font-size:14px;color:#8A5A28;font-weight:600">Julho · contando</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#8A5A28">{{ totalEstoque }}</div></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaProdutos }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div>
+                    <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Produtos</div>
+                    <div style="font-size:13px;color:#6A7A7E;margin-top:2px">{{ totalProdutos }}</div>
+                  </div>
+                  <div onClick="{{ irEstoque }}" style="font-size:13px;font-weight:700;color:#2E5F73;cursor:pointer;white-space:nowrap">← Contagem</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:15px;background:#E8E6D7;color:#8A9698;font-size:15px">
+                  <div style="width:15px;height:15px;border-radius:50%;border:2px solid #8A9698"></div>
+                  <div>Buscar por nome ou fornecedor</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <sc-for list="{{ categorias }}" as="cat" hint-placeholder-count="5">
+                    <div onClick="{{ cat.escolher }}" style="{{ cat.estilo }}">{{ cat.nome }}</div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ produtos }}" as="p" hint-placeholder-count="6">
+                    <div style="padding:14px 16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;align-items:center;justify-content:space-between;gap:12px">
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:15px;font-weight:700;line-height:1.25">{{ p.nome }}</div>
+                        <div style="font-size:12px;color:#8A9698;margin-top:3px">{{ p.fornecedor }} · {{ p.categoria }}</div>
+                      </div>
+                      <div style="text-align:right">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;white-space:nowrap">{{ p.custo }}</div>
+                        <div style="font-size:11px;color:#8A9698">por {{ p.un }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center">+ Novo produto</div>
+                <div style="padding:14px 16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Produto que aparece numa nota nova é cadastrado sozinho, com fornecedor e custo do dia. Você só confere.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaAvulsa }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div onClick="{{ irLancar }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">← Voltar</div>
+                  <div style="font-size:13px;color:#8A9698">Despesa avulsa</div>
+                </div>
+                <div style="padding:22px 18px;border-radius:20px;background:#2E5F73;color:#F7F5EA;text-align:center">
+                  <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(247,245,234,.6)">Quanto foi</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:700;letter-spacing:-.03em;margin-top:6px">{{ avulsaValor }}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="4">
+                    <div onClick="{{ a.escolher }}" style="{{ a.estilo }}">
+                      <div style="flex:1"><div style="font-size:15px;font-weight:700">{{ a.nome }}</div><div style="font-size:12px;color:#8A9698">{{ a.dica }}</div></div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">{{ a.valor }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div onClick="{{ salvarAvulsa }}" style="padding:16px;border-radius:16px;background:#C05437;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Lançar despesa</div>
+                <div style="font-size:13px;color:#8A9698;text-align:center">Sem foto, sem nota: dois toques e já era.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaAvulsaOk }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:100px 16px 20px;text-align:center">
+                <div style="width:76px;height:76px;border-radius:50%;background:rgba(47,107,74,.14);display:flex;align-items:center;justify-content:center">
+                  <div style="width:26px;height:14px;border-left:4px solid #2F6B4A;border-bottom:4px solid #2F6B4A;transform:rotate(-45deg) translate(2px,-3px)"></div>
+                </div>
+                <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">Tá no caixa!</div>
+                <div style="font-size:15px;color:#45585D;line-height:1.5;max-width:280px;text-wrap:pretty">{{ avulsaResumo }}</div>
+                <div onClick="{{ irInicio }}" style="width:100%;padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;cursor:pointer">Voltar pro início</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaFechamento }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div onClick="{{ irLancar }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">← Voltar</div>
+                  <div style="font-size:13px;color:#8A9698">Domingo, 26 de julho</div>
+                </div>
+                <div>
+                  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Fechamento do dia</div>
+                  <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Já veio tudo das plataformas. Só dar o ok.</div>
+                </div>
+                <div style="border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">iFood</div><div style="font-size:12px;color:#8A9698">38 pedidos · taxa R$ 178,20</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">R$ 742,50</div></div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">Rappi</div><div style="font-size:12px;color:#8A9698">9 pedidos · taxa R$ 41,30</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">R$ 186,40</div></div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">WhatsApp e balcão</div><div style="font-size:12px;color:#8A9698">Pix e maquininha</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">R$ 351,10</div></div>
+                  <div style="display:flex;justify-content:space-between;padding:16px;background:#E8E6D7"><div style="font-size:15px;font-weight:800">Total do dia</div><div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:800">R$ 1.280,00</div></div>
+                </div>
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Faltou alguma coisa?</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                    <div style="padding:9px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Venda em dinheiro</div>
+                    <div style="padding:9px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Cancelamento</div>
+                    <div style="padding:9px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Sangria</div>
+                  </div>
+                </div>
+                <div onClick="{{ irInicio }}" style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Confirmar o dia</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaWizard }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div onClick="{{ irPlano }}" style="font-size:14px;font-weight:600;color:#2E5F73;cursor:pointer">← Sair</div>
+                  <div style="font-size:13px;color:#8A9698">{{ wizPassoLabel }}</div>
+                </div>
+
+                <sc-if value="{{ wiz1 }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div>
+                      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Quanto você quer faturar em agosto?</div>
+                      <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Em julho você fez R$ 47.320.</div>
+                    </div>
+                    <div style="padding:22px 18px;border-radius:20px;background:#2E5F73;color:#F7F5EA;text-align:center">
+                      <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(247,245,234,.6)">Meta de agosto</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;letter-spacing:-.03em;margin-top:6px">{{ metaTexto }}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                      <sc-for list="{{ metasSugeridas }}" as="m" hint-placeholder-count="3">
+                        <div onClick="{{ m.escolher }}" style="{{ m.estilo }}">
+                          <div style="flex:1"><div style="font-size:15px;font-weight:700">{{ m.nome }}</div><div style="font-size:12px;color:#8A9698">{{ m.dica }}</div></div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">{{ m.valor }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div onClick="{{ wizProximo }}" style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Continuar</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ wiz2 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div>
+                      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Até quanto pode gastar em cada coisa?</div>
+                      <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Em % do que entrar. Dá pra mexer depois.</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                      <sc-for list="{{ tetos }}" as="t" hint-placeholder-count="4">
+                        <div style="padding:14px 16px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;align-items:center;justify-content:space-between;gap:12px">
+                          <div style="flex:1;min-width:0">
+                            <div style="font-size:15px;font-weight:700">{{ t.nome }}</div>
+                            <div style="font-size:12px;color:#8A9698;font-family:'JetBrains Mono',monospace">{{ t.valor }}</div>
+                          </div>
+                          <div style="display:flex;align-items:center;gap:10px">
+                            <div onClick="{{ t.menos }}" style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:#2E5F73;user-select:none">−</div>
+                            <div style="min-width:52px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700">{{ t.pct }}</div>
+                            <div onClick="{{ t.mais }}" style="width:40px;height:40px;border-radius:13px;background:#2E5F73;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:#F7F5EA;user-select:none">+</div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="padding:18px;border-radius:20px;background:{{ sobraFundo }};display:flex;align-items:center;justify-content:space-between;gap:12px">
+                      <div style="font-size:15px;font-weight:700;color:#F7F5EA">Sobra prevista</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#F7F5EA">{{ sobraPct }}</div>
+                    </div>
+                    <div onClick="{{ wizProximo }}" style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Continuar</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ wiz3 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div>
+                      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Plano de agosto, fechado</div>
+                      <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Você vai receber um toque quando alguma coisa passar de 80%.</div>
+                    </div>
+                    <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:15px;font-weight:700">Meta de faturamento</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">{{ metaTexto }}</div></div>
+                      <sc-for list="{{ tetos }}" as="t" hint-placeholder-count="4">
+                        <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">{{ t.nome }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#45585D">{{ t.pct }} · {{ t.valor }}</div></div>
+                      </sc-for>
+                      <div style="display:flex;justify-content:space-between;padding:13px 0 0"><div style="font-size:15px;font-weight:800;color:#2F6B4A">Sobra prevista</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:#2F6B4A">{{ sobraPct }} · {{ sobraValor }}</div></div>
+                    </div>
+                    <div onClick="{{ irPlano }}" style="padding:16px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center;cursor:pointer">Salvar o plano</div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ telaAjustes }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Ajustes</div>
+                  <div style="font-size:13px;color:#6A7A7E;margin-top:2px">Zaatar Cozinha Árabe · Botafogo</div>
+                </div>
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Quem usa</div>
+                  <div style="display:flex;flex-direction:column;gap:2px;margin-top:10px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">Halim (você)</div><div style="font-size:12px;color:#8A9698">Vê tudo, inclusive o lucro</div></div><div style="padding:4px 10px;border-radius:10px;background:rgba(46,95,115,.1);color:#2E5F73;font-size:12px;font-weight:700">dono</div></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><div><div style="font-size:15px;font-weight:600">Jamile</div><div style="font-size:12px;color:#8A9698">Compras, estoque e notas. Não vê lucro.</div></div><div style="padding:4px 10px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">gerente</div></div>
+                  </div>
+                </div>
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Onde te avisar</div>
+                  <div style="display:flex;flex-direction:column;gap:2px;margin-top:10px">
+                    <sc-for list="{{ canais }}" as="c" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #E8E6D7">
+                        <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{ c.nome }}</div><div style="font-size:12px;color:#8A9698">{{ c.dica }}</div></div>
+                        <div onClick="{{ c.alternar }}" style="{{ c.trilho }}"><div style="{{ c.bolinha }}"></div></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:18px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                  <div style="font-size:14px;font-weight:700">Quando te avisar</div>
+                  <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+                    <div style="display:flex;gap:11px"><div style="margin-top:6px;width:8px;height:8px;border-radius:50%;background:#2E5F73;flex:none"></div><div style="font-size:14px;line-height:1.45">Segunda de manhã: como foi a semana</div></div>
+                    <div style="display:flex;gap:11px"><div style="margin-top:6px;width:8px;height:8px;border-radius:50%;background:#EFAB5C;flex:none"></div><div style="font-size:14px;line-height:1.45">Quando uma categoria chega em 80% do teto</div></div>
+                    <div style="display:flex;gap:11px"><div style="margin-top:6px;width:8px;height:8px;border-radius:50%;background:#C05437;flex:none"></div><div style="font-size:14px;line-height:1.45">Quando estoura os 100% — com o que fazer</div></div>
+                    <div style="display:flex;gap:11px"><div style="margin-top:6px;width:8px;height:8px;border-radius:50%;background:#2F6B4A;flex:none"></div><div style="font-size:14px;line-height:1.45">Dia 1º e dia 28: hora de contar o estoque</div></div>
+                  </div>
+                </div>
+                <div style="padding:14px 16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Seus dados são só seus: tudo criptografado e dentro da LGPD. Dá pra baixar ou apagar tudo quando quiser.</div>
+              </div>
+            </sc-if>
+
+          </div>
+
+          <div style="flex:none;display:flex;align-items:center;justify-content:space-around;padding:10px 8px 30px;background:#FBFAF2;border-top:1px solid rgba(46,95,115,.09)">
+            <div onClick="{{ irInicio }}" style="{{ tabInicio }}">
+              <div style="width:20px;height:20px;border-radius:6px;border:2px solid currentColor"></div>
+              <div style="font-size:11px;font-weight:700">Início</div>
+            </div>
+            <div onClick="{{ irEstoque }}" style="{{ tabEstoque }}">
+              <div style="width:20px;height:20px;border-radius:50%;border:2px solid currentColor"></div>
+              <div style="font-size:11px;font-weight:700">Estoque</div>
+            </div>
+            <div onClick="{{ irLancar }}" style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;margin-top:-16px">
+              <div style="width:54px;height:54px;border-radius:50%;background:#C05437;box-shadow:0 8px 18px rgba(192,84,55,.38);display:flex;align-items:center;justify-content:center;color:#FFF;font-size:30px;font-weight:400;line-height:1;padding-bottom:4px">+</div>
+              <div style="font-size:11px;font-weight:700;color:#C05437">Lançar</div>
+            </div>
+            <div onClick="{{ irPlano }}" style="{{ tabPlano }}">
+              <div style="width:20px;height:14px;border-left:2px solid currentColor;border-bottom:2px solid currentColor"></div>
+              <div style="font-size:11px;font-weight:700">Plano</div>
+            </div>
+            <div onClick="{{ irAjustes }}" style="{{ tabAjustes }}">
+              <div style="width:20px;height:20px;border-radius:50%;border:2px solid currentColor"></div>
+              <div style="font-size:11px;font-weight:700">Ajustes</div>
+            </div>
+          </div>
+
+        </div>
+      </x-import>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:36px">
+
+      <sc-if value="{{ mostrarDesktop }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Computador · painel do dono</div>
+          <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ larguraDesktop }}" height="{{ alturaDesktop }}" url="tanocaixa.com/painel" hint-size="1180px,760px">
+            <div style="display:flex;height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;color:#1C2A2E">
+              <div style="width:224px;flex:none;background:#2E5F73;color:#F7F5EA;padding:22px 16px;display:flex;flex-direction:column;gap:26px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="width:26px;height:26px;border-radius:9px;background:#C05437"></div>
+                  <div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Tá no Caixa</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.12);font-size:14px;font-weight:600">Início</div>
+                  <div style="padding:10px 12px;border-radius:11px;font-size:14px;color:rgba(246,242,234,.65)">Despesas</div>
+                  <div style="padding:10px 12px;border-radius:11px;font-size:14px;color:rgba(246,242,234,.65)">Produtos</div>
+                  <div style="padding:10px 12px;border-radius:11px;font-size:14px;color:rgba(246,242,234,.65)">Estoque</div>
+                  <div style="padding:10px 12px;border-radius:11px;font-size:14px;color:rgba(246,242,234,.65)">Plano do mês</div>
+                  <div style="padding:10px 12px;border-radius:11px;font-size:14px;color:rgba(246,242,234,.65)">Indicadores</div>
+                </div>
+                <div style="margin-top:auto;padding:14px;border-radius:14px;background:rgba(255,255,255,.08)">
+                  <div style="font-size:12px;color:rgba(246,242,234,.6)">Estoque de julho</div>
+                  <div style="font-size:14px;font-weight:700;margin-top:4px">Faltam 26 itens</div>
+                  <div style="margin-top:8px;height:6px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden"><div style="width:32%;height:100%;background:#C05437;border-radius:3px"></div></div>
+                </div>
+              </div>
+
+              <div style="flex:1;overflow:auto;padding:26px 28px;display:flex;flex-direction:column;gap:20px">
+                <div style="position:relative;isolation:isolate;overflow:hidden;border-radius:18px;padding:24px 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;background:#16303A">
+                  <img src="uploads/pasted-1785209420737-0.png" alt="Bondinho de Santa Teresa" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:saturate(.3) contrast(1.06)">
+                  <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+                  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(22,48,58,.92) 0%,rgba(22,48,58,.3) 70%)"></div>
+                  <div style="position:absolute;top:-30px;right:150px;width:110px;height:110px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+                  <div style="position:relative">
+                    <div style="font-size:26px;font-weight:800;letter-spacing:-.02em;color:#F7F5EA">Julho de 2026</div>
+                    <div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:2px">Zaatar Cozinha Árabe · Botafogo · faltam 4 dias pro mês fechar</div>
+                  </div>
+                  <div style="position:relative;display:flex;align-items:center;gap:10px">
+                    <div style="display:flex;padding:3px;border-radius:12px;background:rgba(247,245,234,.16)">
+                      <div onClick="{{ verSemana }}" style="{{ chipSemana }}">Semana</div>
+                      <div onClick="{{ verMes }}" style="{{ chipMes }}">Mês</div>
+                    </div>
+                    <div style="padding:9px 14px;border-radius:11px;background:#F7F5EA;color:#1E4354;font-size:13px;font-weight:600;cursor:pointer">Exportar</div>
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+                  <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Entrou</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">R$ 47.320</div>
+                    <div style="font-size:12px;color:#2F6B4A;font-weight:700;margin-top:4px">+8% vs. junho</div>
+                  </div>
+                  <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Saiu</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">R$ 39.180</div>
+                    <div style="font-size:12px;color:#B4462F;font-weight:700;margin-top:4px">+11% vs. junho</div>
+                  </div>
+                  <div style="padding:18px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+                    <div style="position:absolute;top:-40px;right:-30px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(239,171,92,.8) 0%,rgba(239,171,92,0) 70%)"></div>
+                    <div style="position:relative">
+                      <div style="font-size:12px;font-weight:600;color:rgba(246,242,234,.6);text-transform:uppercase;letter-spacing:.07em">Sobrou</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">R$ 8.140</div>
+                      <div style="font-size:12px;color:rgba(246,242,234,.7);font-weight:600;margin-top:4px">margem de 17,2%</div>
+                    </div>
+                  </div>
+                  <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Ponto de equilíbrio</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">R$ 41.400</div>
+                    <div style="font-size:12px;color:#2F6B4A;font-weight:700;margin-top:4px">virou no dia 21 ✓</div>
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
+                  <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <sc-if value="{{ periodoMes }}" hint-placeholder-val="{{ true }}">
+                      <div>
+                        <div style="display:flex;justify-content:space-between;align-items:baseline">
+                          <div style="font-size:15px;font-weight:700">Entrou × saiu, semana a semana</div>
+                      <div style="display:flex;gap:14px;font-size:12px;color:#6A7A7E">
+                        <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#2E5F73"></div>entrou</div>
+                        <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#C05437"></div>saiu</div>
+                      </div>
+                        </div>
+                        <div style="margin-top:18px;display:flex;align-items:flex-end;gap:18px;height:240px">
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#2E5F73">11.240</div>
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#C05437">10.110</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:12px;height:160px">
+                            <div style="width:30px;height:136px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:30px;height:122px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">1ª sem</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+1.130</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#2E5F73">13.240</div>
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#C05437">9.520</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:12px;height:160px">
+                            <div style="width:30px;height:160px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:30px;height:115px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">2ª sem</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+3.720</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#2E5F73">10.360</div>
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#C05437">9.260</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:12px;height:160px">
+                            <div style="width:30px;height:125px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:30px;height:112px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">3ª sem</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+1.100</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#2E5F73">12.480</div>
+                            <div style="width:30px;text-align:center;white-space:nowrap;color:#C05437">10.290</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:12px;height:160px">
+                            <div style="width:30px;height:151px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:30px;height:124px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">4ª sem</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+2.190</div>
+                        </div>
+                        </div>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(46,95,115,.2);display:flex;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">
+                          <div>valores em R$ · julho de 2026</div>
+                          <div style="color:#1C2A2E;font-weight:700">mês: R$ 47.320 entrou · R$ 39.180 saiu · <span style="color:#2F6B4A">R$ 8.140 sobrou</span></div>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ periodoSemana }}" hint-placeholder-val="{{ false }}">
+                      <div>
+                        <div style="display:flex;justify-content:space-between;align-items:baseline">
+                          <div style="font-size:15px;font-weight:700">Entrou × saiu, dia a dia <span style="color:#8A9698;font-weight:500">· 20 a 26 de julho</span></div>
+                      <div style="display:flex;gap:14px;font-size:12px;color:#6A7A7E">
+                        <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#2E5F73"></div>entrou</div>
+                        <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#C05437"></div>saiu</div>
+                      </div>
+                        </div>
+                        <div style="margin-top:18px;display:flex;align-items:flex-end;gap:10px;height:240px">
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">1.180</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.640</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:63px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:88px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">seg</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#B4462F;white-space:nowrap">−460</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">1.320</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.210</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:71px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:65px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">ter</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+110</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">1.540</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.480</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:83px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:79px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">qua</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+60</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">1.760</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.350</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:94px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:72px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">qui</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+410</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">2.980</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.720</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:160px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:92px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">sex</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+1.260</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">2.420</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.510</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:130px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:81px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">sáb</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2F6B4A;white-space:nowrap">+910</div>
+                        </div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="display:flex;justify-content:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:-.03em">
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#2E5F73">1.280</div>
+                            <div style="width:22px;text-align:center;white-space:nowrap;color:#C05437">1.380</div>
+                          </div>
+                          <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:8px;height:160px">
+                            <div style="width:22px;height:69px;border-radius:6px 6px 0 0;background:#2E5F73"></div>
+                            <div style="width:22px;height:74px;border-radius:6px 6px 0 0;background:#C05437"></div>
+                          </div>
+                          <div style="font-size:12px;color:#8A9698">dom</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#B4462F;white-space:nowrap">−100</div>
+                        </div>
+                        </div>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(46,95,115,.2);display:flex;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">
+                          <div>valores em R$ · sexta foi o melhor dia</div>
+                          <div style="color:#1C2A2E;font-weight:700">semana: R$ 12.480 entrou · R$ 10.290 saiu · <span style="color:#2F6B4A">R$ 2.190 sobrou</span></div>
+                        </div>
+                      </div>
+                    </sc-if>
+                  </div>
+
+                  <div style="padding:20px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:9px;height:9px;border-radius:50%;background:#C05437"></div>
+                      <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">O que dá pra fazer hoje</div>
+                    </div>
+                    <div style="font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">O hortifrúti subiu <b>12%</b> na semana. Tomate e berinjela puxaram — os dois entram no Beirute e no prato de kafta.</div>
+                    <div style="font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">A taxa de app já comeu <b>R$ 7.340</b> este mês. Um cupom de 5% no pedido pelo WhatsApp ainda te deixa mais rico que o iFood.</div>
+                    <div style="margin-top:auto;padding:12px 14px;border-radius:13px;background:#FBFAF2;font-size:13px;color:#45585D;line-height:1.45">Esse mesmo resumo chega no seu e-mail toda segunda de manhã.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </x-import>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:14px;max-width:560px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">E-mail de segunda-feira</div>
+        <div style="border-radius:18px;overflow:hidden;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);box-shadow:0 14px 30px rgba(46,95,115,.07)">
+          <div style="padding:14px 20px;background:#E8E6D7;display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div style="font-size:13px;color:#6A7A7E">de <b style="color:#1C2A2E">Tá no Caixa</b> · pra você</div>
+            <div style="font-size:13px;color:#8A9698">seg, 27 jul, 07:00</div>
+          </div>
+          <div style="position:relative;isolation:isolate;height:170px;overflow:hidden;background:#16303A">
+            <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.78"></div>
+            <div style="position:absolute;inset:0;background:#F7F5EA;mix-blend-mode:screen;opacity:.12"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,0) 40%,rgba(22,48,58,.72) 100%)"></div>
+            <div style="position:absolute;left:26px;bottom:20px">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(247,245,234,.75)">Semana de 20 a 26 de julho</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#F7F5EA;margin-top:4px">R$ 2.190 no bolso</div>
+            </div>
+          </div>
+          <div style="padding:24px 26px 26px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.2">Semana boa, chefe: você fechou com R$ 2.190 no bolso</div>
+            <div style="font-size:15px;line-height:1.55;color:#45585D;text-wrap:pretty">Foram R$ 12.480 de vendas, 6% acima da semana passada — a sexta foi o melhor dia do mês. As contas saíram em R$ 10.290.</div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;padding:14px;border-radius:14px;background:#E8E6D7"><div style="font-size:12px;color:#8A9698;font-weight:600">Entrou</div><div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;margin-top:3px">R$ 12.480</div></div>
+              <div style="flex:1;padding:14px;border-radius:14px;background:#E8E6D7"><div style="font-size:12px;color:#8A9698;font-weight:600">Saiu</div><div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;margin-top:3px">R$ 10.290</div></div>
+              <div style="flex:1;padding:14px;border-radius:14px;background:rgba(47,107,74,.13)"><div style="font-size:12px;color:#2F6B4A;font-weight:600">Sobrou</div><div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;margin-top:3px;color:#2F6B4A">R$ 2.190</div></div>
+            </div>
+            <div style="font-size:15px;line-height:1.55;color:#45585D;text-wrap:pretty"><b style="color:#1C2A2E">Uma coisa só pra essa semana:</b> seu CMV encostou em 30,9%. Renegociar o hortifrúti ou subir R$ 2 no Beirute já resolve.</div>
+            <div style="align-self:flex-start;padding:13px 20px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700">Ver no aplicativo</div>
+            <div style="font-size:12px;color:#98A4A5;line-height:1.5">Você recebe esse resumo toda segunda. Dá pra mudar pra diário ou desligar nas configurações.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;perfilInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dono&quot;,&quot;gerente&quot;],&quot;default&quot;:&quot;dono&quot;,&quot;tsType&quot;:&quot;'dono' | 'gerente'&quot;,&quot;section&quot;:&quot;App&quot;},&quot;mostrarInsight&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;App&quot;},&quot;mostrarDesktop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;App&quot;}}">
+const ITENS = [
+  { id: 'graobico', nome: 'Grão de bico seco', un: 'kg', custo: 9.8, qtd: 24 },
+  { id: 'tahine', nome: 'Tahine', un: 'kg', custo: 38, qtd: 6 },
+  { id: 'patinho', nome: 'Patinho moído', un: 'kg', custo: 42.9, qtd: 11 },
+  { id: 'trigo', nome: 'Trigo para quibe', un: 'kg', custo: 8.4, qtd: 18 },
+  { id: 'folhauva', nome: 'Folha de uva em conserva', un: 'pote', custo: 27.5, qtd: 9 },
+  { id: 'berinjela', nome: 'Berinjela', un: 'kg', custo: 7.2, qtd: 12 },
+  { id: 'paosirio', nome: 'Pão sírio', un: 'pacote', custo: 6.5, qtd: 30 },
+  { id: 'azeite', nome: 'Azeite extra virgem', un: 'L', custo: 34, qtd: 8 },
+  { id: 'embalagem', nome: 'Embalagem delivery média', un: 'un', custo: 1.15, qtd: 420 },
+  { id: 'refri', nome: 'Refrigerante lata', un: 'un', custo: 2.6, qtd: 96 }
+];
+
+const PRODUTOS = [
+  { nome: 'Grão de bico seco', cat: 'Secos', forn: 'Casa Líbano', custo: 9.8, un: 'kg' },
+  { nome: 'Tahine', cat: 'Secos', forn: 'Casa Líbano', custo: 38, un: 'kg' },
+  { nome: 'Trigo para quibe', cat: 'Secos', forn: 'Casa Líbano', custo: 8.4, un: 'kg' },
+  { nome: 'Azeite extra virgem', cat: 'Secos', forn: 'Casa Líbano', custo: 34, un: 'L' },
+  { nome: 'Patinho moído', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 42.9, un: 'kg' },
+  { nome: 'Cordeiro em cubos', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 68.5, un: 'kg' },
+  { nome: 'Frango desfiado', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 24.9, un: 'kg' },
+  { nome: 'Tomate italiano', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 8.9, un: 'kg' },
+  { nome: 'Berinjela', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 7.2, un: 'kg' },
+  { nome: 'Salsinha e hortelã', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 2.9, un: 'maço' },
+  { nome: 'Refrigerante lata', cat: 'Bebidas', forn: 'Distribuidora Tijuca', custo: 2.6, un: 'un' },
+  { nome: 'Suco de uva 1L', cat: 'Bebidas', forn: 'Distribuidora Tijuca', custo: 9.4, un: 'un' },
+  { nome: 'Embalagem delivery média', cat: 'Embalagens', forn: 'Embalagens Delivery RJ', custo: 1.15, un: 'un' },
+  { nome: 'Sacola kraft', cat: 'Embalagens', forn: 'Embalagens Delivery RJ', custo: 0.72, un: 'un' },
+  { nome: 'Detergente industrial', cat: 'Limpeza', forn: 'Higibras', custo: 18.4, un: 'L' }
+];
+
+const CATEGORIAS = ['Todos', 'Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza'];
+
+const ATALHOS = [
+  { id: 'gas', nome: 'Gás', dica: '2 botijões P45 · Ultragaz', valor: 720, cat: 'Ocupação' },
+  { id: 'gelo', nome: 'Gelo', dica: '10 sacos · Gelo Guanabara', valor: 180, cat: 'Mercadoria' },
+  { id: 'feira', nome: 'Feira do Cadeg', dica: 'compra rápida de hortifrúti', valor: 340, cat: 'Mercadoria' },
+  { id: 'conserto', nome: 'Conserto', dica: 'manutenção de equipamento', valor: 260, cat: 'Ocupação' }
+];
+
+const METAS = [
+  { id: 'segura', nome: 'Mês parecido com julho', dica: 'sem esforço extra', valor: 47000 },
+  { id: 'meta', nome: 'Um degrau acima', dica: 'o que a gente sugere', valor: 50000 },
+  { id: 'ousada', nome: 'Mês de virada', dica: 'exige empurrar o WhatsApp', valor: 56000 }
+];
+
+const brl = (n) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const qtds = {};
+    ITENS.forEach(i => { qtds[i.id] = i.qtd; });
+    this.state = {
+      tela: 'inicio', passo: 0, perfil: props.perfilInicial || 'dono', periodo: 'mes', qtds,
+      kpiPeriodo: 'mes', catFiltro: 'Todos', meta: 50000, wizPasso: 1,
+      tetos: { Mercadoria: 30, Pessoal: 25, Ocupação: 15, 'Taxas de app': 12 },
+      avulsa: ATALHOS[0],
+      canais: { email: true, whats: true, sms: false }
+    };
+  }
+
+  componentDidMount() {
+    if (!document.getElementById('tnc-kf')) {
+      const s = document.createElement('style');
+      s.id = 'tnc-kf';
+      s.textContent = '@keyframes girar{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+  }
+
+  bump(id, d) {
+    this.setState(s => ({ qtds: Object.assign({}, s.qtds, { [id]: Math.max(0, (s.qtds[id] || 0) + d) }) }));
+  }
+
+  tab(ativo) {
+    return 'display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;color:' + (ativo ? '#2E5F73' : '#AEB9B8');
+  }
+
+  aba(ativo) {
+    return 'padding:6px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;'
+      + (ativo ? 'background:#F7F5EA;color:#2E5F73' : 'color:rgba(246,242,234,.65)');
+  }
+
+  mexerTeto(k, d) {
+    this.setState(s => ({ tetos: Object.assign({}, s.tetos, { [k]: Math.max(0, Math.min(60, s.tetos[k] + d)) }) }));
+  }
+
+  seg(ativo) {
+    return 'flex:1;text-align:center;padding:9px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;'
+      + (ativo ? 'background:#FBFAF2;color:#1E4354' : 'color:#6A7A7E');
+  }
+
+  chip(ativo) {
+    return 'padding:7px 15px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;'
+      + (ativo ? 'background:#F7F5EA;color:#1E4354' : 'color:rgba(247,245,234,.75)');
+  }
+
+  renderVals() {
+    const { tela, passo, perfil, qtds } = this.state;
+    const total = ITENS.reduce((a, i) => a + (qtds[i.id] || 0) * i.custo, 0);
+    const feitos = ITENS.filter(i => (qtds[i.id] || 0) > 0).length;
+    const sobra = 100 - Object.keys(this.state.tetos).reduce((a, k) => a + this.state.tetos[k], 0);
+
+    return {
+      telaInicio: tela === 'inicio',
+      telaLancar: tela === 'lancar',
+      telaEstoque: tela === 'estoque',
+      telaPlano: tela === 'plano',
+      fluxoFoto: tela === 'foto',
+      fotoPasso1: tela === 'foto' && passo === 1,
+      fotoPasso2: tela === 'foto' && passo === 2,
+      fotoPasso3: tela === 'foto' && passo === 3,
+      fotoPasso4: tela === 'foto' && passo === 4,
+      ehDono: perfil === 'dono',
+      ehGerente: perfil === 'gerente',
+      mostrarInsight: this.props.mostrarInsight !== false,
+      mostrarDesktop: this.props.mostrarDesktop !== false,
+      periodoMes: this.state.periodo === 'mes',
+      periodoSemana: this.state.periodo === 'semana',
+      chipSemana: this.chip(this.state.periodo === 'semana'),
+      chipMes: this.chip(this.state.periodo === 'mes'),
+      verSemana: () => this.setState({ periodo: 'semana' }),
+      verMes: () => this.setState({ periodo: 'mes' }),
+      larguraDesktop: 1180,
+      alturaDesktop: 760,
+      abaDono: this.aba(perfil === 'dono'),
+      abaGerente: this.aba(perfil === 'gerente'),
+      tabInicio: this.tab(tela === 'inicio'),
+      tabEstoque: this.tab(tela === 'estoque'),
+      tabPlano: this.tab(tela === 'plano' || tela === 'numeros' || tela === 'wizard'),
+      verDono: () => this.setState({ perfil: 'dono' }),
+      verGerente: () => this.setState({ perfil: 'gerente' }),
+      irInicio: () => this.setState({ tela: 'inicio', passo: 0 }),
+      irLancar: () => this.setState({ tela: 'lancar', passo: 0 }),
+      irEstoque: () => this.setState({ tela: 'estoque', passo: 0 }),
+      irPlano: () => this.setState({ tela: 'plano', passo: 0 }),
+      abrirFoto: () => this.setState({ tela: 'foto', passo: 1 }),
+      tirarFoto: () => {
+        this.setState({ tela: 'foto', passo: 2 });
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.setState({ tela: 'foto', passo: 3 }), 1900);
+      },
+      confirmar: () => this.setState({ tela: 'foto', passo: 4 }),
+      telaNumeros: tela === 'numeros',
+      telaProdutos: tela === 'produtos',
+      telaAvulsa: tela === 'avulsa',
+      telaAvulsaOk: tela === 'avulsaOk',
+      telaFechamento: tela === 'fechamento',
+      telaWizard: tela === 'wizard',
+      telaAjustes: tela === 'ajustes',
+      tabAjustes: this.tab(tela === 'ajustes'),
+      irNumeros: () => this.setState({ tela: 'numeros' }),
+      irProdutos: () => this.setState({ tela: 'produtos' }),
+      irAvulsa: () => this.setState({ tela: 'avulsa' }),
+      irFechamento: () => this.setState({ tela: 'fechamento' }),
+      irAjustes: () => this.setState({ tela: 'ajustes' }),
+      irWizard: () => this.setState({ tela: 'wizard', wizPasso: 1 }),
+      kpiMes: this.state.kpiPeriodo === 'mes',
+      kpiSemana: this.state.kpiPeriodo === 'semana',
+      kpiChipMes: this.seg(this.state.kpiPeriodo === 'mes'),
+      kpiChipSemana: this.seg(this.state.kpiPeriodo === 'semana'),
+      verKpiMes: () => this.setState({ kpiPeriodo: 'mes' }),
+      verKpiSemana: () => this.setState({ kpiPeriodo: 'semana' }),
+      categorias: CATEGORIAS.map(c => ({
+        nome: c,
+        estilo: 'padding:8px 14px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;'
+          + (this.state.catFiltro === c ? 'background:#2E5F73;color:#F7F5EA' : 'background:#E8E6D7;color:#45585D'),
+        escolher: () => this.setState({ catFiltro: c })
+      })),
+      produtos: PRODUTOS.filter(p => this.state.catFiltro === 'Todos' || p.cat === this.state.catFiltro)
+        .map(p => ({ nome: p.nome, categoria: p.cat, fornecedor: p.forn, custo: brl(p.custo), un: p.un })),
+      totalProdutos: PRODUTOS.length + ' cadastrados · 6 categorias',
+      avulsaValor: brl(this.state.avulsa.valor),
+      avulsaResumo: brl(this.state.avulsa.valor) + ' de ' + this.state.avulsa.nome.toLowerCase() + ' entraram em ' + this.state.avulsa.cat + '.',
+      atalhos: ATALHOS.map(a => ({
+        nome: a.nome, dica: a.dica, valor: brl(a.valor),
+        estilo: 'display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:18px;cursor:pointer;background:#FBFAF2;border:2px solid '
+          + (this.state.avulsa.id === a.id ? '#2E5F73' : 'rgba(46,95,115,.1)'),
+        escolher: () => this.setState({ avulsa: a })
+      })),
+      salvarAvulsa: () => this.setState({ tela: 'avulsaOk' }),
+      wiz1: this.state.wizPasso === 1,
+      wiz2: this.state.wizPasso === 2,
+      wiz3: this.state.wizPasso === 3,
+      wizPassoLabel: 'Passo ' + this.state.wizPasso + ' de 3',
+      wizProximo: () => this.setState(s => ({ wizPasso: Math.min(3, s.wizPasso + 1) })),
+      metaTexto: 'R$ ' + this.state.meta.toLocaleString('pt-BR'),
+      metasSugeridas: METAS.map(m => ({
+        nome: m.nome, dica: m.dica, valor: 'R$ ' + m.valor.toLocaleString('pt-BR'),
+        estilo: 'display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:18px;cursor:pointer;background:#FBFAF2;border:2px solid '
+          + (this.state.meta === m.valor ? '#2E5F73' : 'rgba(46,95,115,.1)'),
+        escolher: () => this.setState({ meta: m.valor })
+      })),
+      tetos: Object.keys(this.state.tetos).map(k => ({
+        nome: k,
+        pct: this.state.tetos[k] + '%',
+        valor: brl(this.state.meta * this.state.tetos[k] / 100),
+        mais: () => this.mexerTeto(k, 1),
+        menos: () => this.mexerTeto(k, -1)
+      })),
+      sobraPct: sobra + '%',
+      sobraValor: brl(this.state.meta * sobra / 100),
+      sobraFundo: sobra >= 15 ? '#2F6B4A' : (sobra >= 8 ? '#C05437' : '#B4462F'),
+      canais: [
+        { chave: 'email', nome: 'E-mail', dica: 'resumo de segunda e alertas' },
+        { chave: 'whats', nome: 'WhatsApp', dica: 'só alerta de teto estourado' },
+        { chave: 'sms', nome: 'SMS', dica: 'para quando faltar internet' }
+      ].map(c => {
+        const on = this.state.canais[c.chave];
+        return {
+          nome: c.nome, dica: c.dica,
+          trilho: 'width:50px;height:30px;border-radius:15px;flex:none;cursor:pointer;display:flex;align-items:center;padding:3px;'
+            + (on ? 'background:#2F6B4A;justify-content:flex-end' : 'background:#D6D4C4;justify-content:flex-start'),
+          bolinha: 'width:24px;height:24px;border-radius:50%;background:#FBFAF2',
+          alternar: () => this.setState(s => ({ canais: Object.assign({}, s.canais, { [c.chave]: !s.canais[c.chave] }) }))
+        };
+      }),
+      totalEstoque: brl(total),
+      contados: feitos + ' de ' + ITENS.length + ' itens contados',
+      itens: ITENS.map(i => ({
+        nome: i.nome,
+        un: i.un,
+        custo: brl(i.custo),
+        qtd: String(qtds[i.id] || 0),
+        mais: () => this.bump(i.id, 1),
+        menos: () => this.bump(i.id, -1)
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

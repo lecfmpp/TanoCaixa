@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#CDCCB8; font-family:'Archivo',system-ui,sans-serif; color:#1C2A2E; -webkit-font-smoothing:antialiased; }
+  a { color:#2E5F73; text-decoration:none; border-bottom:1px solid rgba(46,95,115,.35); }
+  a:hover { color:#C05437; border-bottom-color:rgba(192,84,55,.5); }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+
+<section style="padding:56px 56px 110px;display:flex;flex-direction:column;gap:44px">
+
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+    <div style="display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 10px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;letter-spacing:.04em">3a</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1">Entrada e onboarding</div>
+      <div style="font-size:15px;color:#6A7A7E;max-width:700px;text-wrap:pretty">Boas-vindas com foto do Rio, criar conta, entrar, recuperar senha e sete passos que puxam tudo que o app precisa saber — restaurante, canais de venda, números de partida, integrações, equipe e metas. Nenhuma tela pede mais do que cabe num minuto.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">1 · Chegada e conta</div>
+      <div style="flex:1;height:1px;background:rgba(46,95,115,.18)"></div>
+    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap">
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#16303A;font-family:'Archivo',system-ui,sans-serif;overflow:hidden">
+            <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:52% 55%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.82"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.15) 0%,rgba(22,48,58,.5) 45%,rgba(22,48,58,.96) 100%)"></div>
+            <div style="position:absolute;top:96px;right:34px;width:120px;height:120px;border-radius:50%;background:#EFAB5C;opacity:.92"></div>
+            <div style="position:absolute;top:64px;left:26px;display:flex;align-items:center;gap:10px">
+              <div style="width:30px;height:30px;border-radius:10px;background:#C05437"></div>
+              <div style="font-size:18px;font-weight:800;color:#F7F5EA;letter-spacing:-.01em">Tá no Caixa</div>
+            </div>
+            <div style="position:absolute;left:26px;right:26px;bottom:44px;display:flex;flex-direction:column;gap:22px">
+              <div>
+                <div style="font-size:38px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.05;text-wrap:pretty">Saber se sobrou dinheiro não pode dar trabalho</div>
+                <div style="font-size:16px;color:rgba(247,245,234,.75);margin-top:14px;line-height:1.5;text-wrap:pretty">Feito para restaurante do Rio que vive na correria: dois toques por dia e você sabe onde está o lucro.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="padding:17px;border-radius:16px;background:#C05437;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Criar minha conta</div>
+                <div style="padding:17px;border-radius:16px;background:rgba(247,245,234,.14);color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Já tenho conta</div>
+              </div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Boas-vindas</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Foto no filtro Mar, sol como marca. Duas saídas só.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#16303A;font-family:'Archivo',system-ui,sans-serif;overflow:hidden">
+            <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:55% 40%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.8"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,0) 30%,rgba(22,48,58,.9) 100%)"></div>
+            <div style="position:absolute;left:26px;right:26px;bottom:44px;display:flex;flex-direction:column;gap:26px">
+              <div>
+                <div style="font-size:34px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.1;text-wrap:pretty">Tira foto da nota. O resto é com a gente.</div>
+                <div style="font-size:16px;color:rgba(247,245,234,.78);margin-top:14px;line-height:1.5;text-wrap:pretty">Fornecedor, itens, preços e categoria saem prontos em segundos. Você só confere e confirma.</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                <div style="display:flex;gap:7px">
+                  <div style="width:26px;height:6px;border-radius:3px;background:#F7F5EA"></div>
+                  <div style="width:6px;height:6px;border-radius:3px;background:rgba(247,245,234,.4)"></div>
+                  <div style="width:6px;height:6px;border-radius:3px;background:rgba(247,245,234,.4)"></div>
+                </div>
+                <div style="padding:15px 26px;border-radius:16px;background:#F7F5EA;color:#1E4354;font-size:16px;font-weight:700">Próximo</div>
+              </div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Carrossel 1 de 3</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Filtro Sol. Promessa principal: zero digitação.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#16303A;font-family:'Archivo',system-ui,sans-serif;overflow:hidden">
+            <img src="uploads/pasted-1785209431600-0.png" alt="Escadaria Selarón" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.2) 0%,rgba(22,48,58,.94) 100%)"></div>
+            <div style="position:absolute;top:88px;left:26px;width:96px;height:96px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+            <div style="position:absolute;left:26px;right:26px;bottom:44px;display:flex;flex-direction:column;gap:26px">
+              <div>
+                <div style="font-size:34px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.1;text-wrap:pretty">Toda segunda, um recado do que fazer na semana</div>
+                <div style="font-size:16px;color:rgba(247,245,234,.78);margin-top:14px;line-height:1.5;text-wrap:pretty">"O hortifrúti subiu 12%." "Você já passou o ponto de equilíbrio." Direto, com o próximo passo junto.</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                <div style="display:flex;gap:7px">
+                  <div style="width:6px;height:6px;border-radius:3px;background:rgba(247,245,234,.4)"></div>
+                  <div style="width:6px;height:6px;border-radius:3px;background:rgba(247,245,234,.4)"></div>
+                  <div style="width:26px;height:6px;border-radius:3px;background:#F7F5EA"></div>
+                </div>
+                <div style="padding:15px 26px;border-radius:16px;background:#C05437;color:#F7F5EA;font-size:16px;font-weight:700">Bora começar</div>
+              </div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Carrossel 3 de 3</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Fecha no valor do app: orientação, não relatório.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="font-size:14px;font-weight:700;color:#2E5F73">← Voltar</div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Criar sua conta</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Leva 40 segundos. Depois a gente conhece o restaurante.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Seu nome</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Halim Nassar</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Celular (WhatsApp)</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px;font-family:'JetBrains Mono',monospace">(21) 99814-2207</div>
+                <div style="font-size:12px;color:#6A7A7E">É por aqui que chegam os alertas de teto estourado.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">E-mail</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">halim@zaatarrio.com.br</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Senha</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:'JetBrains Mono',monospace;letter-spacing:.2em">••••••••••</div><div style="font-size:13px;font-weight:700;color:#2E5F73">mostrar</div></div>
+                <div style="display:flex;gap:5px;margin-top:2px">
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#E1DFCE"></div>
+                </div>
+                <div style="font-size:12px;color:#2F6B4A;font-weight:600">Senha boa. Só falta um número pra ficar ótima.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:11px;align-items:flex-start">
+              <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+              <div style="font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Aceito os termos de uso e a política de privacidade (LGPD). Seus números são só seus.</div>
+            </div>
+            <div style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Criar conta</div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:1px;background:#E1DFCE"></div><div style="font-size:12px;color:#8A9698">ou</div><div style="flex:1;height:1px;background:#E1DFCE"></div></div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;padding:15px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:700;text-align:center">Google</div>
+              <div style="flex:1;padding:15px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:700;text-align:center">Apple</div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Criar conta</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Quatro campos. Celular em destaque porque é o canal de alerta.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;padding:62px 22px 34px;display:flex;flex-direction:column;gap:20px">
+            <div style="font-size:14px;font-weight:700;color:#2E5F73">← Voltar</div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Confirma o código</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px;line-height:1.5">Mandamos um WhatsApp para (21) 99814-2207 com seis números.</div>
+            </div>
+            <div style="display:flex;gap:9px">
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">4</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">7</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">2</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#8A9698">|</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14)"></div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14)"></div>
+            </div>
+            <div style="font-size:14px;color:#6A7A7E">Não chegou? <b style="color:#2E5F73">Reenviar em 0:24</b></div>
+            <div style="padding:17px;border-radius:16px;background:#E8E6D7;color:#8A9698;font-size:16px;font-weight:700;text-align:center">Confirmar</div>
+            <div style="margin-top:auto;padding:16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Confirmar o número agora evita que você perca o alerta de gasto no meio do mês.</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Confirmar celular</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Código por WhatsApp, botão só acende com os 6 dígitos.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#16303A;font-family:'Archivo',system-ui,sans-serif;overflow:hidden">
+            <img src="uploads/pasted-1785209420737-0.png" alt="Bondinho de Santa Teresa" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.86"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.35) 0%,rgba(22,48,58,.96) 62%)"></div>
+            <div style="position:absolute;top:70px;right:30px;width:84px;height:84px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+            <div style="position:absolute;left:22px;right:22px;bottom:40px;display:flex;flex-direction:column;gap:18px">
+              <div>
+                <div style="font-size:30px;font-weight:800;color:#F7F5EA;letter-spacing:-.025em;line-height:1.1">Bom te ver de novo, chefe</div>
+                <div style="font-size:15px;color:rgba(247,245,234,.75);margin-top:8px">Julho fechou com sobra. Vem ver.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div style="padding:15px 16px;border-radius:14px;background:rgba(247,245,234,.12);border:1px solid rgba(247,245,234,.2);font-size:15px;color:#F7F5EA">halim@zaatarrio.com.br</div>
+                <div style="padding:15px 16px;border-radius:14px;background:rgba(247,245,234,.12);border:1px solid rgba(247,245,234,.2);font-size:15px;color:#F7F5EA;display:flex;justify-content:space-between;align-items:center"><div style="font-family:'JetBrains Mono',monospace;letter-spacing:.2em">••••••••••</div><div style="font-size:13px;font-weight:700;color:rgba(247,245,234,.7)">mostrar</div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:9px"><div style="width:20px;height:20px;border-radius:6px;border:2px solid rgba(247,245,234,.5)"></div><div style="font-size:14px;color:rgba(247,245,234,.8)">Continuar conectado</div></div>
+                <div style="font-size:14px;font-weight:700;color:#EFAB5C">Esqueci a senha</div>
+              </div>
+              <div style="padding:17px;border-radius:16px;background:#F7F5EA;color:#1E4354;font-size:16px;font-weight:700;text-align:center">Entrar</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:16px;background:rgba(247,245,234,.12);color:#F7F5EA;font-size:15px;font-weight:700"><div style="width:16px;height:16px;border-radius:5px;border:2px solid #F7F5EA"></div>Entrar com a digital</div>
+              <div style="text-align:center;font-size:14px;color:rgba(247,245,234,.7)">Não tem conta? <b style="color:#F7F5EA">Criar agora</b></div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Entrar</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Digital em destaque: quem abre o app 3× por dia não digita senha.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">2 · Esqueci a senha</div>
+      <div style="flex:1;height:1px;background:rgba(46,95,115,.18)"></div>
+    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap">
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;padding:62px 22px 34px;display:flex;flex-direction:column;gap:20px">
+            <div style="font-size:14px;font-weight:700;color:#2E5F73">← Entrar</div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Acontece com todo mundo</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px;line-height:1.5">Diz onde você quer receber o código e a gente resolve isso rapidinho.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px">
+                <div style="width:20px;height:20px;border-radius:50%;border:6px solid #2E5F73"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">WhatsApp</div><div style="font-size:13px;color:#8A9698;font-family:'JetBrains Mono',monospace">(21) 9981•-••07</div></div>
+              </div>
+              <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:20px;height:20px;border-radius:50%;border:2px solid #AEB9B8"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">E-mail</div><div style="font-size:13px;color:#8A9698">h•••m@zaatarrio.com.br</div></div>
+              </div>
+            </div>
+            <div style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Me manda o código</div>
+            <div style="margin-top:auto;font-size:13px;color:#8A9698;line-height:1.5;text-wrap:pretty">Não tem mais acesso a nenhum dos dois? <b style="color:#2E5F73">Fala com a gente no WhatsApp</b> que a gente confere com você.</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Escolher o canal</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Sem culpa: título acolhedor e saída humana no rodapé.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;padding:62px 22px 34px;display:flex;flex-direction:column;gap:20px">
+            <div style="font-size:14px;font-weight:700;color:#2E5F73">← Voltar</div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Chegou no seu WhatsApp</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Seis números, válido por 10 minutos.</div>
+            </div>
+            <div style="display:flex;gap:9px">
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">9</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">1</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">3</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">8</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">0</div>
+              <div style="flex:1;height:64px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#8A9698">|</div>
+            </div>
+            <div style="font-size:14px;color:#6A7A7E">Reenviar código em <b style="color:#2E5F73">0:41</b></div>
+            <div style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Código</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Mesmo padrão do cadastro — nada novo pra aprender.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;padding:62px 22px 34px;display:flex;flex-direction:column;gap:20px">
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Agora escolhe a nova</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Oito caracteres pelo menos. Anota num lugar seguro.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Nova senha</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:'JetBrains Mono',monospace;letter-spacing:.2em">•••••••••••</div><div style="font-size:13px;font-weight:700;color:#2E5F73">mostrar</div></div>
+                <div style="display:flex;gap:5px;margin-top:2px">
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                </div>
+                <div style="font-size:12px;color:#2F6B4A;font-weight:600">Senha forte. Essa ninguém adivinha.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Repete pra conferir</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace;letter-spacing:.2em">•••••••••••</div>
+              </div>
+            </div>
+            <div style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Salvar senha</div>
+            <div style="margin-top:auto;padding:16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Ao salvar, a gente desconecta os outros aparelhos por segurança. Sua equipe continua com o acesso dela.</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Nova senha</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Força da senha em linguagem de gente.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px 30px 60px;text-align:center">
+            <div style="position:absolute;top:-70px;left:50%;transform:translateX(-50%);width:230px;height:230px;border-radius:50%;background:#EFAB5C;opacity:.28"></div>
+            <div style="position:relative;width:92px;height:92px;border-radius:50%;background:rgba(47,107,74,.15);display:flex;align-items:center;justify-content:center">
+              <div style="width:32px;height:17px;border-left:5px solid #2F6B4A;border-bottom:5px solid #2F6B4A;transform:rotate(-45deg) translate(3px,-4px)"></div>
+            </div>
+            <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Senha trocada</div>
+            <div style="font-size:16px;color:#45585D;line-height:1.5;max-width:290px;text-wrap:pretty">Pode voltar pro que interessa: ver quanto sobrou este mês.</div>
+            <div style="width:100%;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700">Entrar no app</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">Pronto</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Sol atrás do check: mesma marca das telas de sucesso do app.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">3 · Onboarding · 7 passos</div>
+      <div style="flex:1;height:1px;background:rgba(46,95,115,.18)"></div>
+    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap">
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:6;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">1/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Me conta do seu restaurante</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Só o básico. Dá pra mudar depois.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Nome que aparece pro cliente</div>
+              <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Zaatar Cozinha Árabe</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Como você opera</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="padding:11px 15px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700">Só delivery</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Delivery + salão</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Só salão</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Buffet / eventos</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Tipo de comida</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="padding:11px 15px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700">Árabe</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Boteco</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Pizza</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Japonês</div>
+                <div style="padding:11px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D">Outro</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Bairro</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Botafogo</div>
+              </div>
+              <div style="width:120px;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Lojas</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">1</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">CNPJ <span style="text-transform:none;letter-spacing:0;font-weight:600;color:#AEB9B8">· opcional agora</span></div>
+              <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.25);font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">00.000.000/0001-00</div>
+            </div>
+            <div style="margin-top:auto;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">1 · O restaurante</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Chips no lugar de menus: escolha com o polegar.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:2;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:5;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">2/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Por onde você vende?</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Marca tudo que usa hoje.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">iFood</div><div style="font-size:12px;color:#8A9698">a gente puxa vendas e taxas sozinho</div></div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Rappi</div><div style="font-size:12px;color:#8A9698">vendas e taxas automáticas</div></div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">WhatsApp / site próprio</div><div style="font-size:12px;color:#8A9698">o mais lucrativo pra você</div></div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;border:2px solid #AEB9B8;flex:none"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700;color:#45585D">Balcão e retirada</div><div style="font-size:12px;color:#8A9698">maquininha ou Pix na loja</div></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Ticket médio</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 68</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Dias abertos</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">6 / semana</div>
+              </div>
+            </div>
+            <div style="padding:16px;border-radius:16px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:13px;color:#3A3327;line-height:1.5;text-wrap:pretty">Delivery-first como o seu costuma perder margem em taxa. Vamos ficar de olho nisso desde o primeiro mês.</div>
+            <div style="margin-top:auto;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">2 · Canais de venda</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Cada canal marcado vira uma integração no passo 4.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:3;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:4;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">3/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Os números de partida</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px;line-height:1.5">Chute redondo já serve. Depois do primeiro mês, o app corrige sozinho.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Faturamento de um mês normal</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:19px;font-weight:700;font-family:'JetBrains Mono',monospace">R$ 50.000</div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Folha por mês</div>
+                  <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 10.900</div>
+                </div>
+                <div style="width:112px;display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Pessoas</div>
+                  <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">7</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Contas fixas do mês</div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 6.300</div>
+                <div style="font-size:12px;color:#6A7A7E">Aluguel, luz, água, gás, internet e contador.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Estoque parado hoje <span style="text-transform:none;letter-spacing:0;font-weight:600;color:#AEB9B8">· se souber</span></div>
+                <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.25);font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">R$ 0,00</div>
+              </div>
+            </div>
+            <div style="padding:18px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+              <div style="position:absolute;top:-38px;right:-20px;width:120px;height:120px;border-radius:50%;background:#EFAB5C;opacity:.85"></div>
+              <div style="position:relative">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(247,245,234,.6)">Já dá pra dizer</div>
+                <div style="font-size:17px;font-weight:700;margin-top:6px;line-height:1.35;max-width:250px;text-wrap:pretty">Você precisa vender uns R$ 41.400 por mês pra não ter prejuízo.</div>
+              </div>
+            </div>
+            <div style="margin-top:auto;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">3 · Números de partida</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Devolve valor na hora: o ponto de equilíbrio aparece ali mesmo.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:4;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:3;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">4/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Conecta pra não digitar nunca mais</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Uma vez só. Depois o faturamento entra sozinho todo dia.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">iFood</div><div style="font-size:12px;color:#2F6B4A;font-weight:600">conectado · 38 pedidos ontem</div></div>
+                <div style="width:22px;height:22px;border-radius:50%;background:#2F6B4A;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Rappi</div><div style="font-size:12px;color:#8A5A28;font-weight:600">conectando…</div></div>
+                <div style="width:22px;height:22px;border-radius:50%;border:3px solid #E1DFCE;border-top-color:#C05437"></div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Maquininha</div><div style="font-size:12px;color:#8A9698">Stone, Cielo, PagSeguro, Mercado Pago</div></div>
+                <div style="padding:8px 13px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700">Conectar</div>
+              </div>
+              <div style="padding:15px 16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:40px;height:40px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Sistema de PDV</div><div style="font-size:12px;color:#8A9698">Colibri, Consumer, Goomer…</div></div>
+                <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:700">Conectar</div>
+              </div>
+            </div>
+            <div style="padding:16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">Não tem nenhum desses? Sem problema: dá pra fechar o dia na mão em 20 segundos, e o resto do app funciona igual.</div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+              <div style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+              <div style="text-align:center;font-size:14px;font-weight:700;color:#6A7A7E">Faço isso depois</div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">4 · Integrações</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Sempre com saída "faço depois" — ninguém trava aqui.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:5;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:2;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">5/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Quem mais mexe nisso com você?</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Cada um vê só o que precisa. Ninguém vê seu lucro sem você deixar.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:42px;height:42px;border-radius:50%;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">H</div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Halim (você)</div><div style="font-size:12px;color:#8A9698">vê tudo, inclusive o lucro</div></div>
+                <div style="padding:4px 10px;border-radius:10px;background:rgba(46,95,115,.1);color:#2E5F73;font-size:12px;font-weight:700">dono</div>
+              </div>
+              <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px">
+                <div style="width:42px;height:42px;border-radius:50%;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">J</div>
+                <div style="flex:1"><div style="font-size:15px;font-weight:700">Jamile Rocha</div><div style="font-size:12px;color:#8A9698">(21) 99640-1188 · convite enviado</div></div>
+                <div style="padding:4px 10px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">gerente</div>
+              </div>
+            </div>
+            <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.3);display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:15px;font-weight:700">Convidar mais alguém</div>
+              <div style="padding:14px 16px;border-radius:13px;background:#F0EEE2;font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">(21) 9••••-••••</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="padding:10px 14px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700">Gerente</div>
+                <div style="padding:10px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Estoque</div>
+                <div style="padding:10px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Só lançar nota</div>
+                <div style="padding:10px 14px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600">Contador</div>
+              </div>
+              <div style="padding:14px;border-radius:13px;background:#E8E6D7;color:#1E4354;font-size:14px;font-weight:700;text-align:center">Enviar convite por WhatsApp</div>
+            </div>
+            <div style="padding:16px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">Gerente lança nota, conta estoque e vê o CMV — mas não vê lucro, folha nem faturamento total.</div>
+            <div style="margin-top:auto;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Continuar</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">5 · Sua equipe</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Convite por WhatsApp e permissão explicada em uma frase.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+          <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;overflow:auto;padding:62px 22px 34px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:6;height:5px;border-radius:3px;background:#2E5F73"></div>
+              <div style="flex:1;height:5px;border-radius:3px;background:#E1DFCE"></div>
+              <div style="font-size:12px;font-weight:700;color:#8A9698;font-family:'JetBrains Mono',monospace">6/7</div>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Suas metas do primeiro mês</div>
+              <div style="font-size:14px;color:#6A7A7E;margin-top:6px">Já deixamos preenchido com o que costuma funcionar. Ajusta se quiser.</div>
+            </div>
+            <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14)">
+              <div style="font-size:13px;color:#6A7A7E;font-weight:600">Meta de faturamento</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;margin-top:4px;letter-spacing:-.03em">R$ 50.000</div>
+              <div style="margin-top:12px;height:8px;border-radius:4px;background:#E1DFCE;overflow:hidden"><div style="width:62%;height:100%;border-radius:4px;background:linear-gradient(90deg,#2E5F73,#2F6B4A)"></div></div>
+            </div>
+            <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);overflow:hidden">
+              <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Mercadoria</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">30%</div></div>
+              <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Pessoal</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">25%</div></div>
+              <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Ocupação</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">15%</div></div>
+              <div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Taxas de app</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">12%</div></div>
+              <div style="display:flex;justify-content:space-between;padding:14px 16px;background:rgba(47,107,74,.1)"><div style="font-size:14px;font-weight:800;color:#2F6B4A">Sobra prevista</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:#2F6B4A">18% · R$ 9.000</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Onde te avisar</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1"><div style="font-size:15px;font-weight:600">Resumo de segunda por e-mail</div><div style="font-size:12px;color:#8A9698">7h da manhã</div></div>
+                <div style="width:50px;height:30px;border-radius:15px;background:#2F6B4A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1"><div style="font-size:15px;font-weight:600">Alerta no WhatsApp</div><div style="font-size:12px;color:#8A9698">quando uma categoria chega em 80%</div></div>
+                <div style="width:50px;height:30px;border-radius:15px;background:#2F6B4A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1"><div style="font-size:15px;font-weight:600">Lembrete de contagem</div><div style="font-size:12px;color:#8A9698">dia 1º e dia 28</div></div>
+                <div style="width:50px;height:30px;border-radius:15px;background:#D6D4C4;display:flex;align-items:center;padding:3px;flex:none"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+              </div>
+            </div>
+            <div style="margin-top:auto;padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center">Fechar meu plano</div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">6 · Metas e avisos</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Tudo pré-preenchido: o usuário só confirma.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;width:402px">
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+          <div style="position:relative;height:100%;background:#16303A;font-family:'Archivo',system-ui,sans-serif;overflow:hidden">
+            <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 38%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.8"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.1) 25%,rgba(22,48,58,.94) 78%)"></div>
+            <div style="position:absolute;left:22px;right:22px;bottom:40px;display:flex;flex-direction:column;gap:20px">
+              <div>
+                <div style="font-size:36px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.05;text-wrap:pretty">Pronto, chefe. Agora é só cozinhar.</div>
+                <div style="font-size:16px;color:rgba(247,245,234,.8);margin-top:12px;line-height:1.5;text-wrap:pretty">O painel já está montado com o que você contou. Amanhã de manhã o faturamento de hoje entra sozinho.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px;color:#F7F5EA">Restaurante e equipe cadastrados</div></div>
+                <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px;color:#F7F5EA">iFood conectado, Rappi a caminho</div></div>
+                <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px;color:#F7F5EA">Meta de R$ 50.000 e tetos definidos</div></div>
+              </div>
+              <div style="padding:16px 18px;border-radius:16px;background:rgba(247,245,234,.14);border:1px solid rgba(247,245,234,.2)">
+                <div style="font-size:13px;color:rgba(247,245,234,.7);font-weight:600">Primeira missão</div>
+                <div style="font-size:15px;color:#F7F5EA;margin-top:4px;line-height:1.45;text-wrap:pretty">Tira foto da última nota de fornecedor que estiver aí no balcão. Leva 40 segundos.</div>
+              </div>
+              <div style="padding:17px;border-radius:16px;background:#F7F5EA;color:#1E4354;font-size:16px;font-weight:700;text-align:center">Ver meu painel</div>
+            </div>
+          </div>
+        </x-import>
+        <div style="font-size:13px;font-weight:700">7 · Tudo pronto</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Fecha com foto, resumo do que foi feito e uma primeira missão curta.</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+</body>
+</html>

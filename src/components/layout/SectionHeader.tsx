@@ -3,6 +3,7 @@ import { Plus, Receipt, Package, Boxes, CalendarCheck } from 'lucide-react'
 import type { Periodo } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
+import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
 
 interface SectionHeaderProps {
@@ -15,12 +16,12 @@ interface SectionHeaderProps {
   lancar?: boolean
 }
 
-const OPCOES_LANCAR = [
+const OPCOES_LANCAR: { id: TipoGaveta; rotulo: string; icone: typeof Receipt; dica: string }[] = [
   { id: 'despesa', rotulo: 'Lançar despesa', icone: Receipt, dica: 'nota, conta, boleto' },
   { id: 'produto', rotulo: 'Novo produto', icone: Package, dica: 'item do estoque' },
   { id: 'estoque', rotulo: 'Movimento de estoque', icone: Boxes, dica: 'entrada, perda' },
   { id: 'fechamento', rotulo: 'Fechar o dia', icone: CalendarCheck, dica: 'vendas do dia' },
-] as const
+]
 
 /**
  * Cabeçalho de todas as seções: faixa com foto (filtro Mar) + disco solar,
@@ -38,6 +39,7 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   const [menuAberto, setMenuAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { abrirGaveta } = useUI()
 
   useEffect(() => {
     function fora(e: MouseEvent) {
@@ -98,7 +100,10 @@ export function SectionHeader({
             return (
               <button
                 key={op.id}
-                onClick={() => setMenuAberto(false)}
+                onClick={() => {
+                  setMenuAberto(false)
+                  abrirGaveta(op.id)
+                }}
                 className={cn(
                   'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-preenchimento',
                   'border-b border-divisoria last:border-0',

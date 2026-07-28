@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin:0; background:#CDCCB8; font-family:'Archivo',system-ui,sans-serif; color:#1C2A2E; -webkit-font-smoothing:antialiased; }
+  a { color:#2E5F73; text-decoration:none; border-bottom:1px solid rgba(46,95,115,.35); }
+  a:hover { color:#C05437; border-bottom-color:rgba(192,84,55,.5); }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+
+<section style="padding:56px 56px 96px;display:flex;flex-direction:column;gap:32px;max-width:1500px">
+
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+    <div style="display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 10px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;letter-spacing:.04em">2a</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1">Estilo visual · Tá no Caixa</div>
+      <div style="font-size:15px;color:#6A7A7E;max-width:680px;text-wrap:pretty">Rio ao entardecer: areia lavada, mar de fim de tarde, sol grande e telhado de morro. Cor com sotaque, interface sóbria — o dinheiro é o que grita na tela, não a decoração.</div>
+    </div>
+  </div>
+
+  <div style="position:relative;height:250px;border-radius:24px;overflow:hidden;background:#CDCCB8;border:1px solid rgba(46,95,115,.16)">
+    <div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);width:150px;height:150px;border-radius:50%;background:#EFAB5C"></div>
+    <div style="position:absolute;bottom:-90px;left:50%;transform:translateX(-50%);width:300px;height:210px;border-radius:50% 50% 0 0;background:#2E5F73"></div>
+    <div style="position:absolute;bottom:-70px;left:12%;width:260px;height:150px;border-radius:50% 50% 0 0;background:#1E4354"></div>
+    <div style="position:absolute;bottom:-64px;right:10%;width:230px;height:130px;border-radius:50% 50% 0 0;background:#16303A"></div>
+    <div style="position:absolute;bottom:22px;left:28px;display:flex;gap:6px">
+      <div style="width:16px;height:16px;background:#C05437"></div>
+      <div style="width:16px;height:16px;background:#EFAB5C"></div>
+      <div style="width:16px;height:16px;background:#2F6B4A"></div>
+    </div>
+    <div style="position:absolute;top:24px;right:28px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#45585D;letter-spacing:.08em;white-space:nowrap">SOL · MORRO · TELHADO</div>
+  </div>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+
+    <div style="flex:1 1 620px;display:flex;flex-direction:column;gap:16px;padding:26px;border-radius:22px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Cores principais</div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:96px;border-radius:16px;background:#2E5F73"></div>
+          <div style="font-size:14px;font-weight:700">Mar de fim de tarde</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">#2E5F73</div>
+          <div style="font-size:12px;color:#6A7A7E;line-height:1.4">Cor-mãe. Barras, botões principais, cabeçalho.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:96px;border-radius:16px;background:#EFAB5C"></div>
+          <div style="font-size:14px;font-weight:700">Sol das seis</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">#EFAB5C</div>
+          <div style="font-size:12px;color:#6A7A7E;line-height:1.4">Destaque quente: sol, progresso, avisos leves.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:96px;border-radius:16px;background:#C05437"></div>
+          <div style="font-size:14px;font-weight:700">Telhado</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">#C05437</div>
+          <div style="font-size:12px;color:#6A7A7E;line-height:1.4">Ação de lançar (o botão +) e chamadas de atenção.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:96px;border-radius:16px;background:#CDCCB8"></div>
+          <div style="font-size:14px;font-weight:700">Areia lavada</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E">#CDCCB8</div>
+          <div style="font-size:12px;color:#6A7A7E;line-height:1.4">Fundo geral. Nunca branco puro.</div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:#E8E6D7;margin:4px 0"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Apoio e estados</div>
+
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#1E4354"></div><div style="font-size:12px;font-weight:700">Morro escuro</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#1E4354</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#2F6B4A"></div><div style="font-size:12px;font-weight:700">Sobrou (bom)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#2F6B4A</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#B4462F"></div><div style="font-size:12px;font-weight:700">Estourou</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#B4462F</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14)"></div><div style="font-size:12px;font-weight:700">Cartão</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#FBFAF2</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#E8E6D7"></div><div style="font-size:12px;font-weight:700">Preenchimento</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#E8E6D7</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px"><div style="height:58px;border-radius:13px;background:#1C2A2E"></div><div style="font-size:12px;font-weight:700">Texto</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">#1C2A2E</div></div>
+      </div>
+
+      <div style="padding:14px 16px;border-radius:14px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:13px;line-height:1.5;color:#3A3327;text-wrap:pretty"><b>Regra de ouro:</b> só uma cor quente por tela cheia. Se o sol já está no cabeçalho, o resto é mar, areia e texto. Verde e vermelho ficam reservados para dinheiro — nunca para enfeite.</div>
+    </div>
+
+    <div style="flex:1 1 380px;display:flex;flex-direction:column;gap:16px;padding:26px;border-radius:22px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Tipografia</div>
+      <div>
+        <div style="font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1">Sobrou dinheiro</div>
+        <div style="font-size:13px;color:#6A7A7E;margin-top:8px;font-family:'JetBrains Mono',monospace">Archivo 800 · títulos e perguntas</div>
+      </div>
+      <div>
+        <div style="font-size:16px;line-height:1.5;color:#45585D;text-wrap:pretty">Texto do dia a dia em Archivo regular e semibold. Frases curtas, sem palavra de contador: entrou, saiu, sobrou, teto, tá no caixa.</div>
+        <div style="font-size:13px;color:#6A7A7E;margin-top:8px;font-family:'JetBrains Mono',monospace">Archivo 400/600 · 14–16px</div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;letter-spacing:-.03em;color:#2F6B4A">R$ 8.140,00</div>
+        <div style="font-size:13px;color:#6A7A7E;margin-top:8px;font-family:'JetBrains Mono',monospace">JetBrains Mono · todo valor em R$, alinhado à direita</div>
+      </div>
+      <div style="height:1px;background:#E8E6D7"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Formas</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="width:74px;height:52px;border-radius:20px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6A7A7E;font-family:'JetBrains Mono',monospace">20</div>
+        <div style="width:74px;height:52px;border-radius:14px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6A7A7E;font-family:'JetBrains Mono',monospace">14</div>
+        <div style="width:74px;height:52px;border-radius:10px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6A7A7E;font-family:'JetBrains Mono',monospace">10</div>
+        <div style="flex:1;min-width:140px;font-size:12px;color:#6A7A7E;line-height:1.45">Cartão 20 · botão 14 · etiqueta 10. Morro e sol são meias-luas e círculos — nada de ilustração detalhada.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div style="flex:1 1 460px;padding:26px;border-radius:22px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Peças aplicadas</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="padding:14px 20px;border-radius:14px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700">Tá certo, lançar</div>
+        <div style="padding:14px 20px;border-radius:14px;background:#E8E6D7;color:#45585D;font-size:15px;font-weight:700">Ajustar</div>
+        <div style="width:54px;height:54px;border-radius:50%;background:#C05437;box-shadow:0 8px 18px rgba(192,84,55,.38);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;padding-bottom:4px">+</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="padding:4px 11px;border-radius:10px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:12px;font-weight:700">tranquilo</div>
+        <div style="padding:4px 11px;border-radius:10px;background:rgba(239,171,92,.3);color:#8A5A28;font-size:12px;font-weight:700">quase lá</div>
+        <div style="padding:4px 11px;border-radius:10px;background:rgba(180,70,47,.13);color:#B4462F;font-size:12px;font-weight:700">estourou</div>
+        <div style="padding:4px 11px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">novo</div>
+      </div>
+      <div style="padding:18px;border-radius:20px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-34px;right:-16px;width:100px;height:100px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+        <div style="position:absolute;bottom:-52px;right:-20px;width:170px;height:110px;border-radius:50% 50% 0 0;background:#1E4354"></div>
+        <div style="position:relative">
+          <div style="font-size:13px;color:rgba(247,245,234,.65);font-weight:600">Ponto de equilíbrio</div>
+          <div style="font-size:17px;font-weight:700;margin-top:6px;max-width:230px;line-height:1.35;text-wrap:pretty">Você virou o jogo no dia 21. Daqui pra frente é lucro.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 380px;padding:26px;border-radius:22px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Jeito de falar</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="margin-top:5px;width:10px;height:10px;border-radius:50%;background:#2F6B4A;flex:none"></div><div style="font-size:15px;line-height:1.5"><b>Entrou, saiu, sobrou.</b> No lugar de receita bruta, despesas e resultado líquido.</div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="margin-top:5px;width:10px;height:10px;border-radius:50%;background:#2F6B4A;flex:none"></div><div style="font-size:15px;line-height:1.5"><b>Sempre com saída.</b> Todo alerta vem com o que fazer hoje, não só o problema.</div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="margin-top:5px;width:10px;height:10px;border-radius:50%;background:#2F6B4A;flex:none"></div><div style="font-size:15px;line-height:1.5"><b>Gíria com parcimônia.</b> "Segura a mão", "tá tranquilo", "chefe" — uma por tela, no máximo.</div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><div style="margin-top:5px;width:10px;height:10px;border-radius:50%;background:#B4462F;flex:none"></div><div style="font-size:15px;line-height:1.5"><b>Nunca:</b> DRE, CMV sem explicação, "resultado operacional", emoji, exclamação dobrada.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:26px;border-radius:22px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Filtro para fotos da cidade</div>
+      <div style="font-size:14px;color:#6A7A7E;max-width:620px;text-wrap:pretty">Foto real do Rio entra sempre com o mesmo tratamento: dessatura, uma camada de cor por cima e uma luz quente. Assim qualquer foto — Arpoador, Cadeg, Lapa, uma cozinha — vira parte da paleta. Arraste imagens nos quadros abaixo para ver.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+
+      <div style="min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="position:relative;isolation:isolate;height:230px;border-radius:18px;overflow:hidden;background:#1E4354">
+          <image-slot id="rio-sol" shape="rect" src="uploads/pasted-1785209411738-0.png" placeholder="foto do Rio · pôr do sol" style="width:100%;height:100%;filter:saturate(.3) contrast(1.06)"></image-slot>
+          <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.78"></div>
+          <div style="position:absolute;inset:0;pointer-events:none;background:#F7F5EA;mix-blend-mode:screen;opacity:.14"></div>
+        </div>
+        <div style="font-size:14px;font-weight:700">Sol das seis</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6A7A7E;line-height:1.5">saturate .30 → multiply<br>#EFAB5C → #C05437 · 78%</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Capa de relatório, tela de boas-vindas, topo do e-mail de segunda.</div>
+      </div>
+
+      <div style="min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="position:relative;isolation:isolate;height:230px;border-radius:18px;overflow:hidden;background:#16303A">
+          <image-slot id="rio-mar" shape="rect" src="uploads/pasted-1785209401799-0.png" placeholder="foto do Rio · mar" style="width:100%;height:100%;filter:saturate(.3) contrast(1.06)"></image-slot>
+          <div style="position:absolute;inset:0;pointer-events:none;background:#2E5F73;mix-blend-mode:multiply;opacity:.82"></div>
+          <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(239,171,92,.55),rgba(239,171,92,0));mix-blend-mode:screen"></div>
+        </div>
+        <div style="font-size:14px;font-weight:700">Mar de fim de tarde</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6A7A7E;line-height:1.5">saturate .30 → multiply<br>#2E5F73 · 82% + sol no topo</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Fundo com texto por cima: cabeçalho, cartão de meta, login.</div>
+      </div>
+
+      <div style="min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="position:relative;isolation:isolate;height:230px;border-radius:18px;overflow:hidden;background:#CDCCB8">
+          <image-slot id="rio-areia" shape="rect" src="uploads/pasted-1785209431600-0.png" placeholder="foto do Rio · areia" style="width:100%;height:100%;filter:saturate(.28) contrast(1.02)"></image-slot>
+          <div style="position:absolute;inset:0;pointer-events:none;background:#CDCCB8;mix-blend-mode:multiply;opacity:.72"></div>
+          <div style="position:absolute;inset:0;pointer-events:none;background:#FBFAF2;mix-blend-mode:screen;opacity:.26"></div>
+        </div>
+        <div style="font-size:14px;font-weight:700">Areia lavada</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6A7A7E;line-height:1.5">saturate .28 → multiply<br>#CDCCB8 · 72% + clareada 26%</div>
+        <div style="font-size:12px;color:#6A7A7E;line-height:1.45">Foto discreta atrás de conteúdo: estado vazio, ajuda, onboarding.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1 1 340px;min-width:0;position:relative;isolation:isolate;height:190px;border-radius:18px;overflow:hidden;background:#16303A">
+        <image-slot id="rio-capa" shape="rect" src="uploads/pasted-1785209420737-0.png" placeholder="foto larga · morro e cidade" style="width:100%;height:100%;filter:saturate(.3) contrast(1.06)"></image-slot>
+        <div style="position:absolute;inset:0;pointer-events:none;background:#2E5F73;mix-blend-mode:multiply;opacity:.82"></div>
+        <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(22,48,58,.85) 0%,rgba(22,48,58,.15) 62%)"></div>
+        <div style="position:absolute;top:26px;right:30px;width:74px;height:74px;border-radius:50%;background:#EFAB5C;opacity:.92;pointer-events:none"></div>
+        <div style="position:absolute;left:28px;bottom:26px;pointer-events:none">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(247,245,234,.65)">Julho fechado</div>
+          <div style="font-size:24px;font-weight:800;color:#F7F5EA;letter-spacing:-.02em;margin-top:4px">Sobrou R$ 8.140</div>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;padding:18px 20px;border-radius:18px;background:#E8E6D7;font-size:13px;line-height:1.55;color:#45585D;text-wrap:pretty">
+        <b style="color:#1C2A2E">Como usar:</b> foto tratada só em momento de respiro — capa de mês fechado, boas-vindas, e-mail, tela de conquista. Nunca atrás de número ou tabela. Texto por cima sempre com o degradê escuro do lado onde ele fica, e o sol como único elemento gráfico solto.
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+</body>
+</html>

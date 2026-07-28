@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/auth/AuthContext'
 import { cn } from '@/lib/cn'
 
 /** Medidor de força bem simples, em linguagem de balcão. */
@@ -24,13 +25,22 @@ function forcaSenha(senha: string): { nivel: number; frase: string } {
 
 export function CriarContaPage() {
   const navegar = useNavigate()
+  const { criarConta } = useAuth()
   const [senha, setSenha] = useState('')
   const [aceite, setAceite] = useState(false)
   const forca = useMemo(() => forcaSenha(senha), [senha])
 
-  function aoEnviar(e: FormEvent) {
+  async function aoEnviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    // Conta criada → segue pro onboarding de 7 passos.
+    const fd = new FormData(e.currentTarget)
+    const nome = String(fd.get('nome') ?? '')
+    const email = String(fd.get('email') ?? '')
+    try {
+      // Cadastro real no Firebase (funciona quando o provedor estiver habilitado).
+      if (email && senha) await criarConta(nome, email, senha)
+    } catch {
+      // Provedor ainda não habilitado — segue no fluxo de demonstração.
+    }
     navegar('/onboarding')
   }
 

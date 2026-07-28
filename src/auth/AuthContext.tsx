@@ -10,10 +10,15 @@ import {
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile,
   signOut,
   type User,
 } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { doc, setDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
 import { permissoesDoPapel, type Permissoes, type Sessao } from '@/types'
 
@@ -25,6 +30,10 @@ interface AuthContextValor {
   entrarDemo: () => void
   /** Login real via Firebase Auth (e-mail/senha). */
   entrarComEmail: (email: string, senha: string) => Promise<void>
+  /** Cria conta real (Firebase Auth + perfil no Firestore). */
+  criarConta: (nome: string, email: string, senha: string) => Promise<void>
+  /** Login com Google. */
+  entrarComGoogle: () => Promise<void>
   sair: () => Promise<void>
 }
 
@@ -77,6 +86,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, senha)
   }, [])
 
+  const criarConta = useCallback(async (nome: string, email: string, senha: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, senha)
+    if (nome) await updateProfile(cred.user, { displayName: nome })
+    // Perfil do usuário no Firestore (associação ao restaurante vem no onboarding).
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      nome,
+      email,
+      criadoEm: new Date().toISOString(),
+    })
+  }, [])
+
+  const entrarComGoogle = useCallback(async () => {
+    await signInWithPopup(auth, new GoogleAuthProvider())
+  }, [])
+
   const sair = useCallback(async () => {
     sessionStorage.removeItem(CHAVE_DEMO)
     if (sessao?.demo) {
@@ -94,9 +118,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       carregando,
       entrarDemo,
       entrarComEmail,
+      criarConta,
+      entrarComGoogle,
       sair,
     }),
-    [sessao, carregando, entrarDemo, entrarComEmail, sair],
+    [sessao, carregando, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
