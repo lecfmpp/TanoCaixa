@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { doc, deleteDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getRestaurante, repo, type IntegracaoDoc } from './repo'
+import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
+import type { DiaHorario } from '@/components/ui/HorarioSemana'
 import { DEMO_TENANT, origemAtual } from './tenant'
 import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
@@ -406,6 +407,75 @@ export function useDesfazer() {
     },
     onSuccess: (itens) => {
       new Set(itens.map((i) => i.colecao)).forEach((c) => qc.invalidateQueries({ queryKey: [t, c] }))
+    },
+  })
+}
+
+export interface RespostasOnboarding {
+  nome: string
+  bairro: string
+  lojas: string
+  operacao: string
+  cozinha: string
+  cnpj: string
+  canais: string[]
+  ticket: string
+  pedidos: string
+  horarios: DiaHorario[]
+  faturamento: string
+  folha: number
+  contasFixas: number
+  pessoas: string
+  meta: string
+  tetos: { mercadoria: number; pessoal: number; ocupacao: number; taxas_app: number }
+  avisos: { whatsapp: boolean; email: boolean; sms: boolean }
+}
+
+const OP_MAP: Record<string, string> = {
+  'Só delivery': 'delivery',
+  'Delivery + salão': 'delivery_salao',
+  'Só salão': 'salao',
+  'Buffet / eventos': 'buffet',
+}
+
+/** Grava as respostas do onboarding no restaurante do usuário (tenant real). */
+export function usePersistirOnboarding() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (r: RespostasOnboarding) => {
+      await setRestaurante(t, {
+        nome: r.nome || 'Meu restaurante',
+        bairro: r.bairro,
+        cidade: 'Rio de Janeiro',
+        tipoOperacao: (OP_MAP[r.operacao] ?? 'delivery_salao') as never,
+        tipoCozinha: r.cozinha,
+        cnpj: r.cnpj,
+        regimeTributario: 'simples',
+        aliquotaImposto: 0.06,
+        metaFaturamento: numeroBR(r.meta) || 50000,
+        tetos: r.tetos,
+        aberturaMes: 'julho de 2026',
+        // extras do onboarding (RestauranteDoc tolera campos a mais)
+        numLojas: Number(r.lojas) || 1,
+        ticketMedio: numeroBR(r.ticket),
+        pedidosDia: Number(r.pedidos) || 0,
+        horarios: r.horarios,
+        folha: r.folha,
+        contasFixas: r.contasFixas,
+        pessoas: Number(r.pessoas) || 0,
+        avisos: r.avisos,
+      } as never)
+      // Canais marcados viram integrações "conectando".
+      await Promise.all(
+        r.canais
+          .filter((c) => c === 'ifood' || c === 'rappi')
+          .map((c) => repo.integracoes.salvar(t, c, { provedor: c, status: 'conectando' })),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'restaurante'] })
+      qc.invalidateQueries({ queryKey: [t, 'integracoes'] })
     },
   })
 }

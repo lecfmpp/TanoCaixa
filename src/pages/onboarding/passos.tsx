@@ -5,9 +5,12 @@ import { Chip } from '@/components/ui/Chip'
 import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
-import { HorarioSemana, HORARIO_PADRAO, type DiaHorario } from '@/components/ui/HorarioSemana'
+import { HorarioSemana } from '@/components/ui/HorarioSemana'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
+import type { RespostasOnboarding } from '@/data/hooks'
+
+type Upd = (p: Partial<RespostasOnboarding>) => void
 import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -18,25 +21,22 @@ const soDigitos = (s: string) => Number(s.replace(/\D/g, '') || 0)
 const OPERACOES = ['Só delivery', 'Delivery + salão', 'Só salão', 'Buffet / eventos']
 const COZINHAS = ['Árabe', 'Boteco', 'Pizza', 'Japonês', 'Outro']
 
-export function Passo1Restaurante() {
-  const [operacao, setOperacao] = useState('Delivery + salão')
-  const [cozinha, setCozinha] = useState('Árabe')
-  const [cnpj, setCnpj] = useState('')
+export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
   return (
     <div>
       <TituloPasso titulo="Me conta do seu restaurante" sub="Só o básico. Dá pra mudar depois." />
       <div className="flex flex-col gap-5">
-        <CampoTexto rotulo="Nome que aparece pro cliente" defaultValue="Zaatar Cozinha Árabe" />
+        <CampoTexto rotulo="Nome que aparece pro cliente" value={r.nome} onChange={(e) => upd({ nome: e.target.value })} />
         <div className="grid grid-cols-2 gap-3">
-          <CampoTexto rotulo="Bairro" defaultValue="Botafogo" />
-          <CampoTexto rotulo="Lojas" defaultValue="1" inputMode="numeric" />
+          <CampoTexto rotulo="Bairro" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
+          <CampoTexto rotulo="Lojas" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
         </div>
 
         <div>
           <Rotulo>Como você opera</Rotulo>
           <div className="flex flex-wrap gap-2">
             {OPERACOES.map((o) => (
-              <Chip key={o} rotulo={o} selecionado={operacao === o} aoClicar={() => setOperacao(o)} />
+              <Chip key={o} rotulo={o} selecionado={r.operacao === o} aoClicar={() => upd({ operacao: o })} />
             ))}
           </div>
         </div>
@@ -45,7 +45,7 @@ export function Passo1Restaurante() {
           <Rotulo>Tipo de comida</Rotulo>
           <div className="flex flex-wrap gap-2">
             {COZINHAS.map((o) => (
-              <Chip key={o} rotulo={o} selecionado={cozinha === o} aoClicar={() => setCozinha(o)} />
+              <Chip key={o} rotulo={o} selecionado={r.cozinha === o} aoClicar={() => upd({ cozinha: o })} />
             ))}
           </div>
         </div>
@@ -54,8 +54,8 @@ export function Passo1Restaurante() {
           rotulo="CNPJ · opcional agora"
           placeholder="00.000.000/0001-00"
           inputMode="numeric"
-          value={cnpj}
-          onChange={(e) => setCnpj(mascararCNPJ(e.target.value))}
+          value={r.cnpj}
+          onChange={(e) => upd({ cnpj: mascararCNPJ(e.target.value) })}
         />
       </div>
     </div>
@@ -71,17 +71,13 @@ const CANAIS = [
   { id: 'balcao', nome: 'Balcão e retirada', dica: 'maquininha ou Pix na loja' },
 ]
 
-export function Passo2Canais() {
-  const [sel, setSel] = useState<Set<string>>(new Set(['ifood', 'rappi', 'balcao']))
-  const [ticket, setTicket] = useState('68')
-  const [pedidos, setPedidos] = useState('48')
-  const [horarios, setHorarios] = useState<DiaHorario[]>(HORARIO_PADRAO)
-  const alterna = (id: string) =>
-    setSel((s) => {
-      const n = new Set(s)
-      n.has(id) ? n.delete(id) : n.add(id)
-      return n
-    })
+export function Passo2Canais({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
+  const sel = new Set(r.canais)
+  const alterna = (id: string) => {
+    const n = new Set(r.canais)
+    n.has(id) ? n.delete(id) : n.add(id)
+    upd({ canais: [...n] })
+  }
   return (
     <div>
       <TituloPasso
@@ -123,24 +119,24 @@ export function Passo2Canais() {
           rotulo="Ticket médio"
           prefixo="R$"
           inputMode="numeric"
-          value={ticket}
-          onChange={(e) => setTicket(apenasDigitos(e.target.value))}
+          value={r.ticket}
+          onChange={(e) => upd({ ticket: apenasDigitos(e.target.value) })}
         />
         <CampoTexto
           rotulo="Pedidos por dia"
           inputMode="numeric"
-          value={pedidos}
-          onChange={(e) => setPedidos(apenasDigitos(e.target.value))}
+          value={r.pedidos}
+          onChange={(e) => upd({ pedidos: apenasDigitos(e.target.value) })}
         />
       </div>
 
       <div className="mt-5">
         <Rotulo>Dias e horários de funcionamento</Rotulo>
         <p className="-mt-1 mb-2 text-xs text-tinta-4">
-          A gente usa isso pra saber quando a loja tá aberta. No ícone de copiar, você repete o
-          horário de um dia pros outros.
+          A gente usa isso pra saber quando a loja tá aberta. No botão "Aplicar em todos os dias",
+          você repete o horário de um dia pros outros.
         </p>
-        <HorarioSemana valor={horarios} aoMudar={setHorarios} />
+        <HorarioSemana valor={r.horarios} aoMudar={(h) => upd({ horarios: h })} />
       </div>
     </div>
   )
@@ -154,12 +150,20 @@ export function Passo3Numeros({
   onFolha,
   onContasFixas,
   pontoEquilibrio,
+  faturamento,
+  pessoas,
+  onFaturamento,
+  onPessoas,
 }: {
   folha: number
   contasFixas: number
   onFolha: (n: number) => void
   onContasFixas: (n: number) => void
   pontoEquilibrio: number
+  faturamento: string
+  pessoas: string
+  onFaturamento: (v: string) => void
+  onPessoas: (v: string) => void
 }) {
   return (
     <div>
@@ -168,7 +172,7 @@ export function Passo3Numeros({
         sub="Chute redondo já serve. Depois do primeiro mês o app corrige sozinho."
       />
       <div className="flex flex-col gap-5">
-        <CampoTexto rotulo="Faturamento de um mês normal" prefixo="R$" defaultValue="50.000" inputMode="numeric" />
+        <CampoTexto rotulo="Faturamento de um mês normal" prefixo="R$" inputMode="numeric" value={faturamento} onChange={(e) => onFaturamento(e.target.value)} />
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto
             rotulo="Folha por mês"
@@ -177,7 +181,7 @@ export function Passo3Numeros({
             value={inteiro(folha)}
             onChange={(e) => onFolha(soDigitos(e.target.value))}
           />
-          <CampoTexto rotulo="Pessoas" defaultValue="6" inputMode="numeric" />
+          <CampoTexto rotulo="Pessoas" value={pessoas} onChange={(e) => onPessoas(apenasDigitos(e.target.value))} inputMode="numeric" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto
@@ -350,12 +354,15 @@ export function Passo6Metas({
   onTetos,
   sobraPct,
   sobraReais,
+  meta,
+  onMeta,
 }: {
   tetos: Tetos
   onTetos: (t: Tetos) => void
   sobraPct: number
   sobraReais: number
-  meta: number
+  meta: string
+  onMeta: (v: string) => void
 }) {
   const [avisos, setAvisos] = useState({ whatsapp: true, email: true, sms: false })
   return (
@@ -365,7 +372,7 @@ export function Passo6Metas({
         sub="Já deixamos preenchido com o que costuma funcionar. Ajusta se quiser."
       />
 
-      <CampoTexto rotulo="Meta de faturamento" prefixo="R$" defaultValue="50.000" inputMode="numeric" />
+      <CampoTexto rotulo="Meta de faturamento" prefixo="R$" inputMode="numeric" value={meta} onChange={(e) => onMeta(e.target.value)} />
       <p className="mt-1.5 text-xs text-tinta-4">Um degrau acima de julho, sem apertar demais.</p>
 
       <div className="mt-5 flex flex-col gap-2">

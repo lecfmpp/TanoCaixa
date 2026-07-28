@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { fotos } from '@/lib/fotos'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthContext'
+import { usePersistirOnboarding, type RespostasOnboarding } from '@/data/hooks'
+import { HORARIO_PADRAO } from '@/components/ui/HorarioSemana'
 import {
   Passo1Restaurante,
   Passo2Canais,
@@ -26,32 +28,56 @@ const PASSOS = [
   { indice: 7, nome: 'Tudo pronto' },
 ]
 
+const RESPOSTAS_INICIAIS: RespostasOnboarding = {
+  nome: 'Zaatar Cozinha Árabe',
+  bairro: 'Botafogo',
+  lojas: '1',
+  operacao: 'Delivery + salão',
+  cozinha: 'Árabe',
+  cnpj: '',
+  canais: ['ifood', 'rappi', 'balcao'],
+  ticket: '68',
+  pedidos: '48',
+  horarios: HORARIO_PADRAO,
+  faturamento: '50.000',
+  folha: 10900,
+  contasFixas: 6300,
+  pessoas: '6',
+  meta: '50.000',
+  tetos: { mercadoria: 30, pessoal: 25, ocupacao: 15, taxas_app: 12 },
+  avisos: { whatsapp: true, email: true, sms: false },
+}
+
 export function OnboardingPage() {
   const navegar = useNavigate()
   const { entrarDemo, sessao } = useAuth()
+  const persistir = usePersistirOnboarding()
   const [passo, setPasso] = useState(1)
+  const [r, setR] = useState<RespostasOnboarding>(RESPOSTAS_INICIAIS)
+  const upd = (patch: Partial<RespostasOnboarding>) => setR((atual) => ({ ...atual, ...patch }))
 
-  // Passo 3 — ponto de equilíbrio ao vivo.
-  const [folha, setFolha] = useState(10900)
-  const [contasFixas, setContasFixas] = useState(6300)
   const pontoEquilibrio = useMemo(
-    () => Math.round((folha + contasFixas) / 0.415 / 100) * 100,
-    [folha, contasFixas],
+    () => Math.round((r.folha + r.contasFixas) / 0.415 / 100) * 100,
+    [r.folha, r.contasFixas],
   )
-
-  // Passo 6 — sobra prevista ao vivo.
-  const [tetos, setTetos] = useState({ mercadoria: 30, pessoal: 25, ocupacao: 15, taxas_app: 12 })
-  const metaFaturamento = 50000
-  const sobraPct = 100 - (tetos.mercadoria + tetos.pessoal + tetos.ocupacao + tetos.taxas_app)
-  const sobraReais = Math.round((metaFaturamento * sobraPct) / 100)
+  const sobraPct = 100 - (r.tetos.mercadoria + r.tetos.pessoal + r.tetos.ocupacao + r.tetos.taxas_app)
+  const sobraReais = Math.round(((Number(r.meta.replace(/\D/g, '')) || 50000) * sobraPct) / 100)
 
   const ehUltimo = passo === PASSOS.length
   const rotuloProximo = ehUltimo ? 'Ver meu painel' : 'Continuar'
 
-  function avancar() {
+  async function avancar() {
     if (ehUltimo) {
-      // Usuário real já autenticado vai pro seu painel; sem sessão, demonstração.
-      if (!sessao) entrarDemo()
+      // Conta real: grava as respostas no restaurante dela. Sem sessão: demo.
+      if (sessao && !sessao.demo) {
+        try {
+          await persistir.mutateAsync(r)
+        } catch (e) {
+          console.warn('persistir onboarding:', e)
+        }
+      } else {
+        entrarDemo()
+      }
       navegar('/painel')
       return
     }
@@ -142,26 +168,31 @@ export function OnboardingPage() {
         {/* Conteúdo do passo */}
         <div className="scroll-fina flex-1 overflow-y-auto px-6 py-8 tab:px-10">
           <div className="mx-auto max-w-[640px]">
-            {passo === 1 && <Passo1Restaurante />}
-            {passo === 2 && <Passo2Canais />}
+            {passo === 1 && <Passo1Restaurante r={r} upd={upd} />}
+            {passo === 2 && <Passo2Canais r={r} upd={upd} />}
             {passo === 3 && (
               <Passo3Numeros
-                folha={folha}
-                contasFixas={contasFixas}
-                onFolha={setFolha}
-                onContasFixas={setContasFixas}
+                folha={r.folha}
+                contasFixas={r.contasFixas}
+                onFolha={(n) => upd({ folha: n })}
+                onContasFixas={(n) => upd({ contasFixas: n })}
                 pontoEquilibrio={pontoEquilibrio}
+                faturamento={r.faturamento}
+                pessoas={r.pessoas}
+                onFaturamento={(v) => upd({ faturamento: v })}
+                onPessoas={(v) => upd({ pessoas: v })}
               />
             )}
             {passo === 4 && <Passo4Integracoes />}
             {passo === 5 && <Passo5Equipe />}
             {passo === 6 && (
               <Passo6Metas
-                tetos={tetos}
-                onTetos={setTetos}
+                tetos={r.tetos}
+                onTetos={(tt) => upd({ tetos: tt })}
                 sobraPct={sobraPct}
                 sobraReais={sobraReais}
-                meta={metaFaturamento}
+                meta={r.meta}
+                onMeta={(v) => upd({ meta: v })}
               />
             )}
             {passo === 7 && <Passo7Pronto />}
