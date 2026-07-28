@@ -39,10 +39,10 @@ export function EntrarPage() {
     <AuthLayout>
       <div className="mb-7">
         <h2 className="text-tinta" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>
-          Entrar no painel
+          Bom te ver de novo, chefe
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Bem-vindo de volta. Vamos ver como o caixa fechou.
+          Julho fechou com sobra. Vem ver.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export function EntrarPage() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="voce@seurestaurante.com.br"
+          placeholder="halim@zaatarrio.com.br"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -122,7 +122,7 @@ export function EntrarPage() {
       </button>
 
       <p className="mt-6 text-center text-sm text-tinta-3">
-        Ainda não tem conta?{' '}
+        Não tem conta?{' '}
         <Link to="/criar" className="font-bold text-telhado hover:underline">
           Criar agora
         </Link>

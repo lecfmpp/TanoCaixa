@@ -11,21 +11,27 @@ export function EsqueciSenhaPage() {
 
   return (
     <AuthLayout>
+      <Link
+        to="/entrar"
+        className="mb-6 inline-block text-sm font-semibold text-mar hover:underline"
+      >
+        ← Voltar pro login
+      </Link>
+
       <div className="mb-6">
         <h2 className="text-tinta" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>
-          Recuperar acesso
+          Acontece com todo mundo
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          A gente te manda um código pra você criar uma senha nova.
+          Diz onde você quer receber o código e a gente resolve isso rapidinho.
         </p>
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="rotulo text-tinta-4">Onde te mando o código?</span>
         {(
           [
-            { id: 'whatsapp', titulo: 'WhatsApp', dado: '(21) 9 ****-5432' },
-            { id: 'email', titulo: 'E-mail', dado: 'h****@zaatar.com.br' },
+            { id: 'whatsapp', titulo: 'WhatsApp', dado: '(21) 9981•-••07' },
+            { id: 'email', titulo: 'E-mail', dado: 'h•••m@zaatarrio.com.br' },
           ] as const
         ).map((op) => (
           <button
@@ -60,16 +66,11 @@ export function EsqueciSenhaPage() {
       </div>
 
       <p className="pretty mt-6 text-center text-sm text-tinta-3">
-        Travou de vez?{' '}
+        Não tem mais acesso a nenhum dos dois?{' '}
         <a className="font-bold text-mata hover:underline" href="#">
           Fala com a gente no WhatsApp
-        </a>
-        .
-      </p>
-      <p className="mt-3 text-center text-sm">
-        <Link to="/entrar" className="font-semibold text-mar hover:underline">
-          ← Voltar para o login
-        </Link>
+        </a>{' '}
+        que a gente confere com você.
       </p>
     </AuthLayout>
   )

@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/auth/AuthContext'
 import { cn } from '@/lib/cn'
 
 /** Medidor de força bem simples, em linguagem de balcão. */
@@ -24,7 +23,6 @@ function forcaSenha(senha: string): { nivel: number; frase: string } {
 }
 
 export function CriarContaPage() {
-  const { entrarDemo } = useAuth()
   const navegar = useNavigate()
   const [senha, setSenha] = useState('')
   const [aceite, setAceite] = useState(false)
@@ -32,9 +30,8 @@ export function CriarContaPage() {
 
   function aoEnviar(e: FormEvent) {
     e.preventDefault()
-    // Fase 1 fará o cadastro real + onboarding. Por ora, entra na demonstração.
-    entrarDemo()
-    navegar('/painel')
+    // Conta criada → segue pro onboarding de 7 passos.
+    navegar('/onboarding')
   }
 
   return (
@@ -44,12 +41,12 @@ export function CriarContaPage() {
           Criar sua conta
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Leva um minuto. Depois a gente configura seu restaurante juntos.
+          Leva 40 segundos. Depois a gente conhece o restaurante.
         </p>
       </div>
 
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
-        <Campo rotulo="Seu nome" name="nome" placeholder="Como te chamam" required />
+        <Campo rotulo="Seu nome" name="nome" placeholder="Halim Nassar" required />
 
         <div className="grid grid-cols-2 gap-3">
           <Campo rotulo="Restaurante" name="restaurante" placeholder="Zaatar" required />
@@ -60,7 +57,7 @@ export function CriarContaPage() {
           rotulo="Celular (WhatsApp)"
           name="whatsapp"
           type="tel"
-          placeholder="(21) 90000-0000"
+          placeholder="(21) 99814-2207"
           destaque
           required
         />

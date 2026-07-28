@@ -12,6 +12,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       {/* Coluna da foto — some no celular */}
       <aside className="foto-rio relative hidden w-[44%] shrink-0 tab:flex flex-col justify-between p-10">
         <img src={fotos.cristo} alt="Rio de Janeiro ao pôr do sol" />
+        {/* Scrim escuro para leitura do texto sobre a foto */}
+        <div
+          className="pointer-events-none absolute inset-0 z-[2]"
+          style={{ background: 'linear-gradient(180deg, rgba(22,48,58,.25) 0%, rgba(22,48,58,.3) 40%, rgba(22,48,58,.62) 100%)' }}
+          aria-hidden
+        />
         <div className="relative z-10">
           <Logo tom="claro" tamanho={24} />
         </div>

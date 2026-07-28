@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { EntrarPage } from '@/pages/auth/EntrarPage'
 import { CriarContaPage } from '@/pages/auth/CriarContaPage'
 import { EsqueciSenhaPage } from '@/pages/auth/EsqueciSenhaPage'
+import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
 import { Inicio } from '@/pages/painel/Inicio'
 import { Placeholder } from '@/pages/painel/Placeholder'
 import { fotos } from '@/lib/fotos'
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/entrar" element={<EntrarPage />} />
           <Route path="/criar" element={<CriarContaPage />} />
           <Route path="/esqueci" element={<EsqueciSenhaPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
 
           <Route
             path="/painel"
