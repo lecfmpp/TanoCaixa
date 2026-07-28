@@ -17,7 +17,7 @@ export interface EscritorFirestore {
   salvarDespesa(restauranteId: string, id: string, doc: unknown): Promise<void>
   salvarProdutoMenu(restauranteId: string, id: string, doc: unknown): Promise<void>
   salvarAtividade(restauranteId: string, id: string, doc: unknown): Promise<void>
-  atualizarIntegracao(restauranteId: string, patch: Record<string, unknown>): Promise<void>
+  atualizarIntegracao(restauranteId: string, provedor: string, patch: Record<string, unknown>): Promise<void>
 }
 
 export interface ContextoSync {
@@ -59,7 +59,7 @@ export async function syncFinanceiroDia(ctx: ContextoSync, data: string): Promis
     criadoPorNome: 'Automático',
     origem: 'integracao',
   })
-  await ctx.escritor.atualizarIntegracao(ctx.restauranteId, {
+  await ctx.escritor.atualizarIntegracao(ctx.restauranteId, 'ifood', {
     status: 'conectado',
     ultimoSyncEm: new Date().toISOString(),
     pedidosUltimoDia: resumo.pedidos,
