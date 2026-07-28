@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRestaurante, repo } from './repo'
+import { getRestaurante, repo, type IntegracaoDoc } from './repo'
 import { DEMO_TENANT, origemAtual } from './tenant'
 import { useAuth } from '@/auth/AuthContext'
 import type {
@@ -192,6 +192,20 @@ export function useCriarProduto() {
       qc.invalidateQueries({ queryKey: [t, 'produtos'] })
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
+  })
+}
+
+export function useConectarIntegracao() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (p: { provedor: string; merchantId?: string; status?: IntegracaoDoc['status'] }) =>
+      repo.integracoes.salvar(t, p.provedor, {
+        provedor: p.provedor,
+        merchantId: p.merchantId,
+        status: p.status ?? 'conectando',
+      } as Partial<IntegracaoDoc>),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
   })
 }
 

@@ -6,7 +6,8 @@ import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useMembros, useAtividades, useRestaurante, useIntegracoes } from '@/data/hooks'
+import { useMembros, useAtividades, useRestaurante, useIntegracoes, useConectarIntegracao } from '@/data/hooks'
+import { useUI } from '@/ui/UIProvider'
 import { HOJE } from '@/data/derive'
 import type { IntegracaoDoc } from '@/data/repo'
 import type { Papel, Origem } from '@/types'
@@ -144,10 +145,32 @@ const STATUS_INT: Record<IntegracaoDoc['status'], { txt: string; cls: string }> 
   desconectado: { txt: 'conectar', cls: 'bg-preenchimento text-tinta-2' },
 }
 
+const DICA_PROV: Record<string, string> = {
+  maquininha: 'Stone, Cielo, PagSeguro, Mercado Pago',
+  pdv: 'Colibri, Consumer, Goomer…',
+}
+
 function Integracoes() {
   const integracoes = (useIntegracoes().data ?? []) as IntegracaoDoc[]
+  const conectar = useConectarIntegracao()
+  const { adicionarToast } = useUI()
   const conhecidas = ['ifood', 'rappi', 'maquininha', 'pdv']
   const porId = new Map(integracoes.map((i) => [i.provedor, i]))
+
+  const [abrindo, setAbrindo] = useState<string | null>(null)
+  const [merchantId, setMerchantId] = useState('')
+
+  async function salvarConexao(prov: string) {
+    await conectar.mutateAsync({ provedor: prov, merchantId: merchantId.trim(), status: 'conectando' })
+    setAbrindo(null)
+    setMerchantId('')
+    const nome = PROVEDOR[prov as keyof typeof PROVEDOR]?.nome ?? prov
+    adicionarToast({
+      tipo: 'sistema',
+      titulo: `${nome} conectando…`,
+      texto: 'Assim que o backend entrar no ar, o faturamento entra sozinho todo dia às 6h.',
+    })
+  }
 
   return (
     <Cartao className="flex flex-col">
@@ -159,37 +182,67 @@ function Integracoes() {
         {conhecidas.map((prov, i) => {
           const info = PROVEDOR[prov as keyof typeof PROVEDOR]
           const it = porId.get(prov)
-          const st = STATUS_INT[it?.status ?? 'desconectado']
+          const status = it?.status ?? 'desconectado'
+          const st = STATUS_INT[status]
+          const aberto = abrindo === prov
           return (
-            <li
-              key={prov}
-              className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-divisoria')}
-            >
-              <span
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-botao text-xs font-bold text-creme"
-                style={{ background: info?.cor ?? '#6A7A7E' }}
-              >
-                {(info?.nome ?? prov).slice(0, 2)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-tinta capitalize">
-                  {info?.nome ?? prov}
+            <li key={prov} className={cn('py-3', i > 0 && 'border-t border-divisoria')}>
+              <div className="flex items-center gap-3">
+                <span
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-botao text-xs font-bold text-creme"
+                  style={{ background: info?.cor ?? '#6A7A7E' }}
+                >
+                  {(info?.nome ?? prov).slice(0, 2)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-tinta capitalize">{info?.nome ?? prov}</div>
+                  <div className="text-xs text-tinta-4">
+                    {status === 'conectado' && it?.pedidosUltimoDia != null
+                      ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
+                      : status === 'conectando'
+                        ? 'conectando… entra no ar no próximo sync'
+                        : (DICA_PROV[prov] ?? 'não conectado')}
+                  </div>
                 </div>
-                <div className="text-xs text-tinta-4">
-                  {it?.status === 'conectado' && it.pedidosUltimoDia != null
-                    ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
-                    : it?.status === 'conectando'
-                      ? 'conectando…'
-                      : prov === 'maquininha'
-                        ? 'Stone, Cielo, PagSeguro, Mercado Pago'
-                        : prov === 'pdv'
-                          ? 'Colibri, Consumer, Goomer…'
-                          : 'não conectado'}
-                </div>
+                {status === 'conectado' ? (
+                  <button
+                    onClick={() =>
+                      adicionarToast({ tipo: 'andamento', titulo: `Sincronizando ${info?.nome}…`, texto: 'O sync automático roda todo dia às 6h.' })
+                    }
+                    className="shrink-0 text-xs font-bold text-mar hover:underline"
+                  >
+                    Sincronizar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setAbrindo(aberto ? null : prov)
+                      setMerchantId('')
+                    }}
+                    className={cn('shrink-0 rounded-chip px-2.5 py-1 text-xs font-bold', st.cls)}
+                  >
+                    {aberto ? 'fechar' : status === 'conectando' ? st.txt : 'conectar'}
+                  </button>
+                )}
               </div>
-              <span className={cn('shrink-0 rounded-chip px-2.5 py-1 text-xs font-bold', st.cls)}>
-                {st.txt}
-              </span>
+
+              {aberto && (
+                <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
+                  <input
+                    value={merchantId}
+                    onChange={(e) => setMerchantId(e.target.value)}
+                    placeholder={prov === 'ifood' ? 'ID da loja no iFood (merchantId)' : 'ID / conta da integração'}
+                    className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar"
+                  />
+                  <button
+                    onClick={() => salvarConexao(prov)}
+                    disabled={!merchantId.trim() || conectar.isPending}
+                    className="shrink-0 rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
+                  >
+                    Conectar
+                  </button>
+                </div>
+              )}
             </li>
           )
         })}
