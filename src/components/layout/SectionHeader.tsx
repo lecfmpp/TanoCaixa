@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, Plus, Receipt, Package, Boxes, CalendarCheck } from 'lucide-react'
+import { Plus, Receipt, Package, Boxes, CalendarCheck } from 'lucide-react'
 import type { Periodo } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
@@ -23,9 +23,9 @@ const OPCOES_LANCAR = [
 ] as const
 
 /**
- * Cabeçalho de todas as seções: faixa com foto (filtro Mar), título e
- * subtítulo, segmentado Semana|Mês, Exportar e +Lançar. O menu do +Lançar
- * é renderizado FORA da faixa (ela tem overflow hidden).
+ * Cabeçalho de todas as seções: faixa com foto (filtro Mar) + disco solar,
+ * título, subtítulo, segmentado Semana|Mês, Exportar e +Lançar. O menu do
+ * +Lançar é renderizado FORA da faixa (ela tem overflow hidden).
  */
 export function SectionHeader({
   titulo,
@@ -50,32 +50,38 @@ export function SectionHeader({
   return (
     <div className="relative" ref={ref}>
       {/* Faixa com foto (overflow hidden) */}
-      <div className="foto-rio flex min-h-[86px] flex-col items-start justify-between gap-3 rounded-cartao px-5 py-4 tab:flex-row tab:items-center tab:gap-4 tab:px-6">
+      <div className="foto-rio flex min-h-[104px] flex-col items-start justify-center gap-3 rounded-cartao-g px-6 py-5 tab:flex-row tab:items-center tab:justify-between">
         <img src={foto} alt="" aria-hidden />
+        {/* disco solar decorativo, atrás dos controles */}
+        <span
+          className="pointer-events-none absolute -top-10 right-[24%] z-[2] hidden h-40 w-40 rounded-full tab:block"
+          style={{ background: '#EFAB5C', opacity: 0.92 }}
+          aria-hidden
+        />
+
         <div className="relative z-10 min-w-0">
           <h1
             className="truncate text-creme"
-            style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.025em' }}
+            style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em' }}
           >
             {titulo}
           </h1>
-          <p className="mt-0.5 truncate text-sm text-creme/80">{subtitulo}</p>
+          <p className="mt-1 truncate text-sm text-creme/85">{subtitulo}</p>
         </div>
 
-        <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-2.5">
+        <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">
           {periodo && aoTrocarPeriodo && (
             <Segmentado valor={periodo} aoTrocar={aoTrocarPeriodo} tom="claro" />
           )}
           {exportar && (
-            <button className="hidden items-center gap-1.5 rounded-botao bg-white/15 px-3 py-2 text-sm font-bold text-creme backdrop-blur-sm transition hover:bg-white/25 tab:flex">
-              <Download size={16} strokeWidth={2} />
+            <button className="hidden px-1 text-sm font-semibold text-creme/90 transition hover:text-creme tab:block">
               Exportar
             </button>
           )}
           {lancar && (
             <button
               onClick={() => setMenuAberto((v) => !v)}
-              className="flex items-center gap-1.5 rounded-botao bg-telhado px-3.5 py-2 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95"
+              className="flex items-center gap-1.5 rounded-botao bg-telhado px-4 py-2.5 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95"
             >
               <Plus size={16} strokeWidth={2.5} />
               Lançar

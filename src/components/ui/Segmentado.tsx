@@ -17,7 +17,7 @@ export function Segmentado({ valor, aoTrocar, tom = 'claro' }: SegmentadoProps) 
     <div
       className={cn(
         'inline-flex rounded-botao p-1',
-        tom === 'claro' ? 'bg-black/20 backdrop-blur-sm' : 'bg-preenchimento',
+        tom === 'claro' ? 'bg-white/10 backdrop-blur-sm' : 'bg-preenchimento',
       )}
     >
       {opcoes.map((op) => {

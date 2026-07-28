@@ -7,29 +7,26 @@ interface LogoProps {
   className?: string
 }
 
-/** Marca "Tá no Caixa": disco solar + wordmark. */
+/** Marca "Tá no Caixa": tile telhado arredondado + wordmark. */
 export function Logo({ tom = 'escuro', tamanho = 22, className }: LogoProps) {
   const corTexto = tom === 'claro' ? '#F7F5EA' : '#1C2A2E'
-  const corApoio = tom === 'claro' ? 'rgba(247,245,234,.62)' : '#6A7A7E'
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <span
-        className="relative inline-block shrink-0 rounded-full"
+        className="inline-block shrink-0"
         style={{
-          width: tamanho,
-          height: tamanho,
-          background: 'radial-gradient(circle at 35% 30%, #EFAB5C, #C05437)',
-          boxShadow: '0 2px 8px rgba(192,84,55,.4)',
+          width: tamanho * 1.35,
+          height: tamanho * 1.35,
+          borderRadius: tamanho * 0.4,
+          background: '#C05437',
         }}
         aria-hidden
       />
-      <span className="leading-none" style={{ letterSpacing: '-0.02em' }}>
-        <span style={{ color: corTexto, fontWeight: 800, fontSize: tamanho * 0.82 }}>
-          Tá no{' '}
-        </span>
-        <span style={{ color: corApoio, fontWeight: 800, fontSize: tamanho * 0.82 }}>
-          Caixa
-        </span>
+      <span
+        className="leading-none"
+        style={{ color: corTexto, fontWeight: 700, fontSize: tamanho, letterSpacing: '-0.01em' }}
+      >
+        Tá no Caixa
       </span>
     </span>
   )
