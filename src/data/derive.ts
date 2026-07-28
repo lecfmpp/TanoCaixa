@@ -13,12 +13,16 @@ export interface Contexto {
 /** Ponto de equilíbrio — custos fixos / margem de contribuição típica. */
 const MARGEM_CONTRIBUICAO = 0.415
 
+// Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date).
+const MES_REF = `${HOJE.getFullYear()}-${String(HOJE.getMonth() + 1).padStart(2, '0')}`
+
 function noPeriodo(iso: string, periodo: 'semana' | 'mes'): boolean {
-  const d = new Date(iso)
-  if (periodo === 'mes') return d.getMonth() === HOJE.getMonth() && d.getFullYear() === HOJE.getFullYear()
+  if (periodo === 'mes') return iso.slice(0, 7) === MES_REF
+  // Semana: compara a data (ao meio-dia local, sem deslocar de fuso).
+  const d = new Date(iso.slice(0, 10) + 'T12:00:00')
   const seteDias = new Date(HOJE)
   seteDias.setDate(HOJE.getDate() - 7)
-  return d > seteDias && d <= HOJE
+  return d > seteDias && d <= new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate(), 23, 59)
 }
 
 function somaCategoria(despesas: DespesaDoc[], cat: CategoriaDespesa): number {
@@ -30,7 +34,7 @@ function faturamento(receita: ReceitaDiaDoc[]): number {
 }
 
 function semanaDoMes(iso: string): number {
-  const dia = new Date(iso).getDate()
+  const dia = Number(iso.slice(8, 10))
   return Math.min(4, Math.ceil(dia / 7))
 }
 
@@ -108,10 +112,14 @@ export function despesasResumo(despesas: DespesaDoc[]) {
   const saiu = despesas.reduce((s, d) => s + d.valorTotal, 0)
   const pago = despesas.filter((d) => d.status === 'pago').reduce((s, d) => s + d.valorTotal, 0)
   const aPagar = despesas.filter((d) => d.status !== 'pago').reduce((s, d) => s + d.valorTotal, 0)
-  const em3 = new Date(HOJE)
-  em3.setDate(HOJE.getDate() + 3)
+  const em3 = new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate() + 3, 23, 59)
+  const inicio = new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate(), 0, 0)
   const vence3 = despesas
-    .filter((d) => d.status !== 'pago' && d.dataVencimento && new Date(d.dataVencimento) <= em3)
+    .filter((d) => {
+      if (d.status === 'pago' || !d.dataVencimento) return false
+      const v = new Date(d.dataVencimento.slice(0, 10) + 'T12:00:00')
+      return v >= inicio && v <= em3
+    })
     .reduce((s, d) => s + d.valorTotal, 0)
   return { saiu, pago, aPagar, vence3, contagem: despesas.length }
 }
