@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Fotos de notas/recibos enviadas para leitura por IA (OCR).
+// Apenas usuários autenticados podem enviar/ler dentro do próprio restaurante.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /restaurants/{restaurantId}/receipts/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
