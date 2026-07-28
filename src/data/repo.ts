@@ -93,6 +93,20 @@ export const repo = {
     listar: (t: string) => listar<InsightDoc>(t, 'insights'),
     salvar: (t: string, id: string, d: Partial<InsightDoc>) => salvar(t, 'insights', id, d),
   },
+  integracoes: {
+    listar: (t: string) => listar<IntegracaoDoc>(t, 'integracoes'),
+    salvar: (t: string, id: string, d: Partial<IntegracaoDoc>) => salvar(t, 'integracoes', id, d),
+  },
+}
+
+export interface IntegracaoDoc {
+  id: string
+  provedor: string
+  status: 'conectado' | 'conectando' | 'desconectado'
+  merchantId?: string
+  ultimoSyncEm?: string
+  pedidosUltimoDia?: number
+  faturamentoUltimoDia?: number
 }
 
 /** Assinatura em tempo real de uma coleção (para sincronização entre abas). */

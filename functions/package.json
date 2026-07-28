@@ -1,0 +1,22 @@
+{
+  "name": "tanocaixa-functions",
+  "description": "Cloud Functions do Tá no Caixa — integração iFood (financeiro)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.0"
+  },
+  "private": true
+}

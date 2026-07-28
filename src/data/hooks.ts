@@ -48,6 +48,10 @@ export function useInsights() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'insights'], queryFn: () => repo.insights.listar(t) })
 }
+export function useIntegracoes() {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'integracoes'], queryFn: () => repo.integracoes.listar(t) })
+}
 
 /** Contexto para os cálculos (despesas + receita + config). */
 export function useContexto() {

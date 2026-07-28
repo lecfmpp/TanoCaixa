@@ -1,3 +1,5 @@
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import type {
   DespesaDoc,
@@ -130,6 +132,25 @@ const contagem: ContagemDoc = {
 
 /** Cria os dados da demonstração se o tenant ainda estiver vazio. */
 export async function seedDemoSeVazio(tenant: string): Promise<void> {
+  // Integrações — sempre garantidas (idempotente), independente do resto.
+  await setDoc(
+    doc(db, 'restaurants', tenant, 'integracoes', 'ifood'),
+    {
+      provedor: 'ifood',
+      status: 'conectado',
+      merchantId: 'demo-merchant',
+      ultimoSyncEm: `${dia(28)}T06:00:00.000Z`,
+      pedidosUltimoDia: 38,
+      faturamentoUltimoDia: 742.5,
+    },
+    { merge: true },
+  )
+  await setDoc(
+    doc(db, 'restaurants', tenant, 'integracoes', 'rappi'),
+    { provedor: 'rappi', status: 'conectando', pedidosUltimoDia: 9, faturamentoUltimoDia: 186.4 },
+    { merge: true },
+  )
+
   const existente = await getRestaurante(tenant)
   if (existente) return
 

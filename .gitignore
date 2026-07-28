@@ -23,6 +23,10 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Cloud Functions
+functions/node_modules/
+functions/lib/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

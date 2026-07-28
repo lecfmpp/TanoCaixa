@@ -6,8 +6,9 @@ import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useMembros, useAtividades, useRestaurante } from '@/data/hooks'
+import { useMembros, useAtividades, useRestaurante, useIntegracoes } from '@/data/hooks'
 import { HOJE } from '@/data/derive'
+import type { IntegracaoDoc } from '@/data/repo'
 import type { Papel, Origem } from '@/types'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
@@ -87,6 +88,9 @@ export function Ajustes() {
         <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
       </Cartao>
 
+      {/* Integrações */}
+      <Integracoes />
+
       {/* Histórico */}
       <Cartao className="flex flex-col">
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -126,6 +130,71 @@ export function Ajustes() {
         </div>
       </Cartao>
     </div>
+  )
+}
+
+const PROVEDOR = {
+  ifood: { nome: 'iFood', cor: '#EA1D2C' },
+  rappi: { nome: 'Rappi', cor: '#FF5A00' },
+} as const
+
+const STATUS_INT: Record<IntegracaoDoc['status'], { txt: string; cls: string }> = {
+  conectado: { txt: 'conectado', cls: 'bg-mata/12 text-mata' },
+  conectando: { txt: 'conectando…', cls: 'bg-sol/20 text-insight-rotulo' },
+  desconectado: { txt: 'conectar', cls: 'bg-preenchimento text-tinta-2' },
+}
+
+function Integracoes() {
+  const integracoes = (useIntegracoes().data ?? []) as IntegracaoDoc[]
+  const conhecidas = ['ifood', 'rappi', 'maquininha', 'pdv']
+  const porId = new Map(integracoes.map((i) => [i.provedor, i]))
+
+  return (
+    <Cartao className="flex flex-col">
+      <h2 className="text-[15px] font-bold text-tinta">Integrações</h2>
+      <p className="mt-1 mb-3 text-sm text-tinta-3">
+        Faturamento, taxas e pedidos entram sozinhos todo dia às 6 da manhã.
+      </p>
+      <ul className="flex flex-col">
+        {conhecidas.map((prov, i) => {
+          const info = PROVEDOR[prov as keyof typeof PROVEDOR]
+          const it = porId.get(prov)
+          const st = STATUS_INT[it?.status ?? 'desconectado']
+          return (
+            <li
+              key={prov}
+              className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-divisoria')}
+            >
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-botao text-xs font-bold text-creme"
+                style={{ background: info?.cor ?? '#6A7A7E' }}
+              >
+                {(info?.nome ?? prov).slice(0, 2)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-tinta capitalize">
+                  {info?.nome ?? prov}
+                </div>
+                <div className="text-xs text-tinta-4">
+                  {it?.status === 'conectado' && it.pedidosUltimoDia != null
+                    ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
+                    : it?.status === 'conectando'
+                      ? 'conectando…'
+                      : prov === 'maquininha'
+                        ? 'Stone, Cielo, PagSeguro, Mercado Pago'
+                        : prov === 'pdv'
+                          ? 'Colibri, Consumer, Goomer…'
+                          : 'não conectado'}
+                </div>
+              </div>
+              <span className={cn('shrink-0 rounded-chip px-2.5 py-1 text-xs font-bold', st.cls)}>
+                {st.txt}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </Cartao>
   )
 }
 
