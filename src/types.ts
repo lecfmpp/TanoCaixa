@@ -57,6 +57,8 @@ export interface BarraPeriodo {
 export interface Sessao {
   usuario: Usuario
   restaurante: Restaurante
+  /** Id do tenant no Firestore (uid do dono, ou o tenant demo). */
+  tenantId: string
   demo: boolean
 }
 

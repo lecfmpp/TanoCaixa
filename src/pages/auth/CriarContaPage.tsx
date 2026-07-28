@@ -30,6 +30,8 @@ export function CriarContaPage() {
   const [senha, setSenha] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [aceite, setAceite] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
   const forca = useMemo(() => forcaSenha(senha), [senha])
 
   async function aoEnviar(e: FormEvent<HTMLFormElement>) {
@@ -37,13 +39,18 @@ export function CriarContaPage() {
     const fd = new FormData(e.currentTarget)
     const nome = String(fd.get('nome') ?? '')
     const email = String(fd.get('email') ?? '')
+    const restaurante = String(fd.get('restaurante') ?? '')
+    const bairro = String(fd.get('bairro') ?? '')
+    setErro(null)
+    setEnviando(true)
     try {
-      // Cadastro real no Firebase (funciona quando o provedor estiver habilitado).
-      if (email && senha) await criarConta(nome, email, senha)
+      await criarConta(nome, email, senha, restaurante, bairro)
+      navegar('/onboarding')
     } catch {
-      // Provedor ainda não habilitado — segue no fluxo de demonstração.
+      setErro('Não deu pra criar a conta. Talvez esse e-mail já tenha cadastro, ou a senha esteja curta (mínimo 6).')
+    } finally {
+      setEnviando(false)
     }
-    navegar('/onboarding')
   }
 
   return (
@@ -135,8 +142,14 @@ export function CriarContaPage() {
           </span>
         </label>
 
-        <Button type="submit" variante="lancar" bloco disabled={!aceite}>
-          Criar conta e começar
+        {erro && (
+          <p className="rounded-campo border border-telha-alerta/40 bg-telha-alerta/8 px-3 py-2 text-sm text-telha-alerta">
+            {erro}
+          </p>
+        )}
+
+        <Button type="submit" variante="lancar" bloco disabled={!aceite || enviando}>
+          {enviando ? 'Criando…' : 'Criar conta e começar'}
         </Button>
       </form>
 

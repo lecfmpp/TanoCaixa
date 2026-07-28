@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { initializeFirestore, getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getStorage, connectStorageEmulator } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -15,8 +15,16 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 // ignoreUndefinedProperties: campos undefined são omitidos em vez de derrubar
-// a escrita (ex.: valor/estoque_minimo opcionais em importações e lançamentos).
-export const db = initializeFirestore(app, { ignoreUndefinedProperties: true })
+// a escrita (ex.: valor/estoque_minimo opcionais). O try/catch evita crash no
+// HMR do Vite (initializeFirestore só pode rodar uma vez por app).
+function iniciarFirestore() {
+  try {
+    return initializeFirestore(app, { ignoreUndefinedProperties: true })
+  } catch {
+    return getFirestore(app)
+  }
+}
+export const db = iniciarFirestore()
 export const storage = getStorage(app)
 
 // Conecta aos emuladores locais quando habilitado no .env.local.

@@ -18,9 +18,10 @@ function normalizarCategoria(v: string): CategoriaDespesa {
   return (CATEGORIAS.find((c) => s.includes(c.replace('_app', ''))) ?? 'mercadoria')
 }
 
-/** Tenant atual — demo enquanto o auth por e-mail/senha não é habilitado. */
+/** Tenant atual — o restaurante do usuário logado, ou o tenant demo. */
 export function useTenant() {
-  return DEMO_TENANT
+  const { sessao } = useAuth()
+  return sessao?.tenantId ?? DEMO_TENANT
 }
 
 /* -------------------------------- Queries ------------------------------- */

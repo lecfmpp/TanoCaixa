@@ -28,7 +28,7 @@ const PASSOS = [
 
 export function OnboardingPage() {
   const navegar = useNavigate()
-  const { entrarDemo } = useAuth()
+  const { entrarDemo, sessao } = useAuth()
   const [passo, setPasso] = useState(1)
 
   // Passo 3 — ponto de equilíbrio ao vivo.
@@ -50,7 +50,8 @@ export function OnboardingPage() {
 
   function avancar() {
     if (ehUltimo) {
-      entrarDemo()
+      // Usuário real já autenticado vai pro seu painel; sem sessão, demonstração.
+      if (!sessao) entrarDemo()
       navegar('/painel')
       return
     }
