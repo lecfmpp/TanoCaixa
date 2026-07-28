@@ -72,10 +72,10 @@ export function HorarioSemana({ valor, aoMudar }: Props) {
           <button
             type="button"
             onClick={() => copiarPraSemana(i)}
-            title="Copiar esse horário pros outros dias"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-botao text-tinta-4 transition hover:bg-preenchimento hover:text-mar"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-botao px-2 py-1 text-xs font-semibold text-mar transition hover:bg-mar/10"
           >
-            <Copy size={15} />
+            <Copy size={13} />
+            Aplicar em todos os dias
           </button>
         </div>
       ))}
