@@ -62,7 +62,7 @@ export async function setRestaurante(tenant: string, dados: RestauranteDoc) {
 export const repo = {
   membros: {
     listar: (t: string) => listar<MembroDoc & { id: string }>(t, 'membros'),
-    salvar: (t: string, id: string, d: MembroDoc) => salvar(t, 'membros', id, d),
+    salvar: (t: string, id: string, d: Partial<MembroDoc>) => salvar(t, 'membros', id, d),
     remover: (t: string, id: string) => remover(t, 'membros', id),
   },
   produtos: {

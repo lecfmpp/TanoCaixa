@@ -29,7 +29,7 @@ export interface MembroDoc {
   cor: string
   papel: Papel
   celular?: string
-  conviteStatus?: 'ativo' | 'convite_enviado'
+  conviteStatus?: 'ativo' | 'convite_enviado' | 'aguardando_dono'
 }
 
 export interface ProdutoDoc extends Autoria {

@@ -5,8 +5,34 @@
 /** De onde veio a ação — alimenta o histórico de autoria. */
 export type Origem = 'celular' | 'computador' | 'integracao' | 'ia_foto'
 
-/** Papel do membro no restaurante. Governa o que ele enxerga (RLS). */
-export type Papel = 'dono' | 'gerente' | 'estoque' | 'lancador' | 'contador'
+/** Papel do membro no restaurante. Governa o que ele enxerga e pode fazer. */
+export type Papel = 'dono' | 'gestao' | 'caixa' | 'cozinha'
+
+export const PAPEIS: { id: Papel; nome: string; desc: string }[] = [
+  { id: 'dono', nome: 'Dono', desc: 'Vê tudo e gerencia usuários e permissões' },
+  { id: 'gestao', nome: 'Gestão', desc: 'Vê tudo; convida usuários com aprovação do dono' },
+  { id: 'caixa', nome: 'Caixa', desc: 'Só abre, fecha e concilia o caixa' },
+  { id: 'cozinha', nome: 'Cozinha', desc: 'Produtos e estoque; não vê finanças' },
+]
+
+export function rotuloPapel(p: Papel): string {
+  return PAPEIS.find((x) => x.id === p)?.nome ?? p
+}
+
+/** Converte papéis antigos (gerente/estoque/…) para o conjunto atual. */
+export function normalizarPapel(p: string | undefined): Papel {
+  if (p === 'dono') return 'dono'
+  if (p === 'gestao' || p === 'gerente' || p === 'contador') return 'gestao'
+  if (p === 'caixa' || p === 'lancador') return 'caixa'
+  return 'cozinha'
+}
+
+/** Rota inicial de cada papel. */
+export function homeDoPapel(papel: Papel): string {
+  if (papel === 'caixa') return '/painel/caixa'
+  if (papel === 'cozinha') return '/painel/estoque'
+  return '/painel'
+}
 
 export type Periodo = 'semana' | 'mes'
 
@@ -62,74 +88,65 @@ export interface Sessao {
   demo: boolean
 }
 
-/** O que um papel pode ver. Espelha o DATA_MODEL e é reforçado no banco. */
+/** O que cada papel enxerga (seções) e pode fazer (capacidades). */
 export interface Permissoes {
-  veLucro: boolean
-  veFolha: boolean
-  veFaturamentoTotal: boolean
+  // seções visíveis
+  veInicio: boolean
+  veDespesas: boolean
+  veProdutos: boolean
+  veEstoque: boolean
+  vePlano: boolean
   veDRE: boolean
-  veCMV: boolean
+  veNumeros: boolean
+  veFechamento: boolean // caixa: abrir/fechar/conciliar
+  veAjustes: boolean
+  // informações sensíveis do negócio
+  veLucro: boolean
+  veFaturamentoTotal: boolean
+  // capacidades
+  gerenciaEquipe: 'total' | 'proposta' | 'nao'
   lancaDespesa: boolean
   movimentaEstoque: boolean
-  exporta: boolean
+}
+
+const NADA: Permissoes = {
+  veInicio: false,
+  veDespesas: false,
+  veProdutos: false,
+  veEstoque: false,
+  vePlano: false,
+  veDRE: false,
+  veNumeros: false,
+  veFechamento: false,
+  veAjustes: false,
+  veLucro: false,
+  veFaturamentoTotal: false,
+  gerenciaEquipe: 'nao',
+  lancaDespesa: false,
+  movimentaEstoque: false,
 }
 
 export function permissoesDoPapel(papel: Papel): Permissoes {
   switch (papel) {
     case 'dono':
       return {
-        veLucro: true,
-        veFolha: true,
-        veFaturamentoTotal: true,
-        veDRE: true,
-        veCMV: true,
-        lancaDespesa: true,
-        movimentaEstoque: true,
-        exporta: true,
+        veInicio: true, veDespesas: true, veProdutos: true, veEstoque: true,
+        vePlano: true, veDRE: true, veNumeros: true, veFechamento: true, veAjustes: true,
+        veLucro: true, veFaturamentoTotal: true,
+        gerenciaEquipe: 'total', lancaDespesa: true, movimentaEstoque: true,
       }
-    case 'gerente':
+    case 'gestao':
       return {
-        veLucro: false,
-        veFolha: false,
-        veFaturamentoTotal: false,
-        veDRE: false,
-        veCMV: true,
-        lancaDespesa: true,
-        movimentaEstoque: true,
-        exporta: false,
+        veInicio: true, veDespesas: true, veProdutos: true, veEstoque: true,
+        vePlano: true, veDRE: true, veNumeros: true, veFechamento: true, veAjustes: true,
+        veLucro: true, veFaturamentoTotal: true,
+        gerenciaEquipe: 'proposta', lancaDespesa: true, movimentaEstoque: true,
       }
-    case 'estoque':
-      return {
-        veLucro: false,
-        veFolha: false,
-        veFaturamentoTotal: false,
-        veDRE: false,
-        veCMV: false,
-        lancaDespesa: false,
-        movimentaEstoque: true,
-        exporta: false,
-      }
-    case 'lancador':
-      return {
-        veLucro: false,
-        veFolha: false,
-        veFaturamentoTotal: false,
-        veDRE: false,
-        veCMV: false,
-        lancaDespesa: true,
-        movimentaEstoque: false,
-        exporta: false,
-      }
-    case 'contador':
-      return {
-        veLucro: true,
-        veFolha: true,
-        veFaturamentoTotal: true,
-        veDRE: true,
-        veCMV: true,
-        lancaDespesa: false,
-        movimentaEstoque: false,
-        exporta: true,
-      }
+    case 'caixa':
+      // Só o fechamento de caixa (abrir/fechar/conciliar). Nada de finanças.
+      return { ...NADA, veFechamento: true }
+    case 'cozinha':
+      // Cozinha cuida de produtos e estoque; não vê finanças.
+      return { ...NADA, veProdutos: true, veEstoque: true, movimentaEstoque: true }
   }
 }

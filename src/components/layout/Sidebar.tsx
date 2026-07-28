@@ -7,10 +7,9 @@ import { contagemProgresso } from '@/data/mock'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
-  const { sessao, sair } = useAuth()
-  const papel = sessao?.usuario.papel
+  const { permissoes, sair } = useAuth()
 
-  const itens = itensNav.filter((i) => !i.papeis || (papel && i.papeis.includes(papel)))
+  const itens = itensNav.filter((i) => permissoes?.[i.chave])
   const { feitos, total, mes } = contagemProgresso
   const pctContagem = Math.round((feitos / total) * 100)
 

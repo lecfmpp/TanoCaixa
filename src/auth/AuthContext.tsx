@@ -13,6 +13,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   updateProfile,
   signOut,
   type User,
@@ -21,7 +22,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { DEMO_TENANT } from '@/data/tenant'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
-import { permissoesDoPapel, type Papel, type Permissoes, type Sessao } from '@/types'
+import { permissoesDoPapel, normalizarPapel, type Permissoes, type Sessao } from '@/types'
 
 interface DadosCadastro {
   nome?: string
@@ -90,7 +91,7 @@ async function construirSessao(user: User): Promise<Sessao> {
     getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
   ])
   const r = rSnap.data() ?? {}
-  const papel = (mSnap.exists() ? (mSnap.data().papel as Papel) : 'dono') as Papel
+  const papel = normalizarPapel(mSnap.exists() ? (mSnap.data().papel as string) : 'dono')
   const nome = user.displayName || (uSnap.data()?.nome as string) || user.email?.split('@')[0] || 'Você'
 
   return {
@@ -167,7 +168,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const entrarComGoogle = useCallback(async () => {
-    await signInWithPopup(auth, new GoogleAuthProvider())
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+    try {
+      await signInWithPopup(auth, provider)
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? ''
+      // Popup bloqueado ou ambiente sem suporte a popup → redireciona.
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        code === 'auth/popup-closed-by-user'
+      ) {
+        await signInWithRedirect(auth, provider)
+        return
+      }
+      throw e
+    }
   }, [])
 
   const sair = useCallback(async () => {

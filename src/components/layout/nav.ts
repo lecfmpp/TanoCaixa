@@ -1,20 +1,21 @@
-import type { Papel } from '@/types'
+import type { Permissoes } from '@/types'
 
 export interface ItemNav {
   para: string
   rotulo: string
-  /** Papéis que enxergam o item. Vazio = todos. */
-  papeis?: Papel[]
+  /** Permissão (booleana) que libera o item no menu. */
+  chave: keyof Permissoes
 }
 
-/** 8 itens do menu, na ordem do handoff. */
+/** Itens do menu, cada um atrelado a uma permissão de seção. */
 export const itensNav: ItemNav[] = [
-  { para: '/painel', rotulo: 'Início' },
-  { para: '/painel/despesas', rotulo: 'Despesas' },
-  { para: '/painel/produtos', rotulo: 'Produtos' },
-  { para: '/painel/estoque', rotulo: 'Estoque' },
-  { para: '/painel/plano', rotulo: 'Plano do mês', papeis: ['dono', 'contador'] },
-  { para: '/painel/dre', rotulo: 'DRE', papeis: ['dono', 'contador'] },
-  { para: '/painel/numeros', rotulo: 'Números', papeis: ['dono', 'gerente', 'contador'] },
-  { para: '/painel/ajustes', rotulo: 'Ajustes' },
+  { para: '/painel', rotulo: 'Início', chave: 'veInicio' },
+  { para: '/painel/caixa', rotulo: 'Caixa', chave: 'veFechamento' },
+  { para: '/painel/despesas', rotulo: 'Despesas', chave: 'veDespesas' },
+  { para: '/painel/produtos', rotulo: 'Produtos', chave: 'veProdutos' },
+  { para: '/painel/estoque', rotulo: 'Estoque', chave: 'veEstoque' },
+  { para: '/painel/plano', rotulo: 'Plano do mês', chave: 'vePlano' },
+  { para: '/painel/dre', rotulo: 'DRE', chave: 'veDRE' },
+  { para: '/painel/numeros', rotulo: 'Números', chave: 'veNumeros' },
+  { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]

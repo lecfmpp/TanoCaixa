@@ -6,17 +6,28 @@ import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useMembros, useAtividades, useRestaurante, useIntegracoes, useConectarIntegracao } from '@/data/hooks'
+import {
+  useMembros,
+  useAtividades,
+  useRestaurante,
+  useIntegracoes,
+  useConectarIntegracao,
+  useSalvarMembro,
+  useRemoverMembro,
+} from '@/data/hooks'
+import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { HOJE } from '@/data/derive'
+import { mascararTelefone } from '@/lib/format'
+import { PAPEIS, rotuloPapel, normalizarPapel, type Papel, type Origem } from '@/types'
 import type { IntegracaoDoc } from '@/data/repo'
-import type { Papel, Origem } from '@/types'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
-const PAPEL_DESC: Partial<Record<Papel, string>> = {
-  dono: 'vê tudo, inclusive o lucro',
-  gerente: 'compras, estoque e notas',
-  estoque: 'só o estoque',
+const PAPEL_DESC: Record<Papel, string> = {
+  dono: 'vê tudo e gerencia usuários',
+  gestao: 'vê tudo; convida com aprovação do dono',
+  caixa: 'só abre, fecha e concilia o caixa',
+  cozinha: 'produtos e estoque; não vê finanças',
 }
 
 const ORIGEM_ROTULO: Record<Origem, string> = {
@@ -32,7 +43,6 @@ type Filtro = (typeof FILTROS)[number]
 export function Ajustes() {
   const restaurante = useRestaurante()
   const cfg = restaurante.data
-  const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
   const atividadesData = useAtividades().data ?? []
   const atividades = useMemo(
     () => [...atividadesData].sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1)),
@@ -53,33 +63,8 @@ export function Ajustes() {
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
       />
 
-      {/* Quem usa */}
-      <Cartao className="flex flex-col">
-        <h2 className="mb-3 text-[15px] font-bold text-tinta">Quem usa</h2>
-        <ul className="flex flex-col">
-          {membros.map((m, i) => (
-            <li
-              key={m.id}
-              className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-divisoria')}
-            >
-              <Avatar inicial={m.inicial} cor={m.cor} tamanho={32} />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-tinta">
-                  <span className="font-bold">{m.nome}</span>{' '}
-                  <span className="text-tinta-3 capitalize">{m.papel}</span>
-                </p>
-                <p className="mt-0.5 text-xs text-tinta-4">{PAPEL_DESC[m.papel] ?? m.papel}</p>
-              </div>
-              <span className="rounded-chip bg-preenchimento px-2.5 py-0.5 text-xs font-semibold capitalize text-tinta-2">
-                {m.papel}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <button className="mt-3 self-start rounded-botao bg-preenchimento px-4 py-2 text-sm font-bold text-tinta-2 transition hover:brightness-95">
-          Convidar alguém
-        </button>
-      </Cartao>
+      {/* Quem usa / gestão de permissões */}
+      <Equipe />
 
       {/* Onde te avisar */}
       <Cartao className="flex flex-col">
@@ -247,6 +232,122 @@ function Integracoes() {
           )
         })}
       </ul>
+    </Cartao>
+  )
+}
+
+const CORES_AVATAR = ['#2E5F73', '#C05437', '#2F6B4A', '#1E4354', '#8A5A28']
+
+function Equipe() {
+  const { sessao, permissoes } = useAuth()
+  const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
+  const salvar = useSalvarMembro()
+  const remover = useRemoverMembro()
+  const { adicionarToast } = useUI()
+
+  const gestao = permissoes?.gerenciaEquipe ?? 'nao'
+  const podeGerenciar = gestao !== 'nao'
+  const ehDono = gestao === 'total'
+
+  const [nome, setNome] = useState('')
+  const [celular, setCelular] = useState('')
+  const [papelNovo, setPapelNovo] = useState<Papel>('caixa')
+
+  function adicionar() {
+    if (!nome.trim()) return
+    const id = `m-${Math.random().toString(36).slice(2, 9)}`
+    salvar.mutate({
+      id,
+      dados: {
+        nome: nome.trim(),
+        inicial: nome.trim()[0].toUpperCase(),
+        cor: CORES_AVATAR[membros.length % CORES_AVATAR.length],
+        papel: papelNovo,
+        celular,
+        conviteStatus: ehDono ? 'convite_enviado' : 'aguardando_dono',
+      },
+    })
+    adicionarToast({
+      tipo: ehDono ? 'sucesso' : 'sistema',
+      titulo: ehDono ? 'Convite enviado' : 'Enviado pro dono aprovar',
+      texto: ehDono ? `${nome} entra como ${PAPEIS.find((p) => p.id === papelNovo)?.nome}.` : 'A permissão vale quando o dono aprovar.',
+    })
+    setNome('')
+    setCelular('')
+  }
+
+  return (
+    <Cartao className="flex flex-col">
+      <h2 className="text-[15px] font-bold text-tinta">Quem usa e o que cada um pode</h2>
+      {gestao === 'proposta' && (
+        <p className="mt-1 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">
+          Você pode convidar, mas mudanças de permissão só valem com a aprovação do dono.
+        </p>
+      )}
+
+      <ul className="mt-3 flex flex-col">
+        {membros.map((m, i) => {
+          const ehVoce = m.id === sessao?.usuario.id
+          const pendente = m.conviteStatus === 'aguardando_dono'
+          const papel = normalizarPapel(m.papel)
+          return (
+            <li key={m.id} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-divisoria')}>
+              <Avatar inicial={m.inicial} cor={m.cor} tamanho={32} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-tinta">
+                  {m.nome} {ehVoce && <span className="text-xs font-normal text-tinta-4">(você)</span>}
+                </p>
+                <p className="text-xs text-tinta-4">
+                  {pendente ? 'aguardando o dono aprovar' : PAPEL_DESC[papel]}
+                </p>
+              </div>
+
+              {pendente && ehDono ? (
+                <button
+                  onClick={() => salvar.mutate({ id: m.id, dados: { conviteStatus: 'ativo' } })}
+                  className="rounded-chip bg-mata/12 px-3 py-1 text-xs font-bold text-mata hover:brightness-95"
+                >
+                  Aprovar
+                </button>
+              ) : ehDono && !ehVoce ? (
+                <select
+                  value={papel}
+                  onChange={(e) => salvar.mutate({ id: m.id, dados: { papel: e.target.value as Papel } })}
+                  className="rounded-chip border border-[rgba(46,95,115,0.14)] bg-superficie px-2 py-1 text-xs font-semibold text-tinta-2 outline-none focus:border-mar"
+                >
+                  {PAPEIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+              ) : (
+                <span className="rounded-chip bg-preenchimento px-2.5 py-0.5 text-xs font-semibold text-tinta-2">
+                  {rotuloPapel(papel)}
+                </span>
+              )}
+
+              {ehDono && !ehVoce && (
+                <button onClick={() => remover.mutate(m.id)} title="Remover" className="text-tinta-4 hover:text-telha-alerta">
+                  ×
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      {podeGerenciar && (
+        <div className="mt-4 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-fundo-app p-4">
+          <span className="rotulo text-tinta-4">Adicionar usuário</span>
+          <div className="mt-2 flex flex-col gap-2 cel:flex-row">
+            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar" />
+            <input value={celular} onChange={(e) => setCelular(mascararTelefone(e.target.value))} placeholder="(21) 90000-0000" inputMode="tel" className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar" />
+            <select value={papelNovo} onChange={(e) => setPapelNovo(e.target.value as Papel)} className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2 py-2 text-sm text-tinta-2 outline-none focus:border-mar">
+              {PAPEIS.filter((p) => p.id !== 'dono').map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+            <button onClick={adicionar} disabled={!nome.trim()} className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50">
+              {ehDono ? 'Convidar' : 'Enviar pro dono'}
+            </button>
+          </div>
+        </div>
+      )}
     </Cartao>
   )
 }

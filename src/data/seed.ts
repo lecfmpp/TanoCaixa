@@ -26,8 +26,8 @@ const WESLEY = { id: 'wesley', nome: 'Wesley', inicial: 'W', cor: '#2F6B4A' }
 
 const membros: (MembroDoc & { id: string })[] = [
   { id: HALIM.id, nome: 'Halim Nassar', inicial: 'H', cor: '#2E5F73', papel: 'dono', celular: '(21) 99814-2207', conviteStatus: 'ativo' },
-  { id: JAMILE.id, nome: 'Jamile Rocha', inicial: 'J', cor: '#C05437', papel: 'gerente', celular: '(21) 99640-1188', conviteStatus: 'ativo' },
-  { id: WESLEY.id, nome: 'Wesley Lima', inicial: 'W', cor: '#2F6B4A', papel: 'estoque', celular: '(21) 99512-7788', conviteStatus: 'ativo' },
+  { id: JAMILE.id, nome: 'Jamile Rocha', inicial: 'J', cor: '#C05437', papel: 'gestao', celular: '(21) 99640-1188', conviteStatus: 'ativo' },
+  { id: WESLEY.id, nome: 'Wesley Lima', inicial: 'W', cor: '#2F6B4A', papel: 'caixa', celular: '(21) 99512-7788', conviteStatus: 'ativo' },
 ]
 
 const produtos: ProdutoDoc[] = [

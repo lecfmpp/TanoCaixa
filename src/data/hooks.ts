@@ -13,6 +13,7 @@ import type {
   ProdutoDoc,
   AtividadeDoc,
   ContagemDoc,
+  MembroDoc,
 } from './types'
 
 const CATEGORIAS: CategoriaDespesa[] = ['mercadoria', 'pessoal', 'ocupacao', 'taxas_app']
@@ -205,6 +206,24 @@ export function useCriarProduto() {
       qc.invalidateQueries({ queryKey: [t, 'produtos'] })
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
+  })
+}
+
+export function useSalvarMembro() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, dados }: { id: string; dados: Partial<MembroDoc> }) => repo.membros.salvar(t, id, dados),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'membros'] }),
+  })
+}
+
+export function useRemoverMembro() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => repo.membros.remover(t, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'membros'] }),
   })
 }
 
