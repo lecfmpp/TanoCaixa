@@ -9,7 +9,16 @@ import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useCriarDespesa, useCriarProduto } from '@/data/hooks'
+import { ImportarCSV } from '@/components/importar/ImportarCSV'
+import type { TipoImport } from '@/data/importar'
 import type { CategoriaDespesa } from '@/types'
+
+/** Gavetas que aceitam importação por planilha e para qual entidade. */
+const TIPO_IMPORT: Partial<Record<TipoGaveta, TipoImport>> = {
+  despesa: 'despesas',
+  produto: 'produtos',
+  estoque: 'estoque',
+}
 
 const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[] }> = {
   despesa: { titulo: 'Lançar despesa', sub: 'Nota, conta ou boleto', etapas: ['Dados', 'Confere', 'Pronto'] },
@@ -36,6 +45,7 @@ export function GavetaHost() {
   const criarDespesa = useCriarDespesa()
   const criarProduto = useCriarProduto()
   const [etapa, setEtapa] = useState(0)
+  const [modo, setModo] = useState<'form' | 'importar'>('form')
 
   // Estado dos formulários
   const [despesa, setDespesa] = useState({ fornecedor: '', valor: '', categoria: 'mercadoria' as CategoriaDespesa, pagamento: 'Pix', obs: '', repete: false })
@@ -44,6 +54,7 @@ export function GavetaHost() {
 
   useEffect(() => {
     setEtapa(0)
+    setModo('form')
     setDespesa({ fornecedor: '', valor: '', categoria: 'mercadoria', pagamento: 'Pix', obs: '', repete: false })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
   }, [gaveta])
@@ -151,7 +162,28 @@ export function GavetaHost() {
 
         {/* Conteúdo */}
         <div className="scroll-fina flex-1 overflow-y-auto px-6 py-5">
-          {etapa === 0 && gaveta === 'despesa' && (
+          {etapa === 0 && TIPO_IMPORT[gaveta] && (
+            <div className="mb-4 flex rounded-botao bg-preenchimento p-1">
+              <button
+                onClick={() => setModo('form')}
+                className={cn('flex-1 rounded-[10px] py-1.5 text-sm font-bold transition', modo === 'form' ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3')}
+              >
+                Lançar um
+              </button>
+              <button
+                onClick={() => setModo('importar')}
+                className={cn('flex-1 rounded-[10px] py-1.5 text-sm font-bold transition', modo === 'importar' ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3')}
+              >
+                Importar planilha
+              </button>
+            </div>
+          )}
+
+          {etapa === 0 && modo === 'importar' && TIPO_IMPORT[gaveta] && (
+            <ImportarCSV tipo={TIPO_IMPORT[gaveta]!} aoConcluir={fecharGaveta} />
+          )}
+
+          {etapa === 0 && modo === 'form' && gaveta === 'despesa' && (
             <div className="flex flex-col gap-4">
               <Campo rotulo="Fornecedor" placeholder="Ex: Hortifrúti Zona Sul" value={despesa.fornecedor} onChange={(e) => setDespesa({ ...despesa, fornecedor: e.target.value })} />
               <Campo rotulo="Quanto foi" placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
@@ -178,7 +210,7 @@ export function GavetaHost() {
             </div>
           )}
 
-          {etapa === 0 && gaveta === 'produto' && (
+          {etapa === 0 && modo === 'form' && gaveta === 'produto' && (
             <div className="flex flex-col gap-4">
               <Campo rotulo="Nome do produto" placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
               <div>
@@ -201,7 +233,7 @@ export function GavetaHost() {
             </div>
           )}
 
-          {etapa === 0 && gaveta === 'fechamento' && (
+          {etapa === 0 && modo === 'form' && gaveta === 'fechamento' && (
             <div className="flex flex-col gap-4">
               <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
                 <span className="rotulo text-tinta-4">Já veio das plataformas</span>
@@ -217,7 +249,7 @@ export function GavetaHost() {
             </div>
           )}
 
-          {etapa === 0 && gaveta === 'estoque' && (
+          {etapa === 0 && modo === 'form' && gaveta === 'estoque' && (
             <div className="flex flex-col gap-4">
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
@@ -278,9 +310,11 @@ export function GavetaHost() {
               >
                 {etapa === 0 ? 'Cancelar' : '← Corrigir'}
               </button>
-              <Button variante="primario" onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}>
-                {etapa === 0 ? 'Continuar' : 'Confirmar'}
-              </Button>
+              {!(etapa === 0 && modo === 'importar') && (
+                <Button variante="primario" onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}>
+                  {etapa === 0 ? 'Continuar' : 'Confirmar'}
+                </Button>
+              )}
             </>
           )}
         </div>

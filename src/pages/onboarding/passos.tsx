@@ -6,6 +6,8 @@ import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { HorarioSemana, HORARIO_PADRAO, type DiaHorario } from '@/components/ui/HorarioSemana'
+import { ImportarCSV } from '@/components/importar/ImportarCSV'
+import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
 import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -444,7 +446,10 @@ function LinhaAviso({
 
 /* -------------------------------- Passo 7 ------------------------------- */
 
+const TIPOS_IMPORT: TipoImport[] = ['produtos', 'despesas', 'estoque']
+
 export function Passo7Pronto() {
+  const [tipoImp, setTipoImp] = useState<TipoImport>('produtos')
   const feitos = [
     'Restaurante e equipe cadastrados',
     'iFood conectado, Rappi a caminho',
@@ -475,6 +480,24 @@ export function Passo7Pronto() {
         <p className="pretty mt-2 text-[15px] leading-relaxed text-insight-texto">
           Tira foto da última nota de fornecedor que estiver aí no balcão. Leva 40 segundos.
         </p>
+      </div>
+
+      {/* Importar dados por planilha (opcional) */}
+      <div className="mt-8 border-t border-divisoria pt-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-[15px] font-bold text-tinta">Já tem seus dados numa planilha?</h3>
+            <p className="text-sm text-tinta-3">Opcional — importe de uma vez em vez de digitar um a um.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {TIPOS_IMPORT.map((tp) => (
+              <Chip key={tp} rotulo={CONFIGS_IMPORT[tp].titulo} selecionado={tipoImp === tp} aoClicar={() => setTipoImp(tp)} />
+            ))}
+          </div>
+        </div>
+        <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
+          <ImportarCSV tipo={tipoImp} />
+        </div>
       </div>
     </div>
   )

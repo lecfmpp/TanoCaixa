@@ -2,12 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRestaurante, repo, type IntegracaoDoc } from './repo'
 import { DEMO_TENANT, origemAtual } from './tenant'
 import { useAuth } from '@/auth/AuthContext'
+import { numeroBR, dataBRparaISO } from '@/lib/csv'
+import type { TipoImport } from './importar'
+import type { CategoriaDespesa } from '@/types'
 import type {
   DespesaDoc,
   ProdutoDoc,
   AtividadeDoc,
   ContagemDoc,
 } from './types'
+
+const CATEGORIAS: CategoriaDespesa[] = ['mercadoria', 'pessoal', 'ocupacao', 'taxas_app']
+function normalizarCategoria(v: string): CategoriaDespesa {
+  const s = (v || '').toLowerCase().trim()
+  return (CATEGORIAS.find((c) => s.includes(c.replace('_app', ''))) ?? 'mercadoria')
+}
 
 /** Tenant atual — demo enquanto o auth por e-mail/senha não é habilitado. */
 export function useTenant() {
@@ -206,6 +215,102 @@ export function useConectarIntegracao() {
         status: p.status ?? 'conectando',
       } as Partial<IntegracaoDoc>),
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
+  })
+}
+
+/** Importa um lote de registros de CSV (produtos, despesas ou estoque). */
+export function useImportar() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ tipo, registros }: { tipo: TipoImport; registros: Record<string, string>[] }) => {
+      const autor = getAutor()
+      const autoria = {
+        criadoEm: autor.criadoEm,
+        criadoPorId: autor.criadoPorId,
+        criadoPorNome: autor.criadoPorNome,
+        origem: autor.origem,
+      }
+      let count = 0
+
+      if (tipo === 'produtos') {
+        for (const r of registros) {
+          if (!r.nome) continue
+          const id = novoId('p')
+          await repo.produtos.salvar(t, id, {
+            id,
+            nome: r.nome,
+            categoria: r.categoria || 'Secos',
+            unidade: r.unidade || 'un',
+            custoAtual: numeroBR(r.custo),
+            estoqueMinimo: numeroBR(r.estoque_minimo) || undefined,
+            fornecedor: r.fornecedor || '',
+            entraNoCmv: !/n[aã]o|false|^0$/i.test((r.entra_no_cmv || 'sim').trim()),
+            ...autoria,
+          })
+          count++
+        }
+        qc.invalidateQueries({ queryKey: [t, 'produtos'] })
+      } else if (tipo === 'despesas') {
+        for (const r of registros) {
+          if (!r.fornecedor && !r.valor) continue
+          const id = novoId('d')
+          await repo.despesas.salvar(t, id, {
+            id,
+            fornecedor: r.fornecedor || 'Fornecedor',
+            categoria: normalizarCategoria(r.categoria),
+            valorTotal: numeroBR(r.valor),
+            dataCompetencia: r.data ? dataBRparaISO(r.data) : new Date().toISOString().slice(0, 10),
+            formaPagamento: (r.forma_pagamento || 'pix') as DespesaDoc['formaPagamento'],
+            status: (r.status || 'pago') as DespesaDoc['status'],
+            descricao: r.descricao || '',
+            recorrente: false,
+            ...autoria,
+          })
+          count++
+        }
+        qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      } else {
+        const [produtos, contagens] = await Promise.all([
+          repo.produtos.listar(t),
+          repo.contagens.listar(t),
+        ])
+        const contagem = contagens.find((c) => c.mesReferencia === '2026-07') ?? contagens[0]
+        if (contagem) {
+          const porNome = new Map(produtos.map((p) => [p.nome.toLowerCase(), p]))
+          const itens = [...contagem.itens]
+          for (const r of registros) {
+            const p = porNome.get((r.produto || '').toLowerCase().trim())
+            if (!p) continue
+            const item = {
+              produtoId: p.id,
+              nome: p.nome,
+              unidade: p.unidade,
+              custoUnitario: numeroBR(r.custo_unitario) || p.custoAtual,
+              quantidade: numeroBR(r.quantidade),
+              contadoPor: autor.criadoPorNome,
+            }
+            const idx = itens.findIndex((it) => it.produtoId === p.id)
+            if (idx >= 0) itens[idx] = item
+            else itens.push(item)
+            count++
+          }
+          const valorEstoque = itens.reduce((s, it) => s + it.quantidade * it.custoUnitario, 0)
+          await repo.contagens.salvar(t, contagem.id, { ...contagem, itens, valorEstoque })
+          qc.invalidateQueries({ queryKey: [t, 'contagens'] })
+        }
+      }
+
+      const rotulo = tipo === 'produtos' ? 'produtos' : tipo === 'despesas' ? 'despesas' : 'itens de estoque'
+      await registrarAtividade(
+        t,
+        { acao: 'importou por planilha', entidade: `${count} ${rotulo}`, tipo: 'Importação', quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+      return { count }
+    },
   })
 }
 
