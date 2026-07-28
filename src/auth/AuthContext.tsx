@@ -63,14 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
-    // Sessão de demonstração persistida sobrevive a refresh.
-    if (sessionStorage.getItem(CHAVE_DEMO) === '1') {
-      setSessao({ usuario: usuarioDemo, restaurante: restauranteDemo, demo: true })
-      setCarregando(false)
-      return
-    }
+    // Sempre ouve o Firebase Auth. Usuário real tem prioridade; se não houver,
+    // cai na sessão de demonstração (quando o atalho foi usado).
     const cancelar = onAuthStateChanged(auth, (user) => {
-      setSessao(user ? sessaoDoUsuarioFirebase(user) : null)
+      if (user) {
+        sessionStorage.removeItem(CHAVE_DEMO)
+        setSessao(sessaoDoUsuarioFirebase(user))
+      } else if (sessionStorage.getItem(CHAVE_DEMO) === '1') {
+        setSessao({ usuario: usuarioDemo, restaurante: restauranteDemo, demo: true })
+      } else {
+        setSessao(null)
+      }
       setCarregando(false)
     })
     return cancelar

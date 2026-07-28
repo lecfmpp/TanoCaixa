@@ -70,6 +70,32 @@ export function quando(data: Date, agora: Date = new Date()): string {
   return `${nomesDia[data.getDay()]}, ${dia}/${mes}, ${hora}`
 }
 
+/* ------------------------------ Máscaras -------------------------------- */
+
+/** Só os dígitos de uma string. */
+export const apenasDigitos = (v: string) => v.replace(/\D/g, '')
+
+/** (21) 99814-2207 — aceita fixo (10) e celular (11 dígitos). */
+export function mascararTelefone(v: string): string {
+  const d = apenasDigitos(v).slice(0, 11)
+  if (d.length === 0) return ''
+  if (d.length <= 2) return `(${d}`
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+/** 12.345.678/0001-90 */
+export function mascararCNPJ(v: string): string {
+  const d = apenasDigitos(v).slice(0, 14)
+  let out = d.slice(0, 2)
+  if (d.length > 2) out += '.' + d.slice(2, 5)
+  if (d.length > 5) out += '.' + d.slice(5, 8)
+  if (d.length > 8) out += '/' + d.slice(8, 12)
+  if (d.length > 12) out += '-' + d.slice(12, 14)
+  return out
+}
+
 /** "22/07" */
 export function dataCurta(data: Date): string {
   const dia = String(data.getDate()).padStart(2, '0')

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
+import { GoogleIcon } from '@/components/ui/GoogleIcon'
 import { useAuth } from '@/auth/AuthContext'
 
 export function EntrarPage() {
@@ -104,25 +105,21 @@ export function EntrarPage() {
         <span className="h-px flex-1 bg-divisoria" />
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        <Button
-          variante="secundario"
-          bloco
-          onClick={async () => {
-            try {
-              await entrarComGoogle()
-              navegar('/painel')
-            } catch {
-              setErro('Login com Google indisponível — habilite o provedor no Firebase.')
-            }
-          }}
-        >
-          Continuar com Google
-        </Button>
-        <Button variante="secundario" bloco>
-          Continuar com Apple
-        </Button>
-      </div>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await entrarComGoogle()
+            navegar('/painel')
+          } catch {
+            setErro('Não deu pra entrar com o Google. Tenta de novo.')
+          }
+        }}
+        className="flex w-full items-center justify-center gap-3 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-4 py-2.5 text-sm font-bold text-tinta-2 transition hover:bg-preenchimento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mar"
+      >
+        <GoogleIcon size={18} />
+        Continuar com Google
+      </button>
 
       {/* Atalho de demonstração (Fase 0 — sem backend de contas ainda) */}
       <button

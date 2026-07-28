@@ -5,7 +5,8 @@ import { Chip } from '@/components/ui/Chip'
 import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
-import { brlInteiro, inteiro } from '@/lib/format'
+import { HorarioSemana, HORARIO_PADRAO, type DiaHorario } from '@/components/ui/HorarioSemana'
+import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
 const soDigitos = (s: string) => Number(s.replace(/\D/g, '') || 0)
@@ -18,6 +19,7 @@ const COZINHAS = ['Árabe', 'Boteco', 'Pizza', 'Japonês', 'Outro']
 export function Passo1Restaurante() {
   const [operacao, setOperacao] = useState('Delivery + salão')
   const [cozinha, setCozinha] = useState('Árabe')
+  const [cnpj, setCnpj] = useState('')
   return (
     <div>
       <TituloPasso titulo="Me conta do seu restaurante" sub="Só o básico. Dá pra mudar depois." />
@@ -46,7 +48,13 @@ export function Passo1Restaurante() {
           </div>
         </div>
 
-        <CampoTexto rotulo="CNPJ · opcional agora" placeholder="00.000.000/0001-00" inputMode="numeric" />
+        <CampoTexto
+          rotulo="CNPJ · opcional agora"
+          placeholder="00.000.000/0001-00"
+          inputMode="numeric"
+          value={cnpj}
+          onChange={(e) => setCnpj(mascararCNPJ(e.target.value))}
+        />
       </div>
     </div>
   )
@@ -63,6 +71,9 @@ const CANAIS = [
 
 export function Passo2Canais() {
   const [sel, setSel] = useState<Set<string>>(new Set(['ifood', 'rappi', 'balcao']))
+  const [ticket, setTicket] = useState('68')
+  const [pedidos, setPedidos] = useState('48')
+  const [horarios, setHorarios] = useState<DiaHorario[]>(HORARIO_PADRAO)
   const alterna = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -105,10 +116,29 @@ export function Passo2Canais() {
         })}
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 cel:grid-cols-3">
-        <CampoTexto rotulo="Ticket médio" prefixo="R$" defaultValue="68" inputMode="numeric" />
-        <CampoTexto rotulo="Dias abertos" defaultValue="6 / semana" />
-        <CampoTexto rotulo="Pedidos por dia" defaultValue="~ 48" />
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <CampoTexto
+          rotulo="Ticket médio"
+          prefixo="R$"
+          inputMode="numeric"
+          value={ticket}
+          onChange={(e) => setTicket(apenasDigitos(e.target.value))}
+        />
+        <CampoTexto
+          rotulo="Pedidos por dia"
+          inputMode="numeric"
+          value={pedidos}
+          onChange={(e) => setPedidos(apenasDigitos(e.target.value))}
+        />
+      </div>
+
+      <div className="mt-5">
+        <Rotulo>Dias e horários de funcionamento</Rotulo>
+        <p className="-mt-1 mb-2 text-xs text-tinta-4">
+          A gente usa isso pra saber quando a loja tá aberta. No ícone de copiar, você repete o
+          horário de um dia pros outros.
+        </p>
+        <HorarioSemana valor={horarios} aoMudar={setHorarios} />
       </div>
     </div>
   )
@@ -227,6 +257,7 @@ function LinhaIntegracao({
 const PAPEIS = ['Gerente', 'Estoque', 'Só lançar nota', 'Contador']
 
 export function Passo5Equipe() {
+  const [telConvite, setTelConvite] = useState('')
   return (
     <div>
       <TituloPasso
@@ -254,8 +285,10 @@ export function Passo5Equipe() {
         <Rotulo>Convidar mais alguém</Rotulo>
         <div className="flex flex-col gap-2.5 cel:flex-row">
           <input
-            placeholder="(21) 9••••-••••"
+            placeholder="(21) 90000-0000"
             inputMode="tel"
+            value={telConvite}
+            onChange={(e) => setTelConvite(mascararTelefone(e.target.value))}
             className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-fundo-app px-3.5 py-2.5 text-[15px] text-tinta outline-none placeholder:text-tinta-5 focus:border-mar"
           />
           <select

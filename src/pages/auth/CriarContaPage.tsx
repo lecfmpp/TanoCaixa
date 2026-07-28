@@ -4,6 +4,7 @@ import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/auth/AuthContext'
+import { mascararTelefone } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
 /** Medidor de força bem simples, em linguagem de balcão. */
@@ -27,6 +28,7 @@ export function CriarContaPage() {
   const navegar = useNavigate()
   const { criarConta } = useAuth()
   const [senha, setSenha] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
   const [aceite, setAceite] = useState(false)
   const forca = useMemo(() => forcaSenha(senha), [senha])
 
@@ -67,7 +69,10 @@ export function CriarContaPage() {
           rotulo="Celular (WhatsApp)"
           name="whatsapp"
           type="tel"
+          inputMode="tel"
           placeholder="(21) 99814-2207"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(mascararTelefone(e.target.value))}
           destaque
           required
         />
