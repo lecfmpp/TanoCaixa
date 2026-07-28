@@ -11,6 +11,7 @@ import { EntrarPage } from '@/pages/auth/EntrarPage'
 import { CriarContaPage } from '@/pages/auth/CriarContaPage'
 import { EsqueciSenhaPage } from '@/pages/auth/EsqueciSenhaPage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
+import { LandingPage } from '@/pages/LandingPage'
 import { Inicio } from '@/pages/painel/Inicio'
 import { Despesas } from '@/pages/painel/Despesas'
 import { Produtos } from '@/pages/painel/Produtos'
@@ -50,8 +51,8 @@ export default function App() {
                 <Route path="ajustes" element={<Ajustes />} />
               </Route>
 
-              <Route path="/" element={<Navigate to="/painel" replace />} />
-              <Route path="*" element={<Navigate to="/painel" replace />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 
             <ToastHost />
