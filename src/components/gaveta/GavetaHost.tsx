@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/Switch'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useCriarDespesa, useCriarProduto } from '@/data/hooks'
+import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useDesfazer } from '@/data/hooks'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import type { TipoImport } from '@/data/importar'
 import type { CategoriaDespesa } from '@/types'
@@ -44,6 +44,9 @@ export function GavetaHost() {
   const { sessao } = useAuth()
   const criarDespesa = useCriarDespesa()
   const criarProduto = useCriarProduto()
+  const criarFechamento = useCriarFechamento()
+  const criarMovimento = useCriarMovimento()
+  const desfazer = useDesfazer()
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
 
@@ -51,12 +54,14 @@ export function GavetaHost() {
   const [despesa, setDespesa] = useState({ fornecedor: '', valor: '', categoria: 'mercadoria' as CategoriaDespesa, pagamento: 'Pix', obs: '', repete: false })
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
   const [fecha, setFecha] = useState({ pix: '214,60', cartao: '98,50', dinheiro: '38,00' })
+  const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
 
   useEffect(() => {
     setEtapa(0)
     setModo('form')
     setDespesa({ fornecedor: '', valor: '', categoria: 'mercadoria', pagamento: 'Pix', obs: '', repete: false })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
+    setEstoque({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
   }, [gaveta])
 
   useEffect(() => {
@@ -98,13 +103,32 @@ export function GavetaHost() {
         { rot: 'Total do dia', val: brl(total) },
       ]
     }
-    return [{ rot: 'Movimento', val: 'Entrada de estoque' }]
+    return [
+      { rot: 'Movimento', val: estoque.tipo },
+      { rot: 'Produto', val: estoque.produto || '—' },
+      { rot: 'Quantidade', val: estoque.quantidade || '0' },
+      { rot: 'Valor', val: brl(soNum(estoque.quantidade) * soNum(estoque.custo)) },
+    ]
+  }
+
+  /** Toast de sucesso com "Desfazer" que apaga os docs criados. */
+  function toastComDesfazer(titulo: string, texto: string, itens: { colecao: string; id: string }[]) {
+    adicionarToast({
+      tipo: 'sucesso',
+      titulo,
+      texto,
+      rotuloAcao: 'Desfazer',
+      onAcao: () => {
+        desfazer.mutate(itens)
+        adicionarToast({ tipo: 'sistema', titulo: 'Desfeito', texto: 'O lançamento foi removido.' })
+      },
+    })
   }
 
   async function salvar() {
     if (gaveta === 'despesa') {
       const st = despesa.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago'
-      await criarDespesa.mutateAsync({
+      const d = await criarDespesa.mutateAsync({
         fornecedor: despesa.fornecedor || 'Fornecedor',
         valorTotal: soNum(despesa.valor),
         categoria: despesa.categoria,
@@ -113,9 +137,9 @@ export function GavetaHost() {
         observacao: despesa.obs,
         recorrente: despesa.repete,
       })
-      adicionarToast({ tipo: 'sucesso', titulo: 'Tá no caixa!', texto: `${brl(soNum(despesa.valor))} entraram em ${CATS.find((c) => c.id === despesa.categoria)?.nome}.`, rotuloAcao: 'Desfazer' })
+      toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CATS.find((c) => c.id === despesa.categoria)?.nome}.`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'produto') {
-      await criarProduto.mutateAsync({
+      const p = await criarProduto.mutateAsync({
         nome: produto.nome || 'Produto',
         categoria: produto.categoria,
         unidade: produto.unidade,
@@ -124,11 +148,21 @@ export function GavetaHost() {
         fornecedor: produto.fornecedor,
         entraNoCmv: produto.cmv,
       })
-      adicionarToast({ tipo: 'sucesso', titulo: 'Produto cadastrado', texto: `${produto.nome} entrou no estoque.`, rotuloAcao: 'Desfazer' })
+      toastComDesfazer('Produto cadastrado', `${produto.nome || 'Produto'} entrou no estoque.`, [{ colecao: 'produtos', id: p.id }])
     } else if (gaveta === 'fechamento') {
-      adicionarToast({ tipo: 'sucesso', titulo: 'Dia fechado', texto: 'Caixa de hoje confirmado.', rotuloAcao: 'Desfazer' })
+      const f = await criarFechamento.mutateAsync({ pix: soNum(fecha.pix), cartao: soNum(fecha.cartao), dinheiro: soNum(fecha.dinheiro) })
+      toastComDesfazer('Dia fechado', `${brl(f.totalDia)} confirmados no caixa de hoje.`, [{ colecao: 'receita_dia', id: f.id }])
     } else {
-      adicionarToast({ tipo: 'sucesso', titulo: 'Estoque atualizado', texto: 'Movimento registrado.', rotuloAcao: 'Desfazer' })
+      const m = await criarMovimento.mutateAsync({
+        tipo: estoque.tipo,
+        produto: estoque.produto,
+        quantidade: soNum(estoque.quantidade),
+        custo: soNum(estoque.custo),
+        geraDespesa: estoque.geraDespesa,
+      })
+      const itens = [{ colecao: 'movimentos_estoque', id: m.movimentoId }]
+      if (m.despesaId) itens.push({ colecao: 'despesas', id: m.despesaId })
+      toastComDesfazer('Estoque atualizado', `${estoque.produto} · ${estoque.quantidade} un.`, itens)
     }
     setEtapa(2)
   }
@@ -253,16 +287,16 @@ export function GavetaHost() {
             <div className="flex flex-col gap-4">
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
-                <div className="flex flex-wrap gap-2">{['Entrou mercadoria', 'Contagem do mês', 'Perda ou quebra', 'Transferência'].map((o, i) => <Chip key={o} rotulo={o} selecionado={i === 0} aoClicar={() => {}} />)}</div>
+                <div className="flex flex-wrap gap-2">{['Entrou mercadoria', 'Contagem do mês', 'Perda ou quebra', 'Transferência'].map((o) => <Chip key={o} rotulo={o} selecionado={estoque.tipo === o} aoClicar={() => setEstoque({ ...estoque, tipo: o })} />)}</div>
               </div>
-              <Campo rotulo="Produto" defaultValue="Grão de bico seco · kg" />
+              <Campo rotulo="Produto" value={estoque.produto} onChange={(e) => setEstoque({ ...estoque, produto: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
-                <Campo rotulo="Quantidade" defaultValue="25" inputMode="numeric" />
-                <Campo rotulo="Custo unitário" defaultValue="R$ 9,80" inputMode="decimal" />
+                <Campo rotulo="Quantidade" value={estoque.quantidade} onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })} inputMode="numeric" />
+                <Campo rotulo="Custo unitário" placeholder="R$ 9,80" value={estoque.custo} onChange={(e) => setEstoque({ ...estoque, custo: e.target.value })} inputMode="decimal" />
               </div>
               <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
-                <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de R$ 245,00 em Mercadoria</span></span>
-                <Switch ligado aoTrocar={() => {}} />
+                <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} em Mercadoria</span></span>
+                <Switch ligado={estoque.geraDespesa} aoTrocar={(v) => setEstoque({ ...estoque, geraDespesa: v })} />
               </label>
             </div>
           )}

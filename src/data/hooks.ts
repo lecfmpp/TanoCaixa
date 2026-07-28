@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getRestaurante, repo, type IntegracaoDoc } from './repo'
 import { DEMO_TENANT, origemAtual } from './tenant'
 import { useAuth } from '@/auth/AuthContext'
@@ -311,6 +313,99 @@ export function useImportar() {
       )
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
       return { count }
+    },
+  })
+}
+
+export function useCriarFechamento() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ pix, cartao, dinheiro }: { pix: number; cartao: number; dinheiro: number }) => {
+      const autor = getAutor()
+      const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
+      const hoje = new Date().toISOString().slice(0, 10)
+      const loja = pix + cartao + dinheiro
+      const id = `fech-${hoje}`
+      const receita = {
+        id,
+        data: hoje,
+        canais: [
+          { canal: 'ifood' as const, valorBruto: 742.5, taxa: 178.2, pedidos: 38 },
+          { canal: 'rappi' as const, valorBruto: 186.4, taxa: 41.3, pedidos: 9 },
+          { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
+        ],
+        recebimentos: [
+          { forma: 'pix', valor: pix },
+          { forma: 'cartao', valor: cartao },
+          { forma: 'dinheiro', valor: dinheiro },
+        ],
+        sangria: 0,
+        totalDia: 742.5 + 186.4 + loja,
+        ...autoria,
+      }
+      await repo.receitaDia.salvar(t, id, receita)
+      await registrarAtividade(
+        t,
+        { acao: 'fechou o caixa de', entidade: 'hoje', tipo: 'Fechamento', valor: receita.totalDia, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return receita
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+export function useCriarMovimento() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (e: { tipo: string; produto: string; quantidade: number; custo: number; geraDespesa: boolean }) => {
+      const autor = getAutor()
+      const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
+      const valor = e.quantidade * e.custo
+      const movimentoId = novoId('mov')
+      await repo.movimentos.salvar(t, movimentoId, {
+        id: movimentoId, tipo: e.tipo, produto: e.produto, quantidade: e.quantidade, custoUnitario: e.custo, valor, geraDespesa: e.geraDespesa, ...autoria,
+      })
+      let despesaId: string | undefined
+      if (e.geraDespesa && valor > 0) {
+        despesaId = novoId('d')
+        await repo.despesas.salvar(t, despesaId, {
+          id: despesaId, fornecedor: 'Entrada de estoque', descricao: e.produto, categoria: 'mercadoria', valorTotal: valor,
+          dataCompetencia: new Date().toISOString().slice(0, 10), formaPagamento: 'automatico', status: 'pago', recorrente: false, ...autoria,
+        })
+      }
+      await registrarAtividade(
+        t,
+        { acao: 'movimentou estoque', entidade: e.produto, tipo: 'Estoque', valor, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return { movimentoId, despesaId }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Desfaz um lançamento: apaga os docs criados e revalida. */
+export function useDesfazer() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (itens: { colecao: string; id: string }[]) => {
+      for (const it of itens) await deleteDoc(doc(db, 'restaurants', t, it.colecao, it.id))
+      return itens
+    },
+    onSuccess: (itens) => {
+      new Set(itens.map((i) => i.colecao)).forEach((c) => qc.invalidateQueries({ queryKey: [t, c] }))
     },
   })
 }

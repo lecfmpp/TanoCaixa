@@ -80,6 +80,11 @@ export const repo = {
   receitaDia: {
     listar: (t: string) => listar<ReceitaDiaDoc>(t, 'receita_dia'),
     salvar: (t: string, id: string, d: Partial<ReceitaDiaDoc>) => salvar(t, 'receita_dia', id, d),
+    remover: (t: string, id: string) => remover(t, 'receita_dia', id),
+  },
+  movimentos: {
+    salvar: (t: string, id: string, d: Record<string, unknown>) => salvar(t, 'movimentos_estoque', id, d),
+    remover: (t: string, id: string) => remover(t, 'movimentos_estoque', id),
   },
   contagens: {
     listar: (t: string) => listar<ContagemDoc>(t, 'contagens'),
