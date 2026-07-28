@@ -5,7 +5,7 @@ import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { OrigemBadge } from '@/components/ui/OrigemBadge'
 import { useAuth } from '@/auth/AuthContext'
-import { brl, brlCurto, pct, quando } from '@/lib/format'
+import { brl, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import type { BarraPeriodo, Periodo } from '@/types'
 import {
@@ -174,7 +174,8 @@ function GraficoBarras({
   sobra: number
   periodo: Periodo
 }) {
-  const ALT = 130
+  // Grupo em foco: hover no desktop, toque no celular. Revela os números.
+  const [ativo, setAtivo] = useState<number | null>(null)
   const max = Math.max(...barras.flatMap((b) => [b.entrou, b.saiu]), 1)
 
   return (
@@ -190,37 +191,83 @@ function GraficoBarras({
           </span>
         </div>
       </div>
-      <p className="mb-4 text-xs text-tinta-4">
-        {periodo === 'mes' ? 'semana a semana' : 'dia a dia'}
+      <p className="mb-3 text-xs text-tinta-4">
+        {periodo === 'mes' ? 'semana a semana' : 'dia a dia'} · passe o mouse ou toque pra ver os valores
       </p>
 
-      <div className="flex flex-1 items-end justify-between gap-2">
-        {barras.map((b) => {
-          const sobraB = b.entrou - b.saiu
-          return (
-            <div key={b.rotulo} className="flex flex-1 flex-col items-center gap-2">
-              <div className="flex items-end justify-center gap-1" style={{ height: ALT }}>
-                <Barra valor={b.entrou} max={max} alt={ALT} cor="var(--color-mar)" />
-                <Barra valor={b.saiu} max={max} alt={ALT} cor="var(--color-telhado)" />
-              </div>
-              <div className="text-center">
-                <div className="text-[11px] font-bold text-tinta-3">{b.rotulo}</div>
-                <div
-                  className={cn(
-                    'mono text-[11px] font-bold',
-                    sobraB >= 0 ? 'text-mata' : 'text-telha-alerta',
-                  )}
-                >
-                  {sobraB >= 0 ? '+' : ''}
-                  {brlCurto(sobraB)}
-                </div>
-              </div>
-            </div>
-          )
-        })}
+      {/* Área do gráfico — preenche a altura disponível */}
+      <div className="relative min-h-[190px] flex-1">
+        {/* linhas de grade horizontais delicadas */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="border-t border-divisoria/60" />
+          ))}
+        </div>
+
+        {/* grupos de barras */}
+        <div className="relative flex h-full items-stretch">
+          {barras.map((b, i) => {
+            const sobraB = b.entrou - b.saiu
+            const on = ativo === i
+            return (
+              <button
+                key={b.rotulo}
+                type="button"
+                onMouseEnter={() => setAtivo(i)}
+                onMouseLeave={() => setAtivo((a) => (a === i ? null : a))}
+                onClick={() => setAtivo((a) => (a === i ? null : i))}
+                className={cn(
+                  'group relative flex flex-1 items-end justify-center gap-1.5 pb-0 transition-colors',
+                  i > 0 && 'border-l border-divisoria/50',
+                  on && 'bg-preenchimento/40',
+                )}
+              >
+                <BarraPct valor={b.entrou} max={max} cor="var(--color-mar)" destaque={on} />
+                <BarraPct valor={b.saiu} max={max} cor="var(--color-telhado)" destaque={on} />
+
+                {/* Tooltip com os números daquele período */}
+                {on && (
+                  <div className="absolute bottom-full left-1/2 z-20 mb-1 w-36 -translate-x-1/2 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie p-2.5 text-left shadow-cartao">
+                    <div className="rotulo mb-1 text-tinta-4">{b.rotulo}</div>
+                    <Linha rotulo="Entrou" valor={b.entrou} cor="text-mar" />
+                    <Linha rotulo="Saiu" valor={b.saiu} cor="text-telhado" />
+                    <div className="mt-1 flex items-center justify-between border-t border-divisoria pt-1">
+                      <span className="text-xs font-bold text-tinta-2">Sobrou</span>
+                      <span
+                        className={cn(
+                          'mono text-xs font-bold',
+                          sobraB >= 0 ? 'text-mata' : 'text-telha-alerta',
+                        )}
+                      >
+                        {sobraB >= 0 ? '+' : ''}
+                        {brl(sobraB)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-divisoria pt-3">
+      {/* rótulos dos períodos */}
+      <div className="mt-2 flex">
+        {barras.map((b, i) => (
+          <div
+            key={b.rotulo}
+            className={cn(
+              'flex-1 text-center text-[11px] font-bold transition-colors',
+              ativo === i ? 'text-tinta' : 'text-tinta-4',
+            )}
+          >
+            {b.rotulo}
+          </div>
+        ))}
+      </div>
+
+      {/* total do período */}
+      <div className="mt-3 flex items-center justify-between border-t border-divisoria pt-3">
         <span className="text-sm text-tinta-3">
           Sobrou {periodo === 'mes' ? 'no mês' : 'na semana'}
         </span>
@@ -235,25 +282,36 @@ function GraficoBarras({
   )
 }
 
-function Barra({
+/** Barra com altura proporcional (percentual da área do gráfico). */
+function BarraPct({
   valor,
   max,
-  alt,
   cor,
+  destaque,
 }: {
   valor: number
   max: number
-  alt: number
   cor: string
+  destaque: boolean
 }) {
-  const altura = Math.max(4, (valor / max) * alt)
   return (
-    <div className="flex flex-col items-center justify-end" style={{ height: alt }}>
-      <span className="mono mb-1 text-[9px] font-bold text-tinta-4">{brlCurto(valor)}</span>
-      <div
-        className="w-4 rounded-t-[5px] cel:w-5"
-        style={{ height: altura, background: cor }}
-      />
+    <div
+      className="w-4 rounded-t-[5px] transition-all cel:w-5"
+      style={{
+        height: `${Math.max(2, (valor / max) * 100)}%`,
+        background: cor,
+        opacity: destaque ? 1 : 0.9,
+      }}
+    />
+  )
+}
+
+/** Linha rótulo→valor do tooltip. */
+function Linha({ rotulo, valor, cor }: { rotulo: string; valor: number; cor: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className={cn('text-xs font-semibold', cor)}>{rotulo}</span>
+      <span className="mono text-xs text-tinta">{brl(valor)}</span>
     </div>
   )
 }
