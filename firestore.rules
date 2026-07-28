@@ -1,37 +1,122 @@
 rules_version = '2';
 
-// Regras base: cada restaurante (tenant) só acessa os próprios dados.
-// Ajustaremos os caminhos exatos conforme o modelo de dados evoluir.
+// ------------------------------------------------------------------ //
+// Tá no Caixa — permissões por papel aplicadas NO BANCO (regra nº5).
+// Papéis (DATA_MODEL.md): dono, gerente, estoque, lancador, contador.
+//   dono     → vê tudo (lucro, folha, faturamento, DRE)
+//   gerente  → despesas, produtos, estoque, CMV — NÃO vê lucro/folha/DRE/faturamento
+//   estoque  → só movimenta estoque
+//   lancador → só cria despesa
+//   contador → só lê e exporta
+// Obs.: o Firestore aplica regra por documento, não por campo. Por isso
+// dados sensíveis ficam em coleções próprias (receita_dia, plano_mes, dre,
+// despesas de pessoal) e são barrados por papel aqui.
+// ------------------------------------------------------------------ //
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
+    function logado() {
       return request.auth != null;
     }
 
-    // Documento do restaurante e todas as subcoleções (produtos, despesas,
-    // inventários, planejamentos, etc.). Somente membros do restaurante.
-    match /restaurants/{restaurantId} {
-      function isMember() {
-        return isSignedIn()
-          && request.auth.uid in resource.data.memberUids;
-      }
-
-      allow read: if isMember();
-      allow create: if isSignedIn()
-        && request.auth.uid in request.resource.data.memberUids;
-      allow update, delete: if isMember();
-
-      match /{document=**} {
-        allow read, write: if isSignedIn()
-          && request.auth.uid in
-             get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.memberUids;
-      }
+    function membroRef(rid) {
+      return /databases/$(database)/documents/restaurants/$(rid)/membros/$(request.auth.uid);
     }
 
-    // Perfil do usuário: só o próprio dono.
+    function ehMembro(rid) {
+      return logado() && exists(membroRef(rid));
+    }
+
+    function papel(rid) {
+      return get(membroRef(rid)).data.papel;
+    }
+
+    function temPapel(rid, papeis) {
+      return ehMembro(rid) && (papel(rid) in papeis);
+    }
+
+    // ---- Perfil do usuário: só o próprio dono do perfil ---- //
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if logado() && request.auth.uid == userId;
+    }
+
+    // ---- Restaurante e subcoleções ---- //
+    match /restaurants/{rid} {
+
+      allow read: if ehMembro(rid);
+      allow create: if logado()
+        && request.resource.data.criado_por == request.auth.uid;
+      allow update, delete: if temPapel(rid, ['dono']);
+
+      // Equipe / papéis — só o dono mexe.
+      match /membros/{uid} {
+        allow read: if ehMembro(rid);
+        allow write: if temPapel(rid, ['dono']);
+      }
+
+      // Cadastros base.
+      match /fornecedores/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'estoque', 'contador']);
+        allow write: if temPapel(rid, ['dono', 'gerente']);
+      }
+      match /produtos/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'estoque', 'contador']);
+        allow write: if temPapel(rid, ['dono', 'gerente']);
+      }
+
+      // Despesas — dono/gerente/lancador criam; contador só lê.
+      // (O recorte "gerente vê só mercadoria" é aplicado nas queries; aqui
+      // barramos quem não pode ver despesa nenhuma.)
+      match /despesas/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'contador']);
+        allow create: if temPapel(rid, ['dono', 'gerente', 'lancador']);
+        allow update: if temPapel(rid, ['dono', 'gerente']);
+        allow delete: if temPapel(rid, ['dono']);
+      }
+
+      // Notas lidas por IA (OCR).
+      match /notas_ocr/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'contador']);
+        allow write: if temPapel(rid, ['dono', 'gerente', 'lancador']);
+      }
+
+      // Estoque: contagem e movimentos.
+      match /contagens/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'estoque', 'contador']);
+        allow write: if temPapel(rid, ['dono', 'gerente', 'estoque']);
+      }
+      match /movimentos_estoque/{doc} {
+        allow read: if temPapel(rid, ['dono', 'gerente', 'estoque', 'contador']);
+        allow write: if temPapel(rid, ['dono', 'gerente', 'estoque']);
+      }
+
+      // SENSÍVEL: faturamento, plano e DRE — gerente NÃO vê.
+      match /receita_dia/{doc} {
+        allow read: if temPapel(rid, ['dono', 'contador']);
+        allow write: if temPapel(rid, ['dono']);
+      }
+      match /plano_mes/{doc} {
+        allow read: if temPapel(rid, ['dono', 'contador']);
+        allow write: if temPapel(rid, ['dono']);
+      }
+      match /dre/{doc} {
+        allow read: if temPapel(rid, ['dono', 'contador']);
+        allow write: if false; // gerado pelo servidor
+      }
+
+      // Insights.
+      match /insights/{doc} {
+        allow read: if ehMembro(rid);
+        allow write: if false; // gerado pelo motor de IA (servidor)
+      }
+
+      // Trilha de auditoria: qualquer membro lê e cria; NUNCA edita/apaga
+      // (correção entra como nova linha).
+      match /atividades/{doc} {
+        allow read: if ehMembro(rid);
+        allow create: if ehMembro(rid);
+        allow update, delete: if false;
+      }
     }
   }
 }

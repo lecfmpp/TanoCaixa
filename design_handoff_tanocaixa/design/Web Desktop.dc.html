@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#CDCCB8; font-family:'Archivo',system-ui,sans-serif; color:#1C2A2E; -webkit-font-smoothing:antialiased; }
+  a { color:#2E5F73; text-decoration:none; border-bottom:1px solid rgba(46,95,115,.35); }
+  a:hover { color:#C05437; border-bottom-color:rgba(192,84,55,.5); }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+
+<section style="padding:56px 56px 110px;display:flex;flex-direction:column;gap:34px">
+
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+    <div style="display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 10px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;letter-spacing:.04em">5a</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1">MVP web · desktop funcional</div>
+      <div style="font-size:15px;color:#6A7A7E;max-width:700px;text-wrap:pretty">Entrar, criar conta e recuperar senha no navegador, e o app inteiro navegável: início, despesas com leitura de nota, produtos, estoque, plano, números e ajustes. Tudo clicável. Ao lado, a mesma tela inicial na largura de celular.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ larg }}" height="{{ alt }}" url="tanocaixa.com" hint-size="1440px,900px">
+      <div style="height:100%;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;color:#1C2A2E;display:flex">
+
+        <sc-if value="{{ modoAuth }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;width:100%;height:100%">
+            <div style="position:relative;width:44%;flex:none;overflow:hidden;background:#16303A">
+              <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:52% 55%;filter:saturate(.3) contrast(1.06)">
+              <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.25) 0%,rgba(22,48,58,.92) 100%)"></div>
+              <div style="position:absolute;top:110px;right:70px;width:150px;height:150px;border-radius:50%;background:#EFAB5C;opacity:.92"></div>
+              <div style="position:absolute;top:42px;left:44px;display:flex;align-items:center;gap:11px">
+                <div style="width:32px;height:32px;border-radius:11px;background:#C05437"></div>
+                <div style="font-size:19px;font-weight:800;color:#F7F5EA;letter-spacing:-.01em">Tá no Caixa</div>
+              </div>
+              <div style="position:absolute;left:44px;right:44px;bottom:52px">
+                <div style="font-size:40px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.05;text-wrap:pretty">Saber se sobrou dinheiro não pode dar trabalho</div>
+                <div style="font-size:17px;color:rgba(247,245,234,.78);margin-top:16px;line-height:1.5;max-width:420px;text-wrap:pretty">Foto da nota, faturamento puxado do iFood e um recado toda segunda com o que fazer na semana.</div>
+                <div style="display:flex;gap:26px;margin-top:26px">
+                  <div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#EFAB5C">40s</div><div style="font-size:13px;color:rgba(247,245,234,.7)">pra lançar uma nota</div></div>
+                  <div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#EFAB5C">3s</div><div style="font-size:13px;color:rgba(247,245,234,.7)">pra saber se sobrou</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:48px;overflow:auto">
+
+              <sc-if value="{{ telaLogin }}" hint-placeholder-val="{{ true }}">
+                <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:20px">
+                  <div>
+                    <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Bom te ver de novo, chefe</div>
+                    <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Julho fechou com sobra. Vem ver.</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">E-mail</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px">halim@zaatarrio.com.br</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Senha</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:'JetBrains Mono',monospace;letter-spacing:.2em">••••••••••</div><div style="font-size:13px;font-weight:700;color:#2E5F73">mostrar</div></div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="display:flex;align-items:center;gap:9px"><div style="width:20px;height:20px;border-radius:6px;background:#2E5F73;display:flex;align-items:center;justify-content:center"><div style="width:10px;height:5px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div><div style="font-size:14px;color:#45585D">Continuar conectado</div></div>
+                    <div onClick="{{ irEsqueci }}" style="font-size:14px;font-weight:700;color:#2E5F73;cursor:pointer">Esqueci a senha</div>
+                  </div>
+                  <div onClick="{{ entrar }}" style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center;cursor:pointer">Entrar no painel</div>
+                  <div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:1px;background:#E1DFCE"></div><div style="font-size:12px;color:#8A9698">ou</div><div style="flex:1;height:1px;background:#E1DFCE"></div></div>
+                  <div style="display:flex;gap:10px">
+                    <div style="flex:1;padding:15px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:700;text-align:center;cursor:pointer">Google</div>
+                    <div style="flex:1;padding:15px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:700;text-align:center;cursor:pointer">Apple</div>
+                  </div>
+                  <div style="font-size:14px;color:#6A7A7E;text-align:center">Não tem conta? <b onClick="{{ irCriar }}" style="color:#2E5F73;cursor:pointer">Criar agora</b></div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ telaCriar }}" hint-placeholder-val="{{ false }}">
+                <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:18px">
+                  <div>
+                    <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Criar sua conta</div>
+                    <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Leva 40 segundos. Depois a gente conhece o restaurante.</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Seu nome</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Halim Nassar</div>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Restaurante</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Zaatar</div>
+                      </div>
+                      <div style="width:140px;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Bairro</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Botafogo</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Celular (WhatsApp)</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px;font-family:'JetBrains Mono',monospace">(21) 99814-2207</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">E-mail</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">halim@zaatarrio.com.br</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Senha</div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace;letter-spacing:.2em">••••••••••</div>
+                      <div style="display:flex;gap:5px;margin-top:2px">
+                        <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                        <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                        <div style="flex:1;height:5px;border-radius:3px;background:#2F6B4A"></div>
+                        <div style="flex:1;height:5px;border-radius:3px;background:#E1DFCE"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:11px;align-items:flex-start">
+                    <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                    <div style="font-size:13px;color:#45585D;line-height:1.45;text-wrap:pretty">Aceito os termos de uso e a política de privacidade (LGPD). Seus números são só seus.</div>
+                  </div>
+                  <div onClick="{{ irOnb }}" style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center;cursor:pointer">Criar conta e começar</div>
+                  <div style="font-size:14px;color:#6A7A7E;text-align:center">Já tem conta? <b onClick="{{ irLogin }}" style="color:#2E5F73;cursor:pointer">Entrar</b></div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ telaEsqueci }}" hint-placeholder-val="{{ false }}">
+                <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:20px">
+                  <div onClick="{{ irLogin }}" style="font-size:14px;font-weight:700;color:#2E5F73;cursor:pointer">← Voltar pro login</div>
+                  <div>
+                    <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Acontece com todo mundo</div>
+                    <div style="font-size:15px;color:#6A7A7E;margin-top:6px;line-height:1.5">Diz onde você quer receber o código e a gente resolve isso rapidinho.</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:11px">
+                    <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px;cursor:pointer">
+                      <div style="width:20px;height:20px;border-radius:50%;border:6px solid #2E5F73"></div>
+                      <div style="flex:1"><div style="font-size:15px;font-weight:700">WhatsApp</div><div style="font-size:13px;color:#8A9698;font-family:'JetBrains Mono',monospace">(21) 9981•-••07</div></div>
+                    </div>
+                    <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px;cursor:pointer">
+                      <div style="width:20px;height:20px;border-radius:50%;border:2px solid #AEB9B8"></div>
+                      <div style="flex:1"><div style="font-size:15px;font-weight:700">E-mail</div><div style="font-size:13px;color:#8A9698">h•••m@zaatarrio.com.br</div></div>
+                    </div>
+                  </div>
+                  <div onClick="{{ irLogin }}" style="padding:17px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;text-align:center;cursor:pointer">Me manda o código</div>
+                  <div style="font-size:13px;color:#8A9698;line-height:1.5;text-wrap:pretty">Não tem mais acesso a nenhum dos dois? <b style="color:#2E5F73">Fala com a gente no WhatsApp</b> que a gente confere com você.</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ modoOnb }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;width:100%;height:100%">
+            <div style="position:relative;width:330px;flex:none;overflow:hidden;background:#16303A;padding:36px 28px;display:flex;flex-direction:column;gap:26px">
+              <img src="uploads/pasted-1785209411738-0.png" alt="Cristo Redentor no fim de tarde" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:55% 40%;filter:saturate(.3) contrast(1.06)">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,#EFAB5C 0%,#C05437 100%);mix-blend-mode:multiply;opacity:.8"></div>
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,48,58,.6) 0%,rgba(22,48,58,.95) 100%)"></div>
+              <div style="position:relative;display:flex;align-items:center;gap:10px">
+                <div style="width:28px;height:28px;border-radius:9px;background:#C05437"></div>
+                <div style="font-size:16px;font-weight:800;color:#F7F5EA;letter-spacing:-.01em">Tá no Caixa</div>
+              </div>
+              <div style="position:relative">
+                <div style="font-size:24px;font-weight:800;color:#F7F5EA;letter-spacing:-.025em;line-height:1.15;text-wrap:pretty">Sete perguntas e seu painel fica pronto</div>
+                <div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:8px;line-height:1.5">Dá pra mudar tudo depois. O que você não souber agora, deixa em branco.</div>
+              </div>
+              <div style="position:relative;display:flex;flex-direction:column;gap:4px">
+                <sc-for list="{{ passosOnb }}" as="p" hint-placeholder-count="7">
+                  <div onClick="{{ p.ir }}" style="{{ p.estilo }}">
+                    <div style="{{ p.bolinha }}">{{ p.indice }}</div>
+                    <div>{{ p.nome }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position:relative;margin-top:auto"><div onClick="{{ irLogin }}" style="font-size:13px;font-weight:600;color:rgba(247,245,234,.6);cursor:pointer">Sair do cadastro</div></div>
+            </div>
+
+            <div style="flex:1;min-width:0;overflow:auto;padding:44px 56px;display:flex;justify-content:center">
+              <div style="width:100%;max-width:680px;display:flex;flex-direction:column;gap:22px">
+
+                <div style="display:flex;align-items:center;gap:14px">
+                  <div style="flex:1;height:6px;border-radius:3px;background:#E1DFCE;overflow:hidden"><div style="{{ barraOnb }}"></div></div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#8A9698">{{ contadorOnb }}</div>
+                </div>
+
+                <sc-if value="{{ onb1 }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Me conta do seu restaurante</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Só o básico. Dá pra mudar depois.</div>
+                    </div>
+                    <div style="display:flex;gap:14px">
+                      <div style="flex:2;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Nome que aparece pro cliente</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Zaatar Cozinha Árabe</div>
+                      </div>
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Bairro</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Botafogo</div>
+                      </div>
+                      <div style="width:110px;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Lojas</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">1</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:9px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Como você opera</div>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div style="padding:11px 16px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;cursor:pointer">Só delivery</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Delivery + salão</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Só salão</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Buffet / eventos</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:9px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Tipo de comida</div>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div style="padding:11px 16px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;cursor:pointer">Árabe</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Boteco</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Pizza</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Japonês</div>
+                        <div style="padding:11px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:14px;font-weight:600;color:#45585D;cursor:pointer">Outro</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">CNPJ <span style="text-transform:none;letter-spacing:0;font-weight:600;color:#AEB9B8">· opcional agora</span></div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.25);font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">00.000.000/0001-00</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb2 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Por onde você vende?</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Marca tudo que usa hoje — cada canal marcado vira uma integração no passo 4.</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                      <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px;cursor:pointer">
+                        <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">iFood</div><div style="font-size:12px;color:#8A9698">vendas e taxas automáticas</div></div>
+                      </div>
+                      <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px;cursor:pointer">
+                        <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Rappi</div><div style="font-size:12px;color:#8A9698">vendas e taxas automáticas</div></div>
+                      </div>
+                      <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;gap:13px;cursor:pointer">
+                        <div style="width:22px;height:22px;border-radius:7px;background:#2E5F73;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:6px;border-left:2.5px solid #F7F5EA;border-bottom:2.5px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-2px)"></div></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">WhatsApp / site próprio</div><div style="font-size:12px;color:#8A9698">o mais lucrativo pra você</div></div>
+                      </div>
+                      <div style="padding:16px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:13px;cursor:pointer">
+                        <div style="width:22px;height:22px;border-radius:7px;border:2px solid #AEB9B8;flex:none"></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700;color:#45585D">Balcão e retirada</div><div style="font-size:12px;color:#8A9698">maquininha ou Pix na loja</div></div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:14px">
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Ticket médio</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 68</div>
+                      </div>
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Dias abertos</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">6 / semana</div>
+                      </div>
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Pedidos por dia</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">~ 48</div>
+                      </div>
+                    </div>
+                    <div style="padding:18px;border-radius:16px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:14px;color:#3A3327;line-height:1.5;text-wrap:pretty">Delivery-first como o seu costuma perder margem em taxa. Vamos ficar de olho nisso desde o primeiro mês.</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb3 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Os números de partida</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Chute redondo já serve. Depois do primeiro mês o app corrige sozinho.</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Faturamento de um mês normal</div>
+                      <div style="padding:16px;border-radius:14px;background:#FBFAF2;border:2px solid #2E5F73;font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace">R$ 50.000</div>
+                    </div>
+                    <div style="display:flex;gap:14px">
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Folha por mês</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 10.900</div>
+                      </div>
+                      <div style="width:120px;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Pessoas</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">7</div>
+                      </div>
+                      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Contas fixas do mês</div>
+                        <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 6.300</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Estoque parado hoje <span style="text-transform:none;letter-spacing:0;font-weight:600;color:#AEB9B8">· se souber</span></div>
+                      <div style="padding:15px 16px;border-radius:14px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.25);font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">R$ 0,00</div>
+                    </div>
+                    <div style="padding:22px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+                      <div style="position:absolute;top:-40px;right:-24px;width:140px;height:140px;border-radius:50%;background:#EFAB5C;opacity:.85"></div>
+                      <div style="position:relative">
+                        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(247,245,234,.6)">Já dá pra dizer</div>
+                        <div style="font-size:20px;font-weight:700;margin-top:6px;max-width:420px;line-height:1.35;text-wrap:pretty">Você precisa vender uns R$ 41.400 por mês pra não ter prejuízo.</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb4 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Conecta pra não digitar nunca mais</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Uma vez só. Depois o faturamento entra sozinho todo dia.</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:11px">
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">iFood</div><div style="font-size:12px;color:#2F6B4A;font-weight:600">conectado · 38 pedidos ontem</div></div>
+                        <div style="width:22px;height:22px;border-radius:50%;background:#2F6B4A;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div>
+                      </div>
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Rappi</div><div style="font-size:12px;color:#8A5A28;font-weight:600">conectando…</div></div>
+                        <div style="width:22px;height:22px;border-radius:50%;border:3px solid #E1DFCE;border-top-color:#C05437"></div>
+                      </div>
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Maquininha</div><div style="font-size:12px;color:#8A9698">Stone, Cielo, PagSeguro, Mercado Pago</div></div>
+                        <div style="padding:9px 15px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Conectar</div>
+                      </div>
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:13px;background:#E8E6D7;flex:none"></div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Sistema de PDV</div><div style="font-size:12px;color:#8A9698">Colibri, Consumer, Goomer…</div></div>
+                        <div style="padding:9px 15px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:700;cursor:pointer">Conectar</div>
+                      </div>
+                    </div>
+                    <div style="padding:18px;border-radius:16px;background:rgba(46,95,115,.06);font-size:14px;color:#45585D;line-height:1.5;text-wrap:pretty">Não tem nenhum desses? Sem problema: dá pra fechar o dia na mão em 20 segundos, e o resto do app funciona igual.</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb5 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Quem mais mexe nisso com você?</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Cada um vê só o que precisa. Ninguém vê seu lucro sem você deixar.</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:11px">
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:50%;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">H</div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Halim (você)</div><div style="font-size:12px;color:#8A9698">vê tudo, inclusive o lucro</div></div>
+                        <div style="padding:4px 10px;border-radius:10px;background:rgba(46,95,115,.1);color:#2E5F73;font-size:12px;font-weight:700">dono</div>
+                      </div>
+                      <div style="padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);display:flex;align-items:center;gap:14px">
+                        <div style="width:42px;height:42px;border-radius:50%;background:#C05437;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">J</div>
+                        <div style="flex:1"><div style="font-size:15px;font-weight:700">Jamile Rocha</div><div style="font-size:12px;color:#8A9698">(21) 99640-1188 · convite enviado</div></div>
+                        <div style="padding:4px 10px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">gerente</div>
+                      </div>
+                    </div>
+                    <div style="padding:20px;border-radius:16px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.3);display:flex;flex-direction:column;gap:13px">
+                      <div style="font-size:15px;font-weight:700">Convidar mais alguém</div>
+                      <div style="display:flex;gap:12px">
+                        <div style="flex:1;padding:14px 16px;border-radius:13px;background:#F0EEE2;font-size:15px;color:#AEB9B8;font-family:'JetBrains Mono',monospace">(21) 9••••-••••</div>
+                        <div style="padding:14px 20px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Enviar convite</div>
+                      </div>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Gerente</div>
+                        <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Estoque</div>
+                        <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Só lançar nota</div>
+                        <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Contador</div>
+                      </div>
+                    </div>
+                    <div style="padding:18px;border-radius:16px;background:rgba(46,95,115,.06);font-size:14px;color:#45585D;line-height:1.5;text-wrap:pretty">Gerente lança nota, conta estoque e vê o CMV — mas não vê lucro, folha nem faturamento total.</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb6 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:20px">
+                    <div>
+                      <div style="font-size:30px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Suas metas do primeiro mês</div>
+                      <div style="font-size:15px;color:#6A7A7E;margin-top:6px">Já deixamos preenchido com o que costuma funcionar. Ajusta se quiser.</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+                      <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14)">
+                        <div style="font-size:13px;color:#6A7A7E;font-weight:600">Meta de faturamento</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;margin-top:4px;letter-spacing:-.03em">R$ 50.000</div>
+                        <div style="margin-top:12px;height:8px;border-radius:4px;background:#E1DFCE;overflow:hidden"><div style="width:62%;height:100%;border-radius:4px;background:linear-gradient(90deg,#2E5F73,#2F6B4A)"></div></div>
+                        <div style="font-size:12px;color:#8A9698;margin-top:8px">Um degrau acima de julho, sem apertar demais.</div>
+                      </div>
+                      <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);overflow:hidden">
+                        <div style="display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Mercadoria</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">30%</div></div>
+                        <div style="display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Pessoal</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">25%</div></div>
+                        <div style="display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Ocupação</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">15%</div></div>
+                        <div style="display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px;font-weight:600">Taxas de app</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">12%</div></div>
+                        <div style="display:flex;justify-content:space-between;padding:13px 16px;background:rgba(47,107,74,.1)"><div style="font-size:14px;font-weight:800;color:#2F6B4A">Sobra prevista</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:#2F6B4A">18% · R$ 9.000</div></div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:12px">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Onde te avisar</div>
+                      <sc-for list="{{ canais }}" as="c" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #E8E6D7">
+                          <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{ c.nome }}</div><div style="font-size:12px;color:#8A9698">{{ c.dica }}</div></div>
+                          <div onClick="{{ c.alternar }}" style="{{ c.trilho }}"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ onb7 }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:22px">
+                    <div style="position:relative;border-radius:20px;overflow:hidden;background:#16303A;padding:38px 32px">
+                      <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%;filter:saturate(.3) contrast(1.06)">
+                      <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+                      <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(22,48,58,.92) 0%,rgba(22,48,58,.35) 100%)"></div>
+                      <div style="position:absolute;top:-30px;right:40px;width:120px;height:120px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+                      <div style="position:relative">
+                        <div style="font-size:34px;font-weight:800;color:#F7F5EA;letter-spacing:-.03em;line-height:1.08;max-width:440px;text-wrap:pretty">Pronto, chefe. Agora é só cozinhar.</div>
+                        <div style="font-size:16px;color:rgba(247,245,234,.78);margin-top:12px;max-width:430px;line-height:1.5;text-wrap:pretty">O painel já está montado com o que você contou. Amanhã de manhã o faturamento de hoje entra sozinho.</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                      <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px">Restaurante e equipe cadastrados</div></div>
+                      <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px">iFood conectado, Rappi a caminho</div></div>
+                      <div style="display:flex;align-items:center;gap:11px"><div style="width:20px;height:20px;border-radius:50%;background:#2F6B4A;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:5px;border-left:2px solid #F7F5EA;border-bottom:2px solid #F7F5EA;transform:rotate(-45deg) translate(1px,-1px)"></div></div><div style="font-size:15px">Meta de R$ 50.000 e tetos definidos</div></div>
+                    </div>
+                    <div style="padding:18px 20px;border-radius:16px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3)">
+                      <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">Primeira missão</div>
+                      <div style="font-size:15px;color:#3A3327;margin-top:6px;line-height:1.5;text-wrap:pretty">Tira foto da última nota de fornecedor que estiver aí no balcão. Leva 40 segundos.</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:6px">
+                  <div onClick="{{ onbVoltar }}" style="{{ estiloVoltar }}">← Voltar</div>
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <div onClick="{{ entrar }}" style="font-size:14px;font-weight:700;color:#6A7A7E;cursor:pointer">Pular por agora</div>
+                    <div onClick="{{ onbProximo }}" style="padding:16px 30px;border-radius:16px;background:#2E5F73;color:#F7F5EA;font-size:16px;font-weight:700;cursor:pointer">{{ rotuloProximo }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ modoApp }}" hint-placeholder-val="{{ false }}">
+          <div style="position:relative;display:flex;width:100%;height:100%">
+            <div style="width:236px;flex:none;background:#2E5F73;color:#F7F5EA;padding:22px 16px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:28px;height:28px;border-radius:9px;background:#C05437"></div>
+                <div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Tá no Caixa</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <sc-for list="{{ menu }}" as="m" hint-placeholder-count="7">
+                  <div onClick="{{ m.ir }}" style="{{ m.estilo }}">{{ m.nome }}</div>
+                </sc-for>
+              </div>
+              <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+                <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.08)">
+                  <div style="font-size:12px;color:rgba(247,245,234,.6)">Contagem de julho</div>
+                  <div style="font-size:14px;font-weight:700;margin-top:4px">{{ contados }}</div>
+                  <div style="margin-top:8px;height:6px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden"><div style="width:64%;height:100%;background:#EFAB5C;border-radius:3px"></div></div>
+                </div>
+                <div onClick="{{ irLogin }}" style="font-size:13px;font-weight:600;color:rgba(247,245,234,.65);cursor:pointer;padding:0 4px">Sair da conta</div>
+              </div>
+            </div>
+
+            <div style="flex:1;min-width:0;overflow:auto;padding:24px 28px 34px;display:flex;flex-direction:column;gap:18px">
+
+              <div style="position:relative;isolation:isolate;overflow:hidden;border-radius:18px;padding:22px 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;background:#16303A;flex:none">
+                <img src="uploads/pasted-1785209420737-0.png" alt="Bondinho de Santa Teresa" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:saturate(.3) contrast(1.06)">
+                <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+                <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(22,48,58,.92) 0%,rgba(22,48,58,.3) 70%)"></div>
+                <div style="position:absolute;top:-34px;right:190px;width:110px;height:110px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+                <div style="position:relative">
+                  <div style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:#F7F5EA">{{ tituloSecao }}</div>
+                  <div style="font-size:14px;color:rgba(247,245,234,.72);margin-top:2px">Zaatar Cozinha Árabe · Botafogo · julho de 2026, faltam 4 dias</div>
+                </div>
+                <div style="position:relative;display:flex;align-items:center;gap:10px">
+                  <div style="display:flex;padding:3px;border-radius:12px;background:rgba(247,245,234,.16)">
+                    <div onClick="{{ verSemana }}" style="{{ chipSemana }}">Semana</div>
+                    <div onClick="{{ verMes }}" style="{{ chipMes }}">Mês</div>
+                  </div>
+                  <div style="padding:9px 14px;border-radius:11px;background:rgba(247,245,234,.16);color:#F7F5EA;font-size:13px;font-weight:600;cursor:pointer">Exportar</div>
+                  <div style="position:relative">
+                    <div onClick="{{ alternarMenu }}" style="display:flex;align-items:center;gap:9px;padding:10px 18px;border-radius:12px;background:#C05437;color:#F7F5EA;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(192,84,55,.35)">
+                      <div style="font-size:19px;line-height:1;margin-top:-2px">+</div>Lançar
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <sc-if value="{{ secInicio }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                    <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Entrou</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">{{ vEntrou }}</div>
+                      <div style="font-size:12px;color:#2F6B4A;font-weight:700;margin-top:4px">{{ vEntrouVar }}</div>
+                    </div>
+                    <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Saiu</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">{{ vSaiu }}</div>
+                      <div style="font-size:12px;color:#B4462F;font-weight:700;margin-top:4px">{{ vSaiuVar }}</div>
+                    </div>
+                    <div style="padding:18px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+                      <div style="position:absolute;top:-34px;right:-22px;width:110px;height:110px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+                      <div style="position:relative">
+                        <div style="font-size:12px;font-weight:600;color:rgba(247,245,234,.65);text-transform:uppercase;letter-spacing:.07em">Sobrou</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">{{ vSobrou }}</div>
+                        <div style="font-size:12px;color:rgba(247,245,234,.75);font-weight:600;margin-top:4px">{{ vMargem }}</div>
+                      </div>
+                    </div>
+                    <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Ponto de equilíbrio</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;margin-top:6px">{{ vPonto }}</div>
+                      <div style="font-size:12px;color:#2F6B4A;font-weight:700;margin-top:4px">{{ vPontoNota }}</div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:18px;background:#FBFAF2;border:1px dashed rgba(46,95,115,.3)">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:700">Fechou o dia?</div>
+                      <div style="font-size:13px;color:#6A7A7E;margin-top:2px">iFood e Rappi já entraram. Falta confirmar o que veio de Pix, cartão e dinheiro no balcão.</div>
+                    </div>
+                    <div onClick="{{ novoCaixa }}" style="padding:12px 20px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Fechar o caixa de hoje</div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline">
+                        <div style="font-size:15px;font-weight:700">{{ tituloGrafico }}</div>
+                        <div style="display:flex;gap:14px;font-size:12px;color:#6A7A7E">
+                          <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#2E5F73"></div>entrou</div>
+                          <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:3px;background:#C05437"></div>saiu</div>
+                        </div>
+                      </div>
+                      <div style="margin-top:18px;display:flex;align-items:flex-end;gap:14px;height:250px">
+                        <sc-for list="{{ barras }}" as="b" hint-placeholder-count="4">
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                            <div style="display:flex;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:-.03em">
+                              <div style="width:28px;text-align:center;white-space:nowrap;color:#2E5F73">{{ b.ent }}</div>
+                              <div style="width:28px;text-align:center;white-space:nowrap;color:#C05437">{{ b.sai }}</div>
+                            </div>
+                            <div style="width:100%;display:flex;align-items:flex-end;justify-content:center;gap:10px;height:170px">
+                              <div style="{{ b.estiloEnt }}"></div>
+                              <div style="{{ b.estiloSai }}"></div>
+                            </div>
+                            <div style="font-size:12px;color:#8A9698">{{ b.rot }}</div>
+                            <div style="{{ b.estiloSobra }}">{{ b.sobrou }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);display:flex;flex-direction:column;gap:12px">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:9px;height:9px;border-radius:50%;background:#C05437"></div>
+                        <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">O que dá pra fazer hoje</div>
+                      </div>
+                      <div style="font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">O hortifrúti subiu <b>12%</b> na semana. Tomate e berinjela puxaram — os dois entram no Beirute e no prato de kafta.</div>
+                      <div style="font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">A taxa de app já comeu <b>R$ 7.340</b> este mês. Um cupom de 5% no pedido pelo WhatsApp ainda te deixa mais rico que o iFood.</div>
+                      <div style="padding:12px 14px;border-radius:13px;background:#FBFAF2;font-size:13px;color:#45585D;line-height:1.45">Esse mesmo resumo chega no seu e-mail toda segunda de manhã.</div>
+                    </div>
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                        <div style="font-size:15px;font-weight:700">Quem mexeu no quê</div>
+                        <div onClick="{{ irAjustesSecao }}" style="font-size:13px;font-weight:700;color:#2E5F73;cursor:pointer">Ver tudo</div>
+                      </div>
+                      <sc-for list="{{ atividadeCurta }}" as="a" hint-placeholder-count="5">
+                        <div style="display:flex;gap:11px;align-items:flex-start">
+                          <div style="{{ a.avatar }}">{{ a.inicial }}</div>
+                          <div style="flex:1;min-width:0">
+                            <div style="font-size:13px;line-height:1.4"><b>{{ a.quem }}</b> {{ a.acao }}</div>
+                            <div style="font-size:11px;color:#8A9698;margin-top:2px">{{ a.quando }}</div>
+                          </div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6A7A7E;white-space:nowrap">{{ a.valor }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secDespesas }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:14px">
+
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                    <div style="padding:16px 18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Saiu em julho</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:5px">R$ 39.180</div>
+                      <div style="font-size:12px;color:#8A9698;margin-top:3px">47 lançamentos</div>
+                    </div>
+                    <div style="padding:16px 18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">Já pago</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:5px;color:#2F6B4A">R$ 33.480</div>
+                      <div style="font-size:12px;color:#8A9698;margin-top:3px">85% do mês</div>
+                    </div>
+                    <div style="padding:16px 18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:12px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.07em">A pagar</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:5px">R$ 5.700</div>
+                      <div style="font-size:12px;color:#8A9698;margin-top:3px">6 contas em aberto</div>
+                    </div>
+                    <div style="padding:16px 18px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3)">
+                      <div style="font-size:12px;font-weight:600;color:#8A5A28;text-transform:uppercase;letter-spacing:.07em">Vence em 3 dias</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:5px;color:#B4462F">R$ 1.240</div>
+                      <div style="font-size:12px;color:#8A5A28;margin-top:3px">Light · conta de luz</div>
+                    </div>
+                  </div>
+
+                  <div style="padding:18px 20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                      <div style="font-size:15px;font-weight:700">Onde o dinheiro saiu</div>
+                      <div style="font-size:12px;color:#8A9698">% do faturamento do mês</div>
+                    </div>
+                    <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:14px;gap:2px">
+                      <div style="width:37.4%;background:#2E5F73"></div>
+                      <div style="width:27.8%;background:#2F6B4A"></div>
+                      <div style="width:18.7%;background:#C05437"></div>
+                      <div style="width:16.1%;background:#EFAB5C"></div>
+                    </div>
+                    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:12px">
+                      <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#2E5F73"></div><div style="font-size:13px">Mercadoria <b style="font-family:'JetBrains Mono',monospace">R$ 14.640 · 30,9%</b></div></div>
+                      <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#2F6B4A"></div><div style="font-size:13px">Pessoal <b style="font-family:'JetBrains Mono',monospace">R$ 10.900 · 23,0%</b></div></div>
+                      <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#C05437"></div><div style="font-size:13px">Taxas de app <b style="font-family:'JetBrains Mono',monospace">R$ 7.340 · 15,5%</b></div></div>
+                      <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#EFAB5C"></div><div style="font-size:13px">Ocupação <b style="font-family:'JetBrains Mono',monospace">R$ 6.300 · 13,3%</b></div></div>
+                    </div>
+                  </div>
+
+                  <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;align-items:start">
+                    <div style="display:flex;flex-direction:column;gap:12px">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <div style="flex:1;min-width:200px;display:flex;align-items:center;gap:10px;padding:12px 15px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);color:#8A9698;font-size:14px">
+                          <div style="width:14px;height:14px;border-radius:50%;border:2px solid #8A9698"></div>Buscar fornecedor ou item
+                        </div>
+                        <div onClick="{{ novaDespesa }}" style="padding:11px 15px;border-radius:12px;background:#C05437;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Lançar por foto</div>
+                        <div onClick="{{ novaDespesa }}" style="padding:11px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:700;cursor:pointer">Despesa avulsa</div>
+                      </div>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <sc-for list="{{ filtrosDespesa }}" as="fd" hint-placeholder-count="5">
+                          <div onClick="{{ fd.escolher }}" style="{{ fd.estilo }}">{{ fd.nome }}</div>
+                        </sc-for>
+                      </div>
+
+                      <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                        <div style="display:flex;padding:11px 18px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">
+                          <div style="flex:1.8">Fornecedor</div><div style="flex:1.1">Categoria</div><div style="width:88px">Pagamento</div><div style="width:70px">Data</div><div style="width:118px">Quem lançou</div><div style="width:88px">Situação</div><div style="width:100px;text-align:right">Valor</div>
+                        </div>
+                        <sc-for list="{{ despesas }}" as="d" hint-placeholder-count="10">
+                          <div style="display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid #E8E6D7">
+                            <div style="flex:1.8;min-width:0">
+                              <div style="font-size:14px;font-weight:600">{{ d.forn }}</div>
+                              <div style="font-size:12px;color:#8A9698;margin-top:2px">{{ d.nota }}</div>
+                            </div>
+                            <div style="flex:1.1"><div style="{{ d.chip }}">{{ d.cat }}</div></div>
+                            <div style="width:88px;font-size:13px;color:#6A7A7E">{{ d.forma }}</div>
+                            <div style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#6A7A7E">{{ d.data }}</div>
+                            <div style="width:118px;display:flex;align-items:center;gap:8px">
+                              <div style="{{ d.avatar }}">{{ d.inicial }}</div>
+                              <div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.por }}</div><div style="font-size:11px;color:#8A9698">{{ d.quando }}</div></div>
+                            </div>
+                            <div style="width:88px"><div style="{{ d.chipStatus }}">{{ d.status }}</div></div>
+                            <div style="width:100px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">{{ d.valor }}</div>
+                          </div>
+                        </sc-for>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#E8E6D7">
+                          <div style="font-size:13px;color:#45585D">{{ resumoLista }}</div>
+                          <div style="display:flex;align-items:center;gap:8px">
+                            <div style="padding:6px 12px;border-radius:10px;background:#FBFAF2;font-size:13px;font-weight:700;color:#45585D;cursor:pointer">Ver todas</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800">{{ totalLista }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:14px">
+                      <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                        <div style="padding:15px 18px;border-bottom:1px solid #E8E6D7;display:flex;align-items:center;justify-content:space-between">
+                          <div style="font-size:15px;font-weight:700">Leitura da nota</div>
+                          <div style="padding:4px 10px;border-radius:10px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:12px;font-weight:700">lida em 4s</div>
+                        </div>
+                        <div style="display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid #E8E6D7">
+                          <div style="width:100px;height:132px;border-radius:12px;background:#16303A;position:relative;overflow:hidden;flex:none">
+                            <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 8px,transparent 8px 16px)"></div>
+                            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(247,245,234,.55);text-align:center;padding:0 8px">foto da nota</div>
+                          </div>
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
+                            <div><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Fornecedor</div><div style="font-size:15px;font-weight:700;margin-top:2px">Hortifrúti Zona Sul</div></div>
+                            <div style="display:flex;gap:12px">
+                              <div style="flex:1"><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Data</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;margin-top:2px">26/07/26</div></div>
+                              <div style="flex:1"><div style="font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Total</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;margin-top:2px">R$ 486,30</div></div>
+                            </div>
+                            <div style="display:flex;gap:7px;flex-wrap:wrap">
+                              <div style="padding:6px 11px;border-radius:10px;background:#2E5F73;color:#F7F5EA;font-size:12px;font-weight:700;cursor:pointer">Mercadoria</div>
+                              <div style="padding:6px 11px;border-radius:10px;background:#E8E6D7;color:#6A7A7E;font-size:12px;font-weight:600;cursor:pointer">Ocupação</div>
+                              <div style="padding:6px 11px;border-radius:10px;background:#E8E6D7;color:#6A7A7E;font-size:12px;font-weight:600;cursor:pointer">Pessoal</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div style="padding:12px 18px 6px;font-size:11px;color:#8A9698;font-weight:700;text-transform:uppercase;letter-spacing:.08em">4 itens lidos · custo comparado ao último preço</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:14px"><div>Tomate italiano · 8 kg</div><div style="display:flex;gap:9px;align-items:center"><div style="padding:2px 7px;border-radius:8px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">+14%</div><div style="font-family:'JetBrains Mono',monospace">R$ 71,20</div></div></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:14px"><div>Berinjela · 12 kg</div><div style="display:flex;gap:9px;align-items:center"><div style="padding:2px 7px;border-radius:8px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">+9%</div><div style="font-family:'JetBrains Mono',monospace">R$ 86,40</div></div></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:14px"><div>Salsinha e hortelã · 20 maços</div><div style="display:flex;gap:9px;align-items:center"><div style="padding:2px 7px;border-radius:8px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:11px;font-weight:700">igual</div><div style="font-family:'JetBrains Mono',monospace">R$ 58,00</div></div></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:14px"><div>Grão de bico · 25 kg</div><div style="display:flex;gap:9px;align-items:center"><div style="padding:2px 7px;border-radius:8px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:11px;font-weight:700">−3%</div><div style="font-family:'JetBrains Mono',monospace">R$ 270,70</div></div></div>
+                        <div style="display:flex;gap:10px;padding:16px 18px">
+                          <div style="flex:1;padding:13px;border-radius:13px;background:#E8E6D7;color:#45585D;font-size:14px;font-weight:700;text-align:center;cursor:pointer">Ajustar</div>
+                          <div style="flex:2;padding:13px;border-radius:13px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;text-align:center;cursor:pointer">Tá certo, lançar</div>
+                        </div>
+                      </div>
+
+                      <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                        <div style="padding:15px 18px;border-bottom:1px solid #E8E6D7;font-size:15px;font-weight:700">Contas que se repetem</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:14px;font-weight:600">Aluguel</div><div style="font-size:12px;color:#8A9698">todo dia 5 · Ocupação</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 3.400,00</div></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:14px;font-weight:600">Contador</div><div style="font-size:12px;color:#8A9698">todo dia 10 · Ocupação</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 680,00</div></div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px"><div><div style="font-size:14px;font-weight:600">Internet e telefone</div><div style="font-size:12px;color:#8A9698">todo dia 18 · Ocupação</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 320,00</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secProdutos }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:240px;display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);color:#8A9698;font-size:14px">
+                      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #8A9698"></div>Buscar por nome ou fornecedor
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <sc-for list="{{ categorias }}" as="c" hint-placeholder-count="7">
+                        <div onClick="{{ c.escolher }}" style="{{ c.estilo }}">{{ c.nome }}</div>
+                      </sc-for>
+                    </div>
+                    <div onClick="{{ novoProduto }}" style="padding:11px 16px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">+ Novo produto</div>
+                  </div>
+                  <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                    <div style="display:flex;padding:11px 18px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">
+                      <div style="flex:2">Produto</div><div style="flex:1.4">Fornecedor</div><div style="flex:1">Categoria</div><div style="width:70px">Unid.</div><div style="width:150px">Atualizado por</div><div style="width:110px;text-align:right">Custo</div>
+                    </div>
+                    <sc-for list="{{ produtos }}" as="p" hint-placeholder-count="10">
+                      <div style="display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid #E8E6D7">
+                        <div style="flex:2;font-size:14px;font-weight:600">{{ p.nome }}</div>
+                        <div style="flex:1.4;font-size:13px;color:#6A7A7E">{{ p.forn }}</div>
+                        <div style="flex:1;font-size:13px;color:#6A7A7E">{{ p.cat }}</div>
+                        <div style="width:70px;font-size:13px;color:#6A7A7E">{{ p.un }}</div>
+                        <div style="width:150px;display:flex;align-items:center;gap:8px">
+                          <div style="{{ p.avatar }}">{{ p.inicial }}</div>
+                          <div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.por }}</div><div style="font-size:11px;color:#8A9698">{{ p.quando }}</div></div>
+                        </div>
+                        <div style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">{{ p.custo }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secEstoque }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start">
+                  <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #E8E6D7">
+                      <div style="font-size:15px;font-weight:700">Contagem de julho</div>
+                      <div style="display:flex;align-items:center;gap:9px">
+                        <div onClick="{{ novoEstoque }}" style="padding:8px 14px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">+ Entrada de estoque</div>
+                        <div style="padding:4px 10px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">em aberto</div>
+                      </div>
+                    </div>
+                    <sc-for list="{{ itens }}" as="it" hint-placeholder-count="10">
+                      <div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid #E8E6D7">
+                        <div style="flex:1;min-width:0">
+                          <div style="font-size:14px;font-weight:700">{{ it.nome }}</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A9698;margin-top:2px">{{ it.custo }} / {{ it.un }}</div>
+                          <div style="font-size:11px;color:#8A9698;margin-top:3px">{{ it.autor }}</div>
+                        </div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#6A7A7E;width:100px;text-align:right">{{ it.subtotal }}</div>
+                        <div style="display:flex;align-items:center;gap:9px">
+                          <div onClick="{{ it.menos }}" style="width:34px;height:34px;border-radius:11px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;color:#2E5F73;user-select:none">−</div>
+                          <div style="min-width:46px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700">{{ it.qtd }}</div>
+                          <div onClick="{{ it.mais }}" style="width:34px;height:34px;border-radius:11px;background:#2E5F73;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;color:#F7F5EA;user-select:none">+</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:18px;background:#2E5F73;color:#F7F5EA">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(247,245,234,.6)">Valor contado</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.03em">{{ totalEstoque }}</div>
+                      <div style="font-size:13px;color:rgba(247,245,234,.7);margin-top:6px">{{ contados }} · mês passado: R$ 11.870</div>
+                    </div>
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="font-size:15px;font-weight:700">Estoque fechado</div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Maio</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 10.940</div></div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Junho</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px">R$ 11.870</div></div>
+                      <div style="display:flex;justify-content:space-between;padding:10px 0"><div style="font-size:14px;color:#8A5A28;font-weight:600">Julho · contando</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#8A5A28">{{ totalEstoque }}</div></div>
+                    </div>
+                    <div style="padding:16px 18px;border-radius:16px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">No celular a mesma contagem fica em lista de um item por vez, pra fazer andando pelo estoque.</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secPlano }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline">
+                        <div style="font-size:15px;font-weight:700">Meta de faturamento</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#6A7A7E">R$ 50.000</div>
+                      </div>
+                      <div style="margin-top:12px;height:12px;border-radius:6px;background:#E1DFCE;overflow:hidden"><div style="width:94.6%;height:100%;border-radius:6px;background:linear-gradient(90deg,#2E5F73,#2F6B4A)"></div></div>
+                      <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:700;color:#2F6B4A">R$ 47.320 feitos · 95%</div><div style="color:#8A9698">faltam R$ 2.680 em 4 dias</div></div>
+                    </div>
+                    <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                      <div style="display:flex;padding:11px 18px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">
+                        <div style="flex:1.6">Categoria</div><div style="flex:1;text-align:right">Teto</div><div style="flex:1;text-align:right">Realizado</div><div style="flex:1;text-align:right">Em R$</div><div style="width:96px;text-align:right">Situação</div>
+                      </div>
+                      <sc-for list="{{ linhasPlano }}" as="l" hint-placeholder-count="5">
+                        <div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #E8E6D7">
+                          <div style="flex:1.6;font-size:14px;font-weight:600">{{ l.nome }}</div>
+                          <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8A9698">{{ l.teto }}</div>
+                          <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">{{ l.real }}</div>
+                          <div style="flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ l.valor }}</div>
+                          <div style="width:96px;display:flex;justify-content:flex-end"><div style="{{ l.chip }}">{{ l.status }}</div></div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:20px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">Onde a margem tá vazando: <b>taxa de app</b>. Cada R$ 100 no iFood viram R$ 73 no seu bolso. Empurrar 10% dos pedidos pro WhatsApp devolve uns <b>R$ 1.100</b> por mês.</div>
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+                      <div style="font-size:15px;font-weight:700">Montar o plano de agosto</div>
+                      <div style="font-size:13px;color:#6A7A7E;line-height:1.5">Três perguntas: quanto quer faturar, até quanto pode gastar em cada coisa e onde te avisar.</div>
+                      <div style="padding:14px;border-radius:14px;background:#2E5F73;color:#F7F5EA;font-size:14px;font-weight:700;text-align:center;cursor:pointer">Começar</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secDre }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:14px;align-items:start">
+
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #E8E6D7">
+                        <div>
+                          <div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Demonstrativo de resultado · julho de 2026</div>
+                          <div style="font-size:12px;color:#8A9698;margin-top:2px">Regime de caixa · Zaatar Cozinha Árabe LTDA · Simples Nacional</div>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                          <div style="padding:8px 13px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:12px;font-weight:700;cursor:pointer">Mês</div>
+                          <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:600;cursor:pointer">Trimestre</div>
+                          <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:600;cursor:pointer">Ano</div>
+                        </div>
+                      </div>
+                      <div style="display:flex;padding:11px 20px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">
+                        <div style="flex:1">Conta</div><div style="width:120px;text-align:right">Julho</div><div style="width:80px;text-align:right">% receita</div><div style="width:120px;text-align:right">Junho</div><div style="width:96px;text-align:right">Variação</div>
+                      </div>
+                      <sc-for list="{{ linhasDre }}" as="l" hint-placeholder-count="18">
+                        <div style="{{ l.linha }}">
+                          <div style="{{ l.conta }}">{{ l.nome }}</div>
+                          <div style="{{ l.celValor }}">{{ l.valor }}</div>
+                          <div style="{{ l.celPct }}">{{ l.pct }}</div>
+                          <div style="{{ l.celAnterior }}">{{ l.anterior }}</div>
+                          <div style="{{ l.celVar }}">{{ l.variacao }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                        <div style="font-size:15px;font-weight:700">Pra onde vai cada R$ 100 que o cliente paga</div>
+                        <div style="font-size:12px;color:#8A9698">julho</div>
+                      </div>
+                      <div style="display:flex;height:16px;border-radius:8px;overflow:hidden;margin-top:14px;gap:2px">
+                        <div style="width:30.9%;background:#2E5F73"></div>
+                        <div style="width:23%;background:#2F6B4A"></div>
+                        <div style="width:15.5%;background:#C05437"></div>
+                        <div style="width:13.3%;background:#EFAB5C"></div>
+                        <div style="width:6%;background:#8A9698"></div>
+                        <div style="width:11.3%;background:#1E4354"></div>
+                      </div>
+                      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px">
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#2E5F73"></div><div style="font-size:13px">Comida <b style="font-family:'JetBrains Mono',monospace">R$ 30,90</b></div></div>
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#2F6B4A"></div><div style="font-size:13px">Equipe <b style="font-family:'JetBrains Mono',monospace">R$ 23,00</b></div></div>
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#C05437"></div><div style="font-size:13px">Apps e maquininha <b style="font-family:'JetBrains Mono',monospace">R$ 15,50</b></div></div>
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#EFAB5C"></div><div style="font-size:13px">Aluguel e contas <b style="font-family:'JetBrains Mono',monospace">R$ 13,30</b></div></div>
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#8A9698"></div><div style="font-size:13px">Imposto <b style="font-family:'JetBrains Mono',monospace">R$ 6,00</b></div></div>
+                        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:#1E4354"></div><div style="font-size:13px">Sobra <b style="font-family:'JetBrains Mono',monospace">R$ 11,30</b></div></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:22px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+                      <div style="position:absolute;top:-40px;right:-24px;width:140px;height:140px;border-radius:50%;background:#EFAB5C;opacity:.88"></div>
+                      <div style="position:relative">
+                        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(247,245,234,.6)">Sobrou em julho, depois de tudo</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;letter-spacing:-.03em;margin-top:4px">R$ 5.301</div>
+                        <div style="font-size:14px;color:rgba(247,245,234,.78);margin-top:6px;max-width:230px;line-height:1.45">11,2% do que entrou. Antes do imposto, R$ 8.140.</div>
+                      </div>
+                    </div>
+
+                    <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);display:flex;flex-direction:column;gap:12px">
+                      <div style="font-size:15px;font-weight:700">Comparando com junho</div>
+                      <sc-for list="{{ comparativoDre }}" as="c" hint-placeholder-count="4">
+                        <div style="display:flex;flex-direction:column;gap:5px">
+                          <div style="display:flex;justify-content:space-between;font-size:13px"><div style="font-weight:600">{{ c.nome }}</div><div style="{{ c.corVar }}">{{ c.var }}</div></div>
+                          <div style="height:8px;border-radius:4px;background:#E1DFCE;overflow:hidden"><div style="{{ c.barra }}"></div></div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A9698">jun {{ c.jun }} → jul {{ c.jul }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+
+                    <div style="padding:20px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);display:flex;flex-direction:column;gap:10px">
+                      <div style="font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8A5A28">Traduzindo</div>
+                      <div style="font-size:14px;color:#3A3327;line-height:1.5;text-wrap:pretty">Você vendeu mais que em junho (+8%), mas a comida e as taxas de app subiram mais rápido. Por isso a sobra cresceu menos do que o faturamento.</div>
+                      <div style="font-size:14px;color:#3A3327;line-height:1.5;text-wrap:pretty">Segurando o CMV em 30% e as taxas em 12%, agosto fecharia com uns <b>R$ 9.400</b> no bolso.</div>
+                    </div>
+
+                    <div style="border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                      <div style="padding:16px 18px;border-bottom:1px solid #E8E6D7">
+                        <div style="font-size:15px;font-weight:700">Pro contador</div>
+                        <div style="font-size:12px;color:#8A9698;margin-top:2px">Fecha o mês com um clique e manda direto.</div>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">DRE em PDF</div><div style="padding:7px 12px;border-radius:10px;background:#2E5F73;color:#F7F5EA;font-size:12px;font-weight:700;cursor:pointer">Baixar</div></div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Planilha de lançamentos</div><div style="padding:7px 12px;border-radius:10px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:700;cursor:pointer">Baixar</div></div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">XMLs das notas (47)</div><div style="padding:7px 12px;border-radius:10px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:700;cursor:pointer">Baixar</div></div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px"><div style="font-size:14px">Enviar por e-mail todo dia 5</div><div style="width:50px;height:30px;border-radius:15px;background:#2F6B4A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none;cursor:pointer"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div></div>
+                    </div>
+
+                    <div style="padding:18px 20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">
+                      <b style="color:#1C2A2E">Ponto de equilíbrio:</b> R$ 41.400 por mês, ou R$ 1.594 por dia aberto. Em julho você passou disso no dia 21.
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secNumeros }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+                      <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                          <div style="font-size:13px;font-weight:700">{{ k.nome }}</div>
+                          <div style="font-size:12px;color:#8A9698">{{ k.meta }}</div>
+                        </div>
+                        <div style="{{ k.estiloValor }}">{{ k.valor }}</div>
+                        <div style="font-size:13px;color:#45585D;line-height:1.45;margin-top:6px;text-wrap:pretty">{{ k.texto }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:15px;font-weight:700">Quanto sobrou, mês a mês</div>
+                    <div style="display:flex;align-items:flex-end;gap:16px;margin-top:16px;height:170px">
+                      <sc-for list="{{ historico }}" as="h" hint-placeholder-count="6">
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+                          <div style="{{ h.estiloValor }}">{{ h.valor }}</div>
+                          <div style="width:100%;display:flex;align-items:flex-end;height:120px"><div style="{{ h.estiloBarra }}"></div></div>
+                          <div style="font-size:12px;color:#8A9698">{{ h.mes }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed rgba(46,95,115,.2);font-size:13px;color:#45585D">Quatro meses seguidos de alta desde abril. Julho ainda tem 4 dias pela frente.</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ secAjustes }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+                  <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:15px;font-weight:700">Quem usa</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">Halim (você)</div><div style="font-size:12px;color:#8A9698">vê tudo, inclusive o lucro</div></div><div style="padding:4px 10px;border-radius:10px;background:rgba(46,95,115,.1);color:#2E5F73;font-size:12px;font-weight:700">dono</div></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #E8E6D7"><div><div style="font-size:15px;font-weight:600">Jamile Rocha</div><div style="font-size:12px;color:#8A9698">compras, estoque e notas</div></div><div style="padding:4px 10px;border-radius:10px;background:rgba(192,84,55,.15);color:#8A5A28;font-size:12px;font-weight:700">gerente</div></div>
+                    <div style="padding:13px 0 0"><div style="padding:12px;border-radius:13px;background:#E8E6D7;color:#1E4354;font-size:14px;font-weight:700;text-align:center;cursor:pointer">Convidar alguém</div></div>
+                  </div>
+                  <div style="padding:20px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+                    <div style="font-size:15px;font-weight:700">Onde te avisar</div>
+                    <sc-for list="{{ canais }}" as="c" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid #E8E6D7">
+                        <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{ c.nome }}</div><div style="font-size:12px;color:#8A9698">{{ c.dica }}</div></div>
+                        <div onClick="{{ c.alternar }}" style="{{ c.trilho }}"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                      </div>
+                    </sc-for>
+                    <div style="padding-top:14px;font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">Seus dados são só seus: tudo criptografado e dentro da LGPD. Dá pra baixar ou apagar tudo quando quiser.</div>
+                  </div>
+
+                  <div style="grid-column:1 / -1;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1);overflow:hidden">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #E8E6D7">
+                      <div>
+                        <div style="font-size:15px;font-weight:700">Histórico de tudo que foi feito</div>
+                        <div style="font-size:12px;color:#8A9698;margin-top:2px">Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho.</div>
+                      </div>
+                      <div style="display:flex;gap:8px">
+                        <div style="padding:8px 13px;border-radius:11px;background:#2E5F73;color:#F7F5EA;font-size:12px;font-weight:700;cursor:pointer">Todos</div>
+                        <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:600;cursor:pointer">Halim</div>
+                        <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:600;cursor:pointer">Jamile</div>
+                        <div style="padding:8px 13px;border-radius:11px;background:#E8E6D7;color:#45585D;font-size:12px;font-weight:600;cursor:pointer">Exportar</div>
+                      </div>
+                    </div>
+                    <sc-for list="{{ atividade }}" as="a" hint-placeholder-count="8">
+                      <div style="display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid #E8E6D7">
+                        <div style="{{ a.avatar }}">{{ a.inicial }}</div>
+                        <div style="flex:1;min-width:0">
+                          <div style="font-size:14px;line-height:1.35"><b>{{ a.quem }}</b> {{ a.acao }}</div>
+                          <div style="font-size:12px;color:#8A9698;margin-top:2px">{{ a.origem }}</div>
+                        </div>
+                        <div style="width:120px"><div style="{{ a.chip }}">{{ a.tipo }}</div></div>
+                        <div style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">{{ a.valor }}</div>
+                        <div style="width:130px;text-align:right;font-size:12px;color:#8A9698">{{ a.quando }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+            </div>
+
+          <sc-if value="{{ menuAberto }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:35" onClick="{{ alternarMenu }}">
+              <div style="position:absolute;top:118px;right:28px;width:290px;border-radius:16px;background:#FBFAF2;box-shadow:0 22px 44px rgba(22,48,58,.3);overflow:hidden">
+                <sc-for list="{{ opcoesLancar }}" as="o" hint-placeholder-count="4">
+                  <div onClick="{{ o.abrir }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #E8E6D7;cursor:pointer">
+                    <div style="{{ o.marca }}"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:14px;font-weight:700;color:#1C2A2E">{{ o.nome }}</div>
+                      <div style="font-size:12px;color:#8A9698;margin-top:2px">{{ o.dica }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ gavetaAberta }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;z-index:40;display:flex;justify-content:flex-end;background:rgba(22,48,58,.5)">
+              <div style="width:520px;height:100%;background:#F0EEE2;box-shadow:-24px 0 60px rgba(22,48,58,.28);display:flex;flex-direction:column">
+
+                <div style="flex:none;padding:22px 26px 18px;background:#FBFAF2;border-bottom:1px solid #E8E6D7">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+                    <div>
+                      <div style="font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.15">{{ tituloGaveta }}</div>
+                      <div style="font-size:13px;color:#6A7A7E;margin-top:4px">{{ subGaveta }}</div>
+                    </div>
+                    <div onClick="{{ fecharGaveta }}" style="width:34px;height:34px;border-radius:11px;background:#E8E6D7;color:#45585D;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;cursor:pointer;flex:none">×</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+                    <sc-for list="{{ etapas }}" as="e" hint-placeholder-count="3">
+                      <div style="flex:1;display:flex;align-items:center;gap:9px">
+                        <div style="{{ e.bolinha }}">{{ e.n }}</div>
+                        <div style="{{ e.rotulo }}">{{ e.nome }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="flex:1;overflow:auto;padding:24px 26px;display:flex;flex-direction:column;gap:18px">
+
+                  <sc-if value="{{ gavetaPasso1 }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:18px">
+
+                      <sc-if value="{{ ehDespesa }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex;flex-direction:column;gap:18px">
+                          <div style="padding:20px;border-radius:18px;background:#2E5F73;color:#F7F5EA">
+                            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(247,245,234,.6)">Quanto foi</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;letter-spacing:-.03em;margin-top:4px">R$ 486,30</div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:9px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Categoria</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                              <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Mercadoria</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Pessoal</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Ocupação</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Taxas de app</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;gap:12px">
+                            <div style="flex:2;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Fornecedor</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Hortifrúti Zona Sul</div>
+                            </div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Data</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">28/07/26</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:9px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Como pagou</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                              <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Pix</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Dinheiro</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Cartão</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Boleto</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Ainda vou pagar</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+                            <div><div style="font-size:14px;font-weight:600">Isso se repete todo mês</div><div style="font-size:12px;color:#8A9698">aluguel, contador, internet…</div></div>
+                            <div style="width:50px;height:30px;border-radius:15px;background:#D6D4C4;display:flex;align-items:center;padding:3px;flex:none;cursor:pointer"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Observação <span style="text-transform:none;letter-spacing:0;font-weight:600;color:#AEB9B8">· opcional</span></div>
+                            <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;color:#AEB9B8">Ex: compra de reposição do fim de semana</div>
+                          </div>
+                          <div style="padding:15px 17px;border-radius:15px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:13px;color:#3A3327;line-height:1.5;text-wrap:pretty">Tem a nota na mão? <b>Tira uma foto</b> que a gente preenche tudo isso sozinho em 5 segundos.</div>
+                        </div>
+                      </sc-if>
+
+                      <sc-if value="{{ ehProduto }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;flex-direction:column;gap:18px">
+                          <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Nome do produto</div>
+                            <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px">Grão de bico seco</div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:9px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Categoria</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Hortifrúti</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Carnes</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Secos</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Bebidas</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Embalagens</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Limpeza</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:9px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Unidade de medida</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                              <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">kg</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">g</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">L</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">un</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">pacote</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">caixa</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;gap:12px">
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Custo de hoje</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 9,80</div>
+                            </div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Estoque mínimo</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">15 kg</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Fornecedor padrão</div>
+                            <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Casa Líbano</div>
+                          </div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+                            <div><div style="font-size:14px;font-weight:600">Entra no CMV</div><div style="font-size:12px;color:#8A9698">desliga pra material de limpeza e descartável</div></div>
+                            <div style="width:50px;height:30px;border-radius:15px;background:#2F6B4A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none;cursor:pointer"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                          </div>
+                          <div style="padding:15px 17px;border-radius:15px;background:rgba(46,95,115,.06);font-size:13px;color:#45585D;line-height:1.5;text-wrap:pretty">Produto que aparecer numa nota nova é cadastrado sozinho. Isso aqui é pra quando você quiser adiantar.</div>
+                        </div>
+                      </sc-if>
+
+                      <sc-if value="{{ ehEstoque }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;flex-direction:column;gap:18px">
+                          <div style="display:flex;flex-direction:column;gap:9px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">O que aconteceu</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                              <div style="padding:10px 15px;border-radius:12px;background:#2E5F73;color:#F7F5EA;font-size:13px;font-weight:700;cursor:pointer">Entrou mercadoria</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Contagem do mês</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Perda ou quebra</div>
+                              <div style="padding:10px 15px;border-radius:12px;background:#E8E6D7;color:#45585D;font-size:13px;font-weight:600;cursor:pointer">Transferência</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Produto</div>
+                            <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px">Grão de bico seco · kg</div>
+                          </div>
+                          <div style="display:flex;gap:12px;align-items:flex-end">
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Quantidade</div>
+                              <div style="display:flex;align-items:center;gap:10px">
+                                <div style="width:44px;height:48px;border-radius:13px;background:#E8E6D7;display:flex;align-items:center;justify-content:center;font-size:21px;color:#2E5F73;cursor:pointer">−</div>
+                                <div style="flex:1;height:48px;border-radius:13px;background:#FBFAF2;border:2px solid #2E5F73;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700">25</div>
+                                <div style="width:44px;height:48px;border-radius:13px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:21px;cursor:pointer">+</div>
+                              </div>
+                            </div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Custo unitário</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">R$ 9,80</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;gap:12px">
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Data</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">28/07/26</div>
+                            </div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Quem contou</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px">Jamile Rocha</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+                            <div><div style="font-size:14px;font-weight:600">Gerar a despesa junto</div><div style="font-size:12px;color:#8A9698">cria o lançamento de R$ 245,00 em Mercadoria</div></div>
+                            <div style="width:50px;height:30px;border-radius:15px;background:#2F6B4A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none;cursor:pointer"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                          </div>
+                        </div>
+                      </sc-if>
+
+                      <sc-if value="{{ ehCaixa }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;flex-direction:column;gap:18px">
+                          <div style="display:flex;gap:12px">
+                            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Dia</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">27/07/26 · domingo</div>
+                            </div>
+                            <div style="width:150px;display:flex;flex-direction:column;gap:6px">
+                              <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Pedidos</div>
+                              <div style="padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace">54</div>
+                            </div>
+                          </div>
+                          <div style="border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);overflow:hidden">
+                            <div style="padding:12px 16px;background:#E8E6D7;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">Já veio das plataformas</div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8E6D7"><div><div style="font-size:14px;font-weight:600">iFood</div><div style="font-size:12px;color:#8A9698">38 pedidos · taxa R$ 178,20</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">R$ 742,50</div></div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px"><div><div style="font-size:14px;font-weight:600">Rappi</div><div style="font-size:12px;color:#8A9698">9 pedidos · taxa R$ 41,30</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">R$ 186,40</div></div>
+                          </div>
+                          <div style="display:flex;flex-direction:column;gap:10px">
+                            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9698">O que você recebeu na loja</div>
+                            <div style="display:flex;align-items:center;gap:12px">
+                              <div style="flex:1;font-size:14px;font-weight:600">Pix e WhatsApp</div>
+                              <div style="width:150px;padding:14px 16px;border-radius:13px;background:#FBFAF2;border:2px solid #2E5F73;font-size:15px;font-family:'JetBrains Mono',monospace;text-align:right">R$ 214,60</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px">
+                              <div style="flex:1;font-size:14px;font-weight:600">Maquininha</div>
+                              <div style="width:150px;padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace;text-align:right">R$ 98,50</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px">
+                              <div style="flex:1;font-size:14px;font-weight:600">Dinheiro</div>
+                              <div style="width:150px;padding:14px 16px;border-radius:13px;background:#FBFAF2;border:1px solid rgba(46,95,115,.14);font-size:15px;font-family:'JetBrains Mono',monospace;text-align:right">R$ 38,00</div>
+                            </div>
+                          </div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12)">
+                            <div><div style="font-size:14px;font-weight:600">Teve sangria ou troco inicial?</div><div style="font-size:12px;color:#8A9698">dinheiro que saiu ou entrou no caixa</div></div>
+                            <div style="width:50px;height:30px;border-radius:15px;background:#D6D4C4;display:flex;align-items:center;padding:3px;flex:none;cursor:pointer"><div style="width:24px;height:24px;border-radius:50%;background:#FBFAF2"></div></div>
+                          </div>
+                          <div style="padding:18px 20px;border-radius:16px;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:space-between;gap:12px">
+                            <div style="font-size:15px;font-weight:700">Total do dia</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700">R$ 1.280,00</div>
+                          </div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ gavetaPasso2 }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:16px">
+                      <div style="font-size:16px;font-weight:700">Confere antes de salvar</div>
+                      <div style="border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);overflow:hidden">
+                        <sc-for list="{{ resumoGaveta }}" as="r" hint-placeholder-count="5">
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border-bottom:1px solid #E8E6D7">
+                            <div style="font-size:13px;color:#6A7A7E">{{ r.rot }}</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:right">{{ r.val }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#E8E6D7">
+                        <div style="width:32px;height:32px;border-radius:50%;background:#2E5F73;color:#F7F5EA;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none">H</div>
+                        <div style="font-size:13px;color:#45585D;line-height:1.45">Vai ficar registrado como <b style="color:#1C2A2E">Halim (você)</b>, hoje às 19:42, pelo computador da loja.</div>
+                      </div>
+                      <div style="padding:16px 18px;border-radius:16px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:14px;color:#3A3327;line-height:1.5;text-wrap:pretty">{{ impactoGaveta }}</div>
+                      <div onClick="{{ gavetaVoltar }}" style="font-size:14px;font-weight:700;color:#2E5F73;cursor:pointer">← Corrigir alguma coisa</div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ gavetaPasso3 }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 10px 10px;text-align:center">
+                      <div style="width:84px;height:84px;border-radius:50%;background:rgba(47,107,74,.15);display:flex;align-items:center;justify-content:center">
+                        <div style="width:30px;height:16px;border-left:5px solid #2F6B4A;border-bottom:5px solid #2F6B4A;transform:rotate(-45deg) translate(3px,-4px)"></div>
+                      </div>
+                      <div style="font-size:26px;font-weight:800;letter-spacing:-.025em">{{ sucessoTitulo }}</div>
+                      <div style="font-size:15px;color:#45585D;line-height:1.5;max-width:340px;text-wrap:pretty">{{ sucessoTexto }}</div>
+                      <div style="width:100%;padding:16px 18px;border-radius:16px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);text-align:left;font-size:14px;color:#45585D;line-height:1.5;text-wrap:pretty">{{ sucessoDica }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="flex:none;padding:18px 26px;background:#FBFAF2;border-top:1px solid #E8E6D7;display:flex;align-items:center;justify-content:space-between;gap:14px">
+                  <div onClick="{{ fecharGaveta }}" style="font-size:14px;font-weight:700;color:#6A7A7E;cursor:pointer">{{ rotuloSair }}</div>
+                  <div onClick="{{ gavetaProximo }}" style="padding:15px 28px;border-radius:14px;background:#2E5F73;color:#F7F5EA;font-size:15px;font-weight:700;cursor:pointer">{{ rotuloAvancar }}</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </x-import>
+    <div style="font-size:13px;color:#6A7A7E">Entrar → painel. Na barra lateral, "Sair da conta" volta pro login.</div>
+  </div>
+
+  <div style="display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698">Mesma web em 430px</div>
+      <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ largMob }}" height="{{ altMob }}" url="tanocaixa.com" hint-size="430px,860px">
+        <div style="height:100%;overflow:auto;background:#F0EEE2;font-family:'Archivo',system-ui,sans-serif;color:#1C2A2E">
+          <div style="position:relative;overflow:hidden;padding:18px;background:#16303A">
+            <img src="uploads/pasted-1785209401799-0.png" alt="Rio de Janeiro do alto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 60%;filter:saturate(.3) contrast(1.06)">
+            <div style="position:absolute;inset:0;background:#2E5F73;mix-blend-mode:multiply;opacity:.84"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(22,48,58,.9) 0%,rgba(22,48,58,.4) 100%)"></div>
+            <div style="position:absolute;top:14px;right:14px;width:70px;height:70px;border-radius:50%;background:#EFAB5C;opacity:.9"></div>
+            <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div>
+                <div style="font-size:17px;font-weight:700;color:#F7F5EA">Zaatar Cozinha Árabe</div>
+                <div style="font-size:12px;color:rgba(247,245,234,.65);margin-top:2px">Julho de 2026 · dia 27</div>
+              </div>
+              <div style="width:34px;height:26px;display:flex;flex-direction:column;justify-content:center;gap:5px">
+                <div style="height:2px;background:rgba(247,245,234,.8)"></div>
+                <div style="height:2px;background:rgba(247,245,234,.8)"></div>
+                <div style="height:2px;background:rgba(247,245,234,.8)"></div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="padding:18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+              <div style="font-size:13px;font-weight:600;color:#6A7A7E">Sobrou até agora</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;color:#2F6B4A;letter-spacing:-.03em;margin-top:4px">R$ 8.140</div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <div style="flex:1;padding:10px 12px;border-radius:13px;background:#E8E6D7"><div style="font-size:11px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Entrou</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;margin-top:2px">R$ 47.320</div></div>
+                <div style="flex:1;padding:10px 12px;border-radius:13px;background:#E8E6D7"><div style="font-size:11px;font-weight:600;color:#8A9698;text-transform:uppercase;letter-spacing:.08em">Saiu</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;margin-top:2px">R$ 39.180</div></div>
+              </div>
+            </div>
+            <div style="padding:16px 18px;border-radius:18px;background:#2E5F73;color:#F7F5EA;position:relative;overflow:hidden">
+              <div style="position:absolute;top:-30px;right:-16px;width:96px;height:96px;border-radius:50%;background:#EFAB5C;opacity:.85"></div>
+              <div style="position:relative"><div style="font-size:12px;color:rgba(247,245,234,.65);font-weight:600">Ponto de equilíbrio</div><div style="font-size:16px;font-weight:700;margin-top:5px;max-width:240px;line-height:1.35">Você virou o jogo no dia 21. Daqui pra frente é lucro.</div></div>
+            </div>
+            <div style="padding:16px 18px;border-radius:18px;background:#FBFAF2;border:1px solid rgba(46,95,115,.1)">
+              <div style="font-size:14px;font-weight:700">Onde tá indo</div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Mercadoria</div><div style="display:flex;gap:8px;align-items:center"><div style="font-family:'JetBrains Mono',monospace;font-size:13px">R$ 14.640</div><div style="padding:2px 8px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">30,9%</div></div></div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E8E6D7"><div style="font-size:14px">Pessoal</div><div style="display:flex;gap:8px;align-items:center"><div style="font-family:'JetBrains Mono',monospace;font-size:13px">R$ 10.900</div><div style="padding:2px 8px;border-radius:9px;background:rgba(47,107,74,.14);color:#2F6B4A;font-size:11px;font-weight:700">23,0%</div></div></div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0"><div style="font-size:14px">Taxas de app</div><div style="display:flex;gap:8px;align-items:center"><div style="font-family:'JetBrains Mono',monospace;font-size:13px">R$ 7.340</div><div style="padding:2px 8px;border-radius:9px;background:rgba(180,70,47,.13);color:#B4462F;font-size:11px;font-weight:700">15,5%</div></div></div>
+            </div>
+            <div style="padding:16px 18px;border-radius:18px;background:#F4E8D4;border:1px solid rgba(192,84,55,.3);font-size:14px;line-height:1.5;color:#3A3327;text-wrap:pretty">O hortifrúti subiu <b>12%</b> na semana. Vale pedir preço no Cadeg antes da próxima compra.</div>
+            <div style="padding:15px;border-radius:15px;background:#C05437;color:#F7F5EA;font-size:15px;font-weight:700;text-align:center">Lançar nota por foto</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+    <div style="width:320px;padding:20px;border-radius:20px;background:#FBFAF2;border:1px solid rgba(46,95,115,.12);font-size:14px;line-height:1.55;color:#45585D;text-wrap:pretty">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8A9698;margin-bottom:10px">Regra de responsivo</div>
+      Acima de 1100px: barra lateral fixa e tabelas completas. Entre 700 e 1100: barra lateral vira ícones e as tabelas perdem as colunas de fornecedor e unidade. Abaixo de 700: tudo empilha em cartões, a barra vira menu e as ações principais (lançar nota, contar estoque) ficam num botão fixo embaixo.
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;telaInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;criar&quot;,&quot;esqueci&quot;,&quot;onb&quot;,&quot;app&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;'login' | 'criar' | 'esqueci' | 'onb' | 'app'&quot;,&quot;section&quot;:&quot;Protótipo&quot;}}">
+const PRODUTOS = [
+  { nome: 'Grão de bico seco', cat: 'Secos', forn: 'Casa Líbano', custo: 9.8, un: 'kg' },
+  { nome: 'Tahine', cat: 'Secos', forn: 'Casa Líbano', custo: 38, un: 'kg' },
+  { nome: 'Trigo para quibe', cat: 'Secos', forn: 'Casa Líbano', custo: 8.4, un: 'kg' },
+  { nome: 'Azeite extra virgem', cat: 'Secos', forn: 'Casa Líbano', custo: 34, un: 'L' },
+  { nome: 'Patinho moído', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 42.9, un: 'kg' },
+  { nome: 'Cordeiro em cubos', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 68.5, un: 'kg' },
+  { nome: 'Frango desfiado', cat: 'Carnes', forn: 'Frigorífico Salomão', custo: 24.9, un: 'kg' },
+  { nome: 'Tomate italiano', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 8.9, un: 'kg' },
+  { nome: 'Berinjela', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 7.2, un: 'kg' },
+  { nome: 'Salsinha e hortelã', cat: 'Hortifrúti', forn: 'Hortifrúti Zona Sul', custo: 2.9, un: 'maço' },
+  { nome: 'Refrigerante lata', cat: 'Bebidas', forn: 'Distribuidora Tijuca', custo: 2.6, un: 'un' },
+  { nome: 'Suco de uva 1L', cat: 'Bebidas', forn: 'Distribuidora Tijuca', custo: 9.4, un: 'un' },
+  { nome: 'Embalagem delivery média', cat: 'Embalagens', forn: 'Embalagens Delivery RJ', custo: 1.15, un: 'un' },
+  { nome: 'Sacola kraft', cat: 'Embalagens', forn: 'Embalagens Delivery RJ', custo: 0.72, un: 'un' },
+  { nome: 'Detergente industrial', cat: 'Limpeza', forn: 'Higibras', custo: 18.4, un: 'L' }
+];
+
+const CATEGORIAS = ['Todos', 'Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza'];
+
+const ITENS = [
+  { id: 'graobico', nome: 'Grão de bico seco', un: 'kg', custo: 9.8, qtd: 24 },
+  { id: 'tahine', nome: 'Tahine', un: 'kg', custo: 38, qtd: 6 },
+  { id: 'patinho', nome: 'Patinho moído', un: 'kg', custo: 42.9, qtd: 11 },
+  { id: 'trigo', nome: 'Trigo para quibe', un: 'kg', custo: 8.4, qtd: 18 },
+  { id: 'folhauva', nome: 'Folha de uva em conserva', un: 'pote', custo: 27.5, qtd: 9 },
+  { id: 'berinjela', nome: 'Berinjela', un: 'kg', custo: 7.2, qtd: 12 },
+  { id: 'paosirio', nome: 'Pão sírio', un: 'pacote', custo: 6.5, qtd: 30 },
+  { id: 'azeite', nome: 'Azeite extra virgem', un: 'L', custo: 34, qtd: 8 },
+  { id: 'embalagem', nome: 'Embalagem delivery média', un: 'un', custo: 1.15, qtd: 420 },
+  { id: 'refri', nome: 'Refrigerante lata', un: 'un', custo: 2.6, qtd: 96 }
+];
+
+const DESPESAS = [
+  { forn: 'Frigorífico Salomão', nota: 'NF 4471 · carnes da semana', cat: 'Mercadoria', forma: 'Boleto', data: '26/07', status: 'a pagar', valor: 1284 },
+  { forn: 'Hortifrúti Zona Sul', nota: 'Cupom · 4 itens lidos por foto', cat: 'Mercadoria', forma: 'Pix', data: '26/07', status: 'pago', valor: 486.3 },
+  { forn: 'Ultragaz', nota: '2 botijões P45', cat: 'Ocupação', forma: 'Dinheiro', data: '25/07', status: 'pago', valor: 720 },
+  { forn: 'Embalagens Delivery RJ', nota: 'NF 1180 · marmitas e sacolas', cat: 'Mercadoria', forma: 'Cartão', data: '24/07', status: 'pago', valor: 468.9 },
+  { forn: 'Folha quinzenal', nota: '7 pessoas · 2ª quinzena', cat: 'Pessoal', forma: 'Transferência', data: '20/07', status: 'pago', valor: 5450 },
+  { forn: 'Taxas iFood', nota: 'Repasse retido na fonte', cat: 'Taxas de app', forma: 'Automático', data: '20/07', status: 'pago', valor: 1786.4 },
+  { forn: 'Light', nota: 'Conta de luz · vence 30/07', cat: 'Ocupação', forma: 'Boleto', data: '15/07', status: 'vence', valor: 1240 },
+  { forn: 'Casa Líbano', nota: 'NF 3390 · secos do mês', cat: 'Mercadoria', forma: 'Boleto', data: '12/07', status: 'pago', valor: 2310.5 },
+  { forn: 'Taxas Rappi', nota: 'Repasse retido na fonte', cat: 'Taxas de app', forma: 'Automático', data: '10/07', status: 'pago', valor: 612.8 },
+  { forn: 'Vale-transporte', nota: 'Recarga de 7 cartões', cat: 'Pessoal', forma: 'Transferência', data: '08/07', status: 'pago', valor: 1120 },
+  { forn: 'Aluguel', nota: 'Ponto de Botafogo', cat: 'Ocupação', forma: 'Boleto', data: '05/07', status: 'pago', valor: 3400 },
+  { forn: 'Higibras', nota: 'Produtos de limpeza', cat: 'Mercadoria', forma: 'Pix', data: '03/07', status: 'pago', valor: 289.4 }
+];
+
+const FILTROS_DESPESA = ['Todas', 'Mercadoria', 'Pessoal', 'Ocupação', 'Taxas de app'];
+
+const PESSOAS = {
+  'Halim': { inicial: 'H', cor: '#2E5F73' },
+  'Jamile': { inicial: 'J', cor: '#C05437' },
+  'Wesley': { inicial: 'W', cor: '#2F6B4A' },
+  'Automático': { inicial: '·', cor: '#8A9698' }
+};
+
+const AUTORIA = [
+  { por: 'Jamile', quando: 'há 2h' },
+  { por: 'Halim', quando: 'ontem' },
+  { por: 'Wesley', quando: 'ontem' },
+  { por: 'Jamile', quando: '24/07' },
+  { por: 'Halim', quando: '20/07' },
+  { por: 'Automático', quando: '20/07' },
+  { por: 'Halim', quando: '15/07' },
+  { por: 'Jamile', quando: '12/07' },
+  { por: 'Automático', quando: '10/07' },
+  { por: 'Halim', quando: '08/07' },
+  { por: 'Automático', quando: '05/07' },
+  { por: 'Wesley', quando: '03/07' }
+];
+
+const ATIVIDADE = [
+  { quem: 'Jamile', acao: 'lançou a nota do Frigorífico Salomão', origem: 'foto lida pela IA · celular', tipo: 'despesa', valor: 'R$ 1.284,00', quando: 'hoje, 17:20' },
+  { quem: 'Wesley', acao: 'contou 12 itens do estoque', origem: 'contagem de julho · celular', tipo: 'estoque', valor: 'R$ 4.180,60', quando: 'hoje, 15:04' },
+  { quem: 'Automático', acao: 'puxou as vendas do iFood e da Rappi', origem: 'integração · 06:00', tipo: 'receita', valor: 'R$ 928,90', quando: 'hoje, 06:00' },
+  { quem: 'Halim', acao: 'fechou o caixa de sábado', origem: 'computador da loja', tipo: 'receita', valor: 'R$ 1.412,30', quando: 'ontem, 23:12' },
+  { quem: 'Jamile', acao: 'corrigiu o custo do tahine de R$ 34,00 para R$ 38,00', origem: 'produtos · celular', tipo: 'produto', valor: '+11,8%', quando: 'ontem, 18:40' },
+  { quem: 'Halim', acao: 'mudou o teto de taxas de app de 10% para 12%', origem: 'plano do mês · computador', tipo: 'plano', valor: '+2 p.p.', quando: '25/07, 09:15' },
+  { quem: 'Wesley', acao: 'registrou uma perda de 3 kg de berinjela', origem: 'estoque · celular', tipo: 'estoque', valor: '− R$ 21,60', quando: '24/07, 16:30' },
+  { quem: 'Halim', acao: 'convidou Jamile como gerente', origem: 'ajustes · computador', tipo: 'equipe', valor: '—', quando: '02/07, 10:02' }
+];
+
+const AUTOR_ITEM = [
+  'contado por Wesley · hoje', 'contado por Wesley · hoje', 'contado por Jamile · ontem',
+  'contado por Wesley · hoje', 'contado por Jamile · ontem', 'contado por Wesley · hoje',
+  'contado por Jamile · ontem', 'contado por Wesley · hoje', 'contado por Jamile · ontem',
+  'contado por Wesley · hoje'
+];
+
+const SEMANAS = [
+  { rot: '1ª sem', ent: 11240, sai: 10110 },
+  { rot: '2ª sem', ent: 13240, sai: 9520 },
+  { rot: '3ª sem', ent: 10360, sai: 9260 },
+  { rot: '4ª sem', ent: 12480, sai: 10290 }
+];
+
+const DIAS = [
+  { rot: 'seg', ent: 1180, sai: 1640 },
+  { rot: 'ter', ent: 1320, sai: 1210 },
+  { rot: 'qua', ent: 1540, sai: 1480 },
+  { rot: 'qui', ent: 1760, sai: 1350 },
+  { rot: 'sex', ent: 2980, sai: 1720 },
+  { rot: 'sáb', ent: 2420, sai: 1510 },
+  { rot: 'dom', ent: 1280, sai: 1380 }
+];
+
+const HISTORICO = [
+  { mes: 'fev', v: 4320 }, { mes: 'mar', v: 5180 }, { mes: 'abr', v: 3960 },
+  { mes: 'mai', v: 6740 }, { mes: 'jun', v: 7020 }, { mes: 'jul', v: 8140 }
+];
+
+const SECOES = [
+  { id: 'inicio', nome: 'Início', titulo: 'Como está o mês' },
+  { id: 'despesas', nome: 'Despesas', titulo: 'Despesas' },
+  { id: 'produtos', nome: 'Produtos', titulo: 'Produtos' },
+  { id: 'estoque', nome: 'Estoque', titulo: 'Estoque' },
+  { id: 'plano', nome: 'Plano do mês', titulo: 'Plano do mês' },
+  { id: 'dre', nome: 'DRE', titulo: 'DRE do mês' },
+  { id: 'numeros', nome: 'Números', titulo: 'Seus números' },
+  { id: 'ajustes', nome: 'Ajustes', titulo: 'Ajustes' }
+];
+
+const FLUXOS = {
+  despesa: {
+    titulo: 'Nova despesa', sub: 'Sem nota na mão? Preenche em 20 segundos.',
+    etapas: ['Dados', 'Conferir', 'Pronto'],
+    resumo: [
+      { rot: 'Valor', val: 'R$ 486,30' },
+      { rot: 'Categoria', val: 'Mercadoria' },
+      { rot: 'Fornecedor', val: 'Hortifrúti Zona Sul' },
+      { rot: 'Data', val: '28/07/26' },
+      { rot: 'Pagamento', val: 'Pix · pago' }
+    ],
+    impacto: 'Com essa despesa seu CMV de julho vai de 29,9% para 30,9% — passa o teto de 30%.',
+    avancar: 'Lançar despesa',
+    sucessoTitulo: 'Tá no caixa!',
+    sucessoTexto: 'R$ 486,30 entraram em Mercadoria, com data de 28 de julho.',
+    sucessoDica: 'Da próxima vez, tira foto da nota: a gente preenche fornecedor, itens e preços sozinho.'
+  },
+  produto: {
+    titulo: 'Novo produto', sub: 'Isso vira base pro estoque e pro custo dos pratos.',
+    etapas: ['Dados', 'Conferir', 'Pronto'],
+    resumo: [
+      { rot: 'Produto', val: 'Grão de bico seco' },
+      { rot: 'Categoria', val: 'Secos' },
+      { rot: 'Unidade', val: 'kg' },
+      { rot: 'Custo de hoje', val: 'R$ 9,80' },
+      { rot: 'Fornecedor', val: 'Casa Líbano' },
+      { rot: 'Estoque mínimo', val: '15 kg' }
+    ],
+    impacto: 'Entra no CMV. Quando o estoque cair abaixo de 15 kg, a gente te avisa.',
+    avancar: 'Cadastrar produto',
+    sucessoTitulo: 'Produto cadastrado',
+    sucessoTexto: 'Grão de bico seco já aparece na contagem e nas notas do Casa Líbano.',
+    sucessoDica: 'Quer cadastrar em lote? Manda a última nota do fornecedor por foto que a gente cria todos de uma vez.'
+  },
+  estoque: {
+    titulo: 'Movimentar estoque', sub: 'Entrada, contagem, perda ou transferência entre lojas.',
+    etapas: ['Movimento', 'Conferir', 'Pronto'],
+    resumo: [
+      { rot: 'Movimento', val: 'Entrou mercadoria' },
+      { rot: 'Produto', val: 'Grão de bico seco' },
+      { rot: 'Quantidade', val: '25 kg' },
+      { rot: 'Custo unitário', val: 'R$ 9,80' },
+      { rot: 'Total', val: 'R$ 245,00' },
+      { rot: 'Quem lançou', val: 'Jamile Rocha' }
+    ],
+    impacto: 'O estoque de grão de bico vai de 24 kg para 49 kg e a despesa de R$ 245,00 entra em Mercadoria.',
+    avancar: 'Salvar movimento',
+    sucessoTitulo: 'Estoque atualizado',
+    sucessoTexto: '25 kg de grão de bico entraram. Valor contado do mês: R$ 12.663,20.',
+    sucessoDica: 'A contagem do mês continua aberta até dia 31. Dá pra ir contando aos poucos.'
+  },
+  caixa: {
+    titulo: 'Fechar o caixa do dia', sub: 'Domingo, 27 de julho. Só confirmar o que veio na loja.',
+    etapas: ['Valores', 'Conferir', 'Pronto'],
+    resumo: [
+      { rot: 'iFood', val: 'R$ 742,50' },
+      { rot: 'Rappi', val: 'R$ 186,40' },
+      { rot: 'Pix e WhatsApp', val: 'R$ 214,60' },
+      { rot: 'Maquininha', val: 'R$ 98,50' },
+      { rot: 'Dinheiro', val: 'R$ 38,00' },
+      { rot: 'Total do dia', val: 'R$ 1.280,00' }
+    ],
+    impacto: 'Com esse dia, julho chega a R$ 47.320 — 95% da meta, faltando 4 dias.',
+    avancar: 'Fechar o dia',
+    sucessoTitulo: 'Dia fechado',
+    sucessoTexto: 'R$ 1.280,00 entraram em 27 de julho. Sobrou R$ 412 nesse dia.',
+    sucessoDica: 'Amanhã de manhã o iFood e o Rappi entram sozinhos de novo — você só confirma o que veio na loja.'
+  }
+};
+
+const OPCOES_LANCAR = [
+  { id: 'despesa', nome: 'Despesa', dica: 'nota, boleto, gás, feira', cor: '#C05437' },
+  { id: 'caixa', nome: 'Fechamento do dia', dica: 'o que entrou hoje', cor: '#2F6B4A' },
+  { id: 'estoque', nome: 'Movimento de estoque', dica: 'entrada, contagem, perda', cor: '#2E5F73' },
+  { id: 'produto', nome: 'Produto', dica: 'novo item na base', cor: '#EFAB5C' }
+];
+
+const DRE = [
+  { nome: 'Receita bruta de vendas', v: 47320, pct: '100%', ant: 43800, varia: '+8,0%', bom: true, tipo: 'grupo' },
+  { nome: 'iFood', v: 27446, pct: '58,0%', ant: 25400, varia: '+8,1%', tipo: 'detalhe' },
+  { nome: 'WhatsApp e site próprio', v: 10410, pct: '22,0%', ant: 9200, varia: '+13,2%', tipo: 'detalhe' },
+  { nome: 'Rappi', v: 5678, pct: '12,0%', ant: 5600, varia: '+1,4%', tipo: 'detalhe' },
+  { nome: 'Balcão e retirada', v: 3786, pct: '8,0%', ant: 3600, varia: '+5,2%', tipo: 'detalhe' },
+  { nome: '(−) Taxas de apps e maquininha', v: -7340, pct: '15,5%', ant: -6590, varia: '+11,4%', bom: false, tipo: 'deducao' },
+  { nome: 'Receita líquida', v: 39980, pct: '84,5%', ant: 37210, varia: '+7,4%', bom: true, tipo: 'subtotal' },
+  { nome: '(−) Custo da mercadoria vendida', v: -14640, pct: '30,9%', ant: -13100, varia: '+11,8%', bom: false, tipo: 'deducao' },
+  { nome: 'Insumos e hortifrúti', v: -9820, pct: '20,8%', ant: -8640, varia: '+13,7%', tipo: 'detalhe' },
+  { nome: 'Carnes', v: -3410, pct: '7,2%', ant: -3160, varia: '+7,9%', tipo: 'detalhe' },
+  { nome: 'Embalagens e descartáveis', v: -1410, pct: '3,0%', ant: -1300, varia: '+8,5%', tipo: 'detalhe' },
+  { nome: 'Lucro bruto', v: 25340, pct: '53,6%', ant: 24110, varia: '+5,1%', bom: true, tipo: 'subtotal' },
+  { nome: '(−) Pessoal', v: -10900, pct: '23,0%', ant: -10400, varia: '+4,8%', bom: false, tipo: 'deducao' },
+  { nome: 'Salários', v: -7980, pct: '16,9%', ant: -7620, varia: '+4,7%', tipo: 'detalhe' },
+  { nome: 'Encargos e férias', v: -1800, pct: '3,8%', ant: -1720, varia: '+4,7%', tipo: 'detalhe' },
+  { nome: 'Vale-transporte e refeição', v: -1120, pct: '2,4%', ant: -1060, varia: '+5,7%', tipo: 'detalhe' },
+  { nome: '(−) Ocupação e contas fixas', v: -6300, pct: '13,3%', ant: -6690, varia: '−5,8%', bom: true, tipo: 'deducao' },
+  { nome: 'Aluguel', v: -3400, pct: '7,2%', ant: -3400, varia: '0,0%', tipo: 'detalhe' },
+  { nome: 'Energia, água e gás', v: -2220, pct: '4,7%', ant: -2610, varia: '−14,9%', tipo: 'detalhe' },
+  { nome: 'Internet, telefone e contador', v: -680, pct: '1,4%', ant: -680, varia: '0,0%', tipo: 'detalhe' },
+  { nome: 'Resultado operacional', v: 8140, pct: '17,2%', ant: 7020, varia: '+16,0%', bom: true, tipo: 'subtotal' },
+  { nome: '(−) Impostos a recolher (Simples)', v: -2839, pct: '6,0%', ant: -2628, varia: '+8,0%', bom: false, tipo: 'deducao' },
+  { nome: 'Sobrou no fim do mês', v: 5301, pct: '11,2%', ant: 4392, varia: '+20,7%', bom: true, tipo: 'final' }
+];
+
+const COMPARATIVO_DRE = [
+  { nome: 'Faturamento', jun: 'R$ 43.800', jul: 'R$ 47.320', vari: '+8,0%', pctBarra: 95, bom: true },
+  { nome: 'CMV', jun: '29,9%', jul: '30,9%', vari: '+1,0 p.p.', pctBarra: 103, bom: false },
+  { nome: 'Taxas de app', jun: '15,0%', jul: '15,5%', vari: '+0,5 p.p.', pctBarra: 129, bom: false },
+  { nome: 'Sobra final', jun: 'R$ 4.392', jul: 'R$ 5.301', vari: '+20,7%', pctBarra: 62, bom: true }
+];
+
+const PASSOS_ONB = ['O restaurante', 'Canais de venda', 'Números de partida', 'Integrações', 'Sua equipe', 'Metas e avisos', 'Tudo pronto'];
+
+const brl = (n) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const mil = (n) => n.toLocaleString('pt-BR');
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const qtds = {};
+    ITENS.forEach(i => { qtds[i.id] = i.qtd; });
+    this.state = {
+      tela: props.telaInicial || 'login', secao: 'inicio', periodo: 'mes', onb: 1,
+      catFiltro: 'Todos', catDesp: 'Todas', qtds, gaveta: null, gPasso: 1, menuAberto: false, canais: { email: true, whats: true, sms: false }
+    };
+  }
+
+  bump(id, d) {
+    this.setState(s => ({ qtds: Object.assign({}, s.qtds, { [id]: Math.max(0, (s.qtds[id] || 0) + d) }) }));
+  }
+
+  avatar(nome, tam) {
+    const p = PESSOAS[nome] || PESSOAS['Automático'];
+    return 'width:' + tam + 'px;height:' + tam + 'px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;'
+      + 'font-size:' + Math.round(tam * 0.42) + 'px;font-weight:700;color:#F7F5EA;background:' + p.cor;
+  }
+
+  chip(ativo) {
+    return 'padding:7px 15px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;'
+      + (ativo ? 'background:#F7F5EA;color:#1E4354' : 'color:rgba(247,245,234,.75)');
+  }
+
+  chipCat(cat, cor) {
+    const cores = {
+      'Mercadoria': ['rgba(46,95,115,.1)', '#2E5F73'],
+      'Pessoal': ['rgba(47,107,74,.14)', '#2F6B4A'],
+      'Ocupação': ['rgba(239,171,92,.3)', '#8A5A28'],
+      'Taxas de app': ['rgba(180,70,47,.13)', '#B4462F']
+    };
+    const c = cores[cat] || cores['Mercadoria'];
+    return 'display:inline-block;padding:3px 9px;border-radius:9px;font-size:12px;font-weight:700;background:' + c[0] + ';color:' + c[1];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const total = ITENS.reduce((a, i) => a + (s.qtds[i.id] || 0) * i.custo, 0);
+    const feitos = ITENS.filter(i => (s.qtds[i.id] || 0) > 0).length;
+    const fonte = s.periodo === 'mes' ? SEMANAS : DIAS;
+    const maxV = Math.max.apply(null, fonte.map(o => Math.max(o.ent, o.sai)));
+    const secao = SECOES.filter(x => x.id === s.secao)[0] || SECOES[0];
+    const maxH = Math.max.apply(null, HISTORICO.map(h => h.v));
+    const listaDesp = DESPESAS.filter(d => s.catDesp === 'Todas' || d.cat === s.catDesp);
+    const fluxo = s.gaveta ? FLUXOS[s.gaveta] : null;
+
+    const kpisMes = [
+      { nome: 'CMV', valor: '30,9%', meta: 'teto 30%', ok: false, texto: 'De cada R$ 100 vendidos, R$ 30,90 viraram comida. Passou R$ 425 do combinado.' },
+      { nome: 'Custo de pessoal', valor: '23,0%', meta: 'teto 25%', ok: true, texto: 'R$ 10.900 de folha, encargos e vale. Dentro do combinado.' },
+      { nome: 'Peso dos apps', valor: '15,5%', meta: 'teto 12%', ok: false, texto: 'R$ 7.340 em taxas de iFood, Rappi e maquininha. Maior vazamento do mês.' },
+      { nome: 'Ponto de equilíbrio', valor: 'R$ 41.400', meta: 'virou dia 21', ok: true, texto: 'É o quanto precisa vender pra não ter prejuízo. Passou disso há 6 dias.' }
+    ];
+    const kpisSemana = [
+      { nome: 'CMV', valor: '31,8%', meta: 'teto 30%', ok: false, texto: 'Semana de 20 a 26. O hortifrúti subiu 12% e puxou o índice.' },
+      { nome: 'Custo de pessoal', valor: '22,4%', meta: 'teto 25%', ok: true, texto: 'R$ 2.795 na semana. Nenhuma hora extra.' },
+      { nome: 'Peso dos apps', valor: '16,1%', meta: 'teto 12%', ok: false, texto: 'R$ 2.010 em taxas. Sexta foi o dia de maior peso.' },
+      { nome: 'Ponto de equilíbrio', valor: 'R$ 9.600', meta: 'virou na quinta', ok: true, texto: 'Da quinta em diante, tudo que vendeu virou sobra.' }
+    ];
+
+    return {
+      larg: 1440, alt: 900, largMob: 430, altMob: 860,
+      modoAuth: s.tela === 'login' || s.tela === 'criar' || s.tela === 'esqueci',
+      modoOnb: s.tela === 'onb',
+      modoApp: s.tela === 'app',
+      irOnb: () => this.setState({ tela: 'onb', onb: 1 }),
+      onb1: s.onb === 1, onb2: s.onb === 2, onb3: s.onb === 3, onb4: s.onb === 4,
+      onb5: s.onb === 5, onb6: s.onb === 6, onb7: s.onb === 7,
+      contadorOnb: 'passo ' + s.onb + ' de 7',
+      barraOnb: 'height:100%;border-radius:3px;background:#2E5F73;width:' + Math.round(s.onb / 7 * 100) + '%',
+      rotuloProximo: s.onb === 6 ? 'Fechar meu plano' : (s.onb === 7 ? 'Ver meu painel' : 'Continuar'),
+      estiloVoltar: 'font-size:14px;font-weight:700;cursor:pointer;color:' + (s.onb === 1 ? '#AEB9B8' : '#2E5F73'),
+      onbVoltar: () => this.setState(st => ({ onb: Math.max(1, st.onb - 1) })),
+      onbProximo: () => {
+        if (this.state.onb === 7) this.setState({ tela: 'app', secao: 'inicio' });
+        else this.setState(st => ({ onb: st.onb + 1 }));
+      },
+      passosOnb: PASSOS_ONB.map((nome, i) => {
+        const n = i + 1;
+        const feito = n < s.onb;
+        const atual = n === s.onb;
+        return {
+          nome, indice: String(n),
+          estilo: 'display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:11px;font-size:13px;cursor:pointer;'
+            + (atual ? 'background:rgba(247,245,234,.16);color:#F7F5EA;font-weight:700' : 'color:rgba(247,245,234,.6)'),
+          bolinha: 'width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'
+            + (feito ? 'background:#2F6B4A;color:#F7F5EA' : (atual ? 'background:#EFAB5C;color:#1E4354' : 'background:rgba(247,245,234,.16);color:rgba(247,245,234,.7)')),
+          ir: () => this.setState({ onb: n })
+        };
+      }),
+      telaLogin: s.tela === 'login',
+      telaCriar: s.tela === 'criar',
+      telaEsqueci: s.tela === 'esqueci',
+      irLogin: () => this.setState({ tela: 'login' }),
+      irCriar: () => this.setState({ tela: 'criar' }),
+      irEsqueci: () => this.setState({ tela: 'esqueci' }),
+      entrar: () => this.setState({ tela: 'app', secao: 'inicio' }),
+      menuAberto: s.menuAberto,
+      alternarMenu: () => this.setState(st => ({ menuAberto: !st.menuAberto })),
+      opcoesLancar: OPCOES_LANCAR.map(o => ({
+        nome: o.nome, dica: o.dica,
+        marca: 'width:34px;height:34px;border-radius:11px;flex:none;background:' + o.cor,
+        abrir: () => this.setState({ gaveta: o.id, gPasso: 1, menuAberto: false })
+      })),
+      novaDespesa: () => this.setState({ gaveta: 'despesa', gPasso: 1, menuAberto: false }),
+      novoProduto: () => this.setState({ gaveta: 'produto', gPasso: 1, menuAberto: false }),
+      novoEstoque: () => this.setState({ gaveta: 'estoque', gPasso: 1, menuAberto: false }),
+      novoCaixa: () => this.setState({ gaveta: 'caixa', gPasso: 1, menuAberto: false }),
+      gavetaAberta: !!fluxo,
+      ehDespesa: s.gaveta === 'despesa',
+      ehProduto: s.gaveta === 'produto',
+      ehEstoque: s.gaveta === 'estoque',
+      ehCaixa: s.gaveta === 'caixa',
+      gavetaPasso1: s.gPasso === 1,
+      gavetaPasso2: s.gPasso === 2,
+      gavetaPasso3: s.gPasso === 3,
+      tituloGaveta: fluxo ? fluxo.titulo : '',
+      subGaveta: fluxo ? fluxo.sub : '',
+      resumoGaveta: fluxo ? fluxo.resumo : [],
+      impactoGaveta: fluxo ? fluxo.impacto : '',
+      sucessoTitulo: fluxo ? fluxo.sucessoTitulo : '',
+      sucessoTexto: fluxo ? fluxo.sucessoTexto : '',
+      sucessoDica: fluxo ? fluxo.sucessoDica : '',
+      rotuloAvancar: s.gPasso === 1 ? 'Continuar' : (s.gPasso === 2 ? (fluxo ? fluxo.avancar : '') : 'Fechar'),
+      rotuloSair: s.gPasso === 3 ? 'Lançar outro' : 'Cancelar',
+      etapas: (fluxo ? fluxo.etapas : []).map((nome, i) => {
+        const n = i + 1;
+        const feito = n < s.gPasso;
+        const atual = n === s.gPasso;
+        return {
+          nome, n: String(n),
+          bolinha: 'width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;'
+            + (feito ? 'background:#2F6B4A;color:#F7F5EA' : (atual ? 'background:#2E5F73;color:#F7F5EA' : 'background:#E8E6D7;color:#8A9698')),
+          rotulo: 'font-size:13px;font-weight:' + (atual ? '700;color:#1C2A2E' : '600;color:#8A9698')
+        };
+      }),
+      fecharGaveta: () => this.setState(st => ({ gaveta: st.gPasso === 3 ? st.gaveta : null, gPasso: 1 })),
+      gavetaVoltar: () => this.setState({ gPasso: 1 }),
+      gavetaProximo: () => {
+        if (this.state.gPasso === 3) this.setState({ gaveta: null, gPasso: 1 });
+        else this.setState(st => ({ gPasso: st.gPasso + 1 }));
+      },
+      menu: SECOES.map(x => ({
+        nome: x.nome,
+        estilo: 'padding:10px 12px;border-radius:11px;font-size:14px;cursor:pointer;'
+          + (s.secao === x.id ? 'background:rgba(255,255,255,.14);font-weight:700' : 'color:rgba(247,245,234,.66)'),
+        ir: () => this.setState({ secao: x.id })
+      })),
+      tituloSecao: secao.titulo,
+      secInicio: s.secao === 'inicio',
+      secDespesas: s.secao === 'despesas',
+      secProdutos: s.secao === 'produtos',
+      secEstoque: s.secao === 'estoque',
+      secPlano: s.secao === 'plano',
+      secDre: s.secao === 'dre',
+      linhasDre: DRE.map(l => {
+        const det = l.tipo === 'detalhe';
+        const sub = l.tipo === 'subtotal';
+        const fim = l.tipo === 'final';
+        const fundo = fim ? 'background:#2E5F73;' : (sub ? 'background:#E8E6D7;' : '');
+        const cor = fim ? '#F7F5EA' : '#1C2A2E';
+        const corSec = fim ? 'rgba(247,245,234,.75)' : (det ? '#6A7A7E' : '#45585D');
+        const peso = det ? '500' : (sub || fim || l.tipo === 'grupo' ? '800' : '600');
+        const alt = det ? '9px 20px' : (sub || fim ? '15px 20px' : '13px 20px');
+        return {
+          nome: l.nome,
+          valor: (l.v < 0 ? '− ' : '') + 'R$ ' + Math.abs(l.v).toLocaleString('pt-BR'),
+          pct: l.pct,
+          anterior: (l.ant < 0 ? '− ' : '') + 'R$ ' + Math.abs(l.ant).toLocaleString('pt-BR'),
+          variacao: l.varia,
+          linha: 'display:flex;align-items:center;padding:' + alt + ';border-bottom:1px solid #E8E6D7;' + fundo,
+          conta: 'flex:1;min-width:0;font-size:' + (det ? '13' : (fim ? '16' : '14')) + 'px;font-weight:' + peso
+            + ';color:' + (det ? corSec : cor) + ';padding-left:' + (det ? '18' : '0') + 'px',
+          celValor: "width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:" + (det ? '13' : (fim ? '18' : '14'))
+            + 'px;font-weight:' + (det ? '500' : '700') + ';color:' + (det ? corSec : cor),
+          celPct: "width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:" + corSec,
+          celAnterior: "width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:" + (fim ? 'rgba(247,245,234,.6)' : '#8A9698'),
+          celVar: "width:96px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:"
+            + (l.bom === undefined ? (fim ? 'rgba(247,245,234,.7)' : '#8A9698') : (l.bom ? (fim ? '#EFAB5C' : '#2F6B4A') : '#B4462F'))
+        };
+      }),
+      comparativoDre: COMPARATIVO_DRE.map(c => ({
+        nome: c.nome, jun: c.jun, jul: c.jul, var: c.vari,
+        corVar: 'font-family:\'JetBrains Mono\',monospace;font-size:13px;font-weight:700;color:' + (c.bom ? '#2F6B4A' : '#B4462F'),
+        barra: 'height:100%;border-radius:4px;width:' + Math.min(100, c.pctBarra) + '%;background:' + (c.bom ? '#2F6B4A' : '#C05437')
+      })),
+      secNumeros: s.secao === 'numeros',
+      secAjustes: s.secao === 'ajustes',
+      chipSemana: this.chip(s.periodo === 'semana'),
+      chipMes: this.chip(s.periodo === 'mes'),
+      verSemana: () => this.setState({ periodo: 'semana' }),
+      verMes: () => this.setState({ periodo: 'mes' }),
+      tituloGrafico: s.periodo === 'mes' ? 'Entrou × saiu, semana a semana' : 'Entrou × saiu, dia a dia · 20 a 26 de julho',
+      vEntrou: s.periodo === 'mes' ? 'R$ 47.320' : 'R$ 12.480',
+      vEntrouVar: s.periodo === 'mes' ? '+8% vs. junho' : '+6% vs. semana passada',
+      vSaiu: s.periodo === 'mes' ? 'R$ 39.180' : 'R$ 10.290',
+      vSaiuVar: s.periodo === 'mes' ? '+11% vs. junho' : '+2% vs. semana passada',
+      vSobrou: s.periodo === 'mes' ? 'R$ 8.140' : 'R$ 2.190',
+      vMargem: s.periodo === 'mes' ? 'margem de 17,2%' : 'margem de 17,5%',
+      vPonto: s.periodo === 'mes' ? 'R$ 41.400' : 'R$ 9.600',
+      vPontoNota: s.periodo === 'mes' ? 'virou no dia 21' : 'virou na quinta',
+      barras: fonte.map(o => {
+        const sobra = o.ent - o.sai;
+        return {
+          rot: o.rot, ent: mil(o.ent), sai: mil(o.sai),
+          estiloEnt: 'width:28px;border-radius:6px 6px 0 0;background:#2E5F73;height:' + Math.round(o.ent / maxV * 170) + 'px',
+          estiloSai: 'width:28px;border-radius:6px 6px 0 0;background:#C05437;height:' + Math.round(o.sai / maxV * 170) + 'px',
+          sobrou: (sobra < 0 ? '−' : '+') + mil(Math.abs(sobra)),
+          estiloSobra: "font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;white-space:nowrap;color:" + (sobra < 0 ? '#B4462F' : '#2F6B4A')
+        };
+      }),
+      filtrosDespesa: FILTROS_DESPESA.map(c => ({
+        nome: c,
+        estilo: 'padding:9px 13px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;'
+          + (s.catDesp === c ? 'background:#2E5F73;color:#F7F5EA' : 'background:#E8E6D7;color:#45585D'),
+        escolher: () => this.setState({ catDesp: c })
+      })),
+      atividade: ATIVIDADE.map(a => ({
+        quem: a.quem, acao: a.acao, origem: a.origem, tipo: a.tipo, valor: a.valor, quando: a.quando,
+        inicial: (PESSOAS[a.quem] || PESSOAS['Automático']).inicial,
+        avatar: this.avatar(a.quem, 32),
+        chip: 'display:inline-block;padding:3px 9px;border-radius:9px;font-size:11px;font-weight:700;background:rgba(46,95,115,.1);color:#2E5F73'
+      })),
+      atividadeCurta: ATIVIDADE.slice(0, 5).map(a => ({
+        quem: a.quem, acao: a.acao, quando: a.quando, valor: a.valor,
+        inicial: (PESSOAS[a.quem] || PESSOAS['Automático']).inicial,
+        avatar: this.avatar(a.quem, 26)
+      })),
+      irAjustesSecao: () => this.setState({ secao: 'ajustes' }),
+      despesas: listaDesp.map((d, i) => ({
+        forn: d.forn, nota: d.nota, cat: d.cat, forma: d.forma, data: d.data, status: d.status,
+        por: (AUTORIA[DESPESAS.indexOf(d)] || AUTORIA[0]).por,
+        quando: (AUTORIA[DESPESAS.indexOf(d)] || AUTORIA[0]).quando,
+        inicial: (PESSOAS[(AUTORIA[DESPESAS.indexOf(d)] || AUTORIA[0]).por] || PESSOAS['Automático']).inicial,
+        avatar: this.avatar((AUTORIA[DESPESAS.indexOf(d)] || AUTORIA[0]).por, 26),
+        valor: brl(d.valor), chip: this.chipCat(d.cat),
+        chipStatus: 'display:inline-block;padding:3px 9px;border-radius:9px;font-size:11px;font-weight:700;'
+          + (d.status === 'pago' ? 'background:rgba(47,107,74,.14);color:#2F6B4A'
+            : (d.status === 'vence' ? 'background:rgba(180,70,47,.13);color:#B4462F' : 'background:rgba(239,171,92,.3);color:#8A5A28'))
+      })),
+      resumoLista: listaDesp.length + ' de 47 lançamentos' + (s.catDesp === 'Todas' ? '' : ' · ' + s.catDesp),
+      totalLista: brl(listaDesp.reduce((a, d) => a + d.valor, 0)),
+      categorias: CATEGORIAS.map(c => ({
+        nome: c,
+        estilo: 'padding:9px 13px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;'
+          + (s.catFiltro === c ? 'background:#2E5F73;color:#F7F5EA' : 'background:#E8E6D7;color:#45585D'),
+        escolher: () => this.setState({ catFiltro: c })
+      })),
+      produtos: PRODUTOS.filter(p => s.catFiltro === 'Todos' || p.cat === s.catFiltro)
+        .map(p => {
+          const a = AUTORIA[PRODUTOS.indexOf(p) % AUTORIA.length];
+          return {
+            nome: p.nome, forn: p.forn, cat: p.cat, un: p.un, custo: brl(p.custo),
+            por: a.por, quando: a.quando,
+            inicial: (PESSOAS[a.por] || PESSOAS['Automático']).inicial,
+            avatar: this.avatar(a.por, 26)
+          };
+        }),
+      itens: ITENS.map((i, idx) => ({
+        nome: i.nome, un: i.un, custo: brl(i.custo), autor: AUTOR_ITEM[idx] || 'contado por Wesley · hoje',
+        qtd: String(s.qtds[i.id] || 0),
+        subtotal: brl((s.qtds[i.id] || 0) * i.custo),
+        mais: () => this.bump(i.id, 1),
+        menos: () => this.bump(i.id, -1)
+      })),
+      totalEstoque: brl(total),
+      contados: feitos + ' de ' + ITENS.length + ' itens contados',
+      linhasPlano: [
+        { nome: 'Mercadoria', teto: '30%', real: '30,9%', valor: 'R$ 14.640', status: 'estourou', ok: false },
+        { nome: 'Pessoal', teto: '25%', real: '23,0%', valor: 'R$ 10.900', status: 'tranquilo', ok: true },
+        { nome: 'Taxas de app', teto: '12%', real: '15,5%', valor: 'R$ 7.340', status: 'estourou', ok: false },
+        { nome: 'Ocupação', teto: '15%', real: '13,3%', valor: 'R$ 6.300', status: 'tranquilo', ok: true },
+        { nome: 'Sobra', teto: '18%', real: '17,2%', valor: 'R$ 8.140', status: 'quase lá', ok: true }
+      ].map(l => ({
+        nome: l.nome, teto: l.teto, real: l.real, valor: l.valor, status: l.status,
+        chip: 'padding:3px 9px;border-radius:9px;font-size:11px;font-weight:700;'
+          + (l.status === 'estourou' ? 'background:rgba(180,70,47,.13);color:#B4462F'
+            : (l.status === 'quase lá' ? 'background:rgba(239,171,92,.3);color:#8A5A28' : 'background:rgba(47,107,74,.14);color:#2F6B4A'))
+      })),
+      kpis: (s.periodo === 'mes' ? kpisMes : kpisSemana).map(k => ({
+        nome: k.nome, valor: k.valor, meta: k.meta, texto: k.texto,
+        estiloValor: "font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;letter-spacing:-.03em;margin-top:6px;color:" + (k.ok ? '#2F6B4A' : '#B4462F')
+      })),
+      historico: HISTORICO.map((h, i) => ({
+        mes: h.mes, valor: mil(h.v),
+        estiloValor: "font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:" + (i === HISTORICO.length - 1 ? '#2E5F73' : '#8A9698'),
+        estiloBarra: 'width:100%;border-radius:6px 6px 0 0;height:' + Math.round(h.v / maxH * 120) + 'px;background:' + (i === HISTORICO.length - 1 ? '#2E5F73' : '#AEB9B8')
+      })),
+      canais: [
+        { chave: 'email', nome: 'E-mail', dica: 'resumo de segunda e alertas' },
+        { chave: 'whats', nome: 'WhatsApp', dica: 'só alerta de teto estourado' },
+        { chave: 'sms', nome: 'SMS', dica: 'para quando faltar internet' }
+      ].map(c => ({
+        nome: c.nome, dica: c.dica,
+        trilho: 'width:50px;height:30px;border-radius:15px;flex:none;cursor:pointer;display:flex;align-items:center;padding:3px;'
+          + (s.canais[c.chave] ? 'background:#2F6B4A;justify-content:flex-end' : 'background:#D6D4C4;justify-content:flex-start'),
+        alternar: () => this.setState(st => ({ canais: Object.assign({}, st.canais, { [c.chave]: !st.canais[c.chave] }) }))
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>
