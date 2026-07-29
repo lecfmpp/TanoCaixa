@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Camera } from 'lucide-react'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { useAuth } from '@/auth/AuthContext'
 import { Button } from '@/components/ui/Button'
@@ -10,8 +10,10 @@ import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useDesfazer } from '@/data/hooks'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
+import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
 import type { CategoriaDespesa } from '@/types'
+import type { DadosExtraidosFoto } from '@/lib/gemini'
 
 /** Gavetas que aceitam importação por planilha e para qual entidade. */
 const TIPO_IMPORT: Partial<Record<TipoGaveta, TipoImport>> = {
@@ -49,6 +51,7 @@ export function GavetaHost() {
   const desfazer = useDesfazer()
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
+  const [cameraAberta, setCameraAberta] = useState(false)
 
   // Estado dos formulários
   const [despesa, setDespesa] = useState({ fornecedor: '', valor: '', categoria: 'mercadoria' as CategoriaDespesa, pagamento: 'Pix', obs: '', repete: false })
@@ -109,6 +112,26 @@ export function GavetaHost() {
       { rot: 'Quantidade', val: estoque.quantidade || '0' },
       { rot: 'Valor', val: brl(soNum(estoque.quantidade) * soNum(estoque.custo)) },
     ]
+  }
+
+  /** Processa dados extraídos pela câmera. */
+  function preencherComDadosDaFoto(dados: DadosExtraidosFoto) {
+    if (gaveta === 'despesa') {
+      if (dados.fornecedor) setDespesa((d) => ({ ...d, fornecedor: dados.fornecedor || d.fornecedor }))
+      if (dados.valor) setDespesa((d) => ({ ...d, valor: (dados.valor! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+      if (dados.categoria) setDespesa((d) => ({ ...d, categoria: dados.categoria as CategoriaDespesa }))
+      if (dados.obs) setDespesa((d) => ({ ...d, obs: dados.obs || d.obs }))
+    } else if (gaveta === 'produto') {
+      if (dados.produto) setProduto((p) => ({ ...p, nome: dados.produto || p.nome }))
+      if (dados.categoria) setProduto((p) => ({ ...p, categoria: dados.categoria || p.categoria }))
+      if (dados.custo) setProduto((p) => ({ ...p, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+    } else if (gaveta === 'estoque') {
+      if (dados.produto) setEstoque((e) => ({ ...e, produto: dados.produto || e.produto }))
+      if (dados.quantidade) setEstoque((e) => ({ ...e, quantidade: String(dados.quantidade || e.quantidade) }))
+      if (dados.custo) setEstoque((e) => ({ ...e, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+    }
+    setCameraAberta(false)
+    adicionarToast({ tipo: 'sistema', titulo: 'Dados preenchidos', texto: 'Revise os campos e confirme.' })
   }
 
   /** Toast de sucesso com "Desfazer" que apaga os docs criados. */
@@ -238,6 +261,13 @@ export function GavetaHost() {
                 <Switch ligado={despesa.repete} aoTrocar={(v) => setDespesa({ ...despesa, repete: v })} />
               </label>
               <Campo rotulo="Observação · opcional" placeholder="Ex: compra de reposição do fim de semana" value={despesa.obs} onChange={(e) => setDespesa({ ...despesa, obs: e.target.value })} />
+              <button
+                onClick={() => setCameraAberta(true)}
+                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
+              >
+                <Camera size={18} />
+                Tirar foto da nota
+              </button>
               <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4 text-sm text-insight-texto">
                 Tem a nota na mão? <strong className="font-bold">Tira uma foto</strong> que a gente preenche tudo isso sozinho em 5 segundos.
               </div>
@@ -264,6 +294,13 @@ export function GavetaHost() {
                 <span><span className="block text-sm font-bold text-tinta">Entra no CMV</span><span className="block text-xs text-tinta-4">desliga pra material de limpeza e descartável</span></span>
                 <Switch ligado={produto.cmv} aoTrocar={(v) => setProduto({ ...produto, cmv: v })} />
               </label>
+              <button
+                onClick={() => setCameraAberta(true)}
+                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
+              >
+                <Camera size={18} />
+                Tirar foto do produto
+              </button>
             </div>
           )}
 
@@ -298,6 +335,13 @@ export function GavetaHost() {
                 <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} em Mercadoria</span></span>
                 <Switch ligado={estoque.geraDespesa} aoTrocar={(v) => setEstoque({ ...estoque, geraDespesa: v })} />
               </label>
+              <button
+                onClick={() => setCameraAberta(true)}
+                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
+              >
+                <Camera size={18} />
+                Tirar foto da mercadoria
+              </button>
             </div>
           )}
 
@@ -353,6 +397,15 @@ export function GavetaHost() {
           )}
         </div>
       </div>
+
+      {/* Modal de câmera */}
+      {cameraAberta && gaveta && (
+        <CapturaFoto
+          tipo={gaveta === 'despesa' ? 'despesa' : gaveta === 'produto' ? 'produto' : 'estoque'}
+          onExtrair={preencherComDadosDaFoto}
+          onCancelar={() => setCameraAberta(false)}
+        />
+      )}
     </div>
   )
 }
