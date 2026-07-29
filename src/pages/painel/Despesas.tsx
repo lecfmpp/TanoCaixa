@@ -4,7 +4,6 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Chip } from '@/components/ui/Chip'
-import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, quando, dataCurta } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
@@ -31,7 +30,6 @@ function corNome(nome: string): string {
 }
 
 export function Despesas() {
-  const { abrirGaveta } = useUI()
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const [busca, setBusca] = useState('')
@@ -133,10 +131,6 @@ export function Despesas() {
           <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
         </div>
       </Cartao>
-
-      <button onClick={() => abrirGaveta('despesa')} className="self-start rounded-botao bg-telhado px-4 py-2.5 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">
-        + Lançar por foto ou à mão
-      </button>
     </div>
   )
 }
