@@ -22,6 +22,9 @@ import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
 import { DRE } from '@/pages/painel/DRE'
 import { Numeros } from '@/pages/painel/Numeros'
 import { Ajustes } from '@/pages/painel/Ajustes'
+import { Perfil } from '@/pages/painel/Perfil'
+import { ConvitePage } from '@/pages/auth/ConvitePage'
+import { Plano } from '@/pages/painel/Plano'
 
 export default function App() {
   return (
@@ -34,6 +37,7 @@ export default function App() {
               <Route path="/criar" element={<CriarContaPage />} />
               <Route path="/esqueci" element={<EsqueciSenhaPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/convite/:token" element={<ConvitePage />} />
 
               <Route
                 path="/painel"
@@ -52,6 +56,8 @@ export default function App() {
                 <Route path="dre" element={<ExigePermissao chave="veDRE"><DRE /></ExigePermissao>} />
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Numeros /></ExigePermissao>} />
                 <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
+                <Route path="assinatura" element={<Plano />} />
+                <Route path="perfil" element={<Perfil />} />
               </Route>
 
               <Route path="/" element={<LandingPage />} />

@@ -61,6 +61,18 @@ interface LojaConectada {
   provedor: string
   merchantId: string
 }
+/** Acha o restaurante dono de um merchantId/storeId (evento de webhook → dono). */
+async function restauranteDoMerchant(provedor: string, merchantId: string): Promise<string | null> {
+  const snap = await db
+    .collectionGroup('integracoes')
+    .where('provedor', '==', provedor)
+    .where('merchantId', '==', merchantId)
+    .limit(1)
+    .get()
+  const doc = snap.docs[0]
+  return doc ? doc.ref.parent.parent!.id : null
+}
+
 async function lojasConectadas(): Promise<LojaConectada[]> {
   const snap = await db.collectionGroup('integracoes').get()
   return snap.docs
@@ -120,8 +132,62 @@ export const conectarIntegracao = onCall(async (req) => {
 
 /* ---------------------------- Webhooks ---------------------------------- */
 
+/** Registro na trilha de atividades: um evento de pedido em tempo real. */
+function atividadeDoEventoIFood(evento: { id: string; code: string; orderId: string }) {
+  return {
+    id: `ifood-evento-${evento.id}`,
+    quem: 'Automático',
+    quemInicial: '',
+    quemCor: '#AEB9B8',
+    acao: 'recebeu pedido do',
+    entidade: `iFood · pedido ${evento.orderId} (${evento.code})`,
+    tipo: 'Pedido',
+    criadoEm: new Date().toISOString(),
+    criadoPorId: 'ifood',
+    criadoPorNome: 'Automático',
+    origem: 'integracao' as const,
+  }
+}
+
+/** Webhook do iFood (modelo Centralizado) — recebe eventos de pedido de
+ * várias lojas num só POST. Grava uma atividade por evento e confirma (ACK)
+ * todos os ids recebidos, exigido pela API mesmo quando o processamento
+ * falha em achar o restaurante dono (evita retentativas infinitas do iFood).
+ * OBS: nomes de campo modelados a partir da doc pública — confira contra o
+ * payload real na homologação (ver ifood/types.ts). */
 export const ifoodWebhook = onRequest({ secrets: SEGREDOS }, async (req, res) => {
-  console.log('iFood webhook', JSON.stringify(req.body))
+  const eventos = (Array.isArray(req.body) ? req.body : [req.body]) as Array<{
+    id?: string
+    code?: string
+    orderId?: string
+    merchantId?: string
+  }>
+  console.log('iFood webhook', JSON.stringify(eventos))
+
+  const ids: string[] = []
+  for (const evento of eventos) {
+    if (evento?.id) ids.push(evento.id)
+    if (!evento?.id || !evento.orderId || !evento.code || !evento.merchantId) continue
+    try {
+      const restauranteId = await restauranteDoMerchant('ifood', evento.merchantId)
+      if (!restauranteId) {
+        console.warn(`iFood webhook: nenhuma loja conectada para merchantId ${evento.merchantId}`)
+        continue
+      }
+      const atividade = atividadeDoEventoIFood({ id: evento.id, code: evento.code, orderId: evento.orderId })
+      await escritor.salvarAtividade(restauranteId, atividade.id, atividade)
+    } catch (e) {
+      console.error(`iFood webhook: falha ao processar evento ${evento?.id}`, e)
+    }
+  }
+
+  if (ids.length) {
+    try {
+      await clienteIFood().ackEventos(ids)
+    } catch (e) {
+      console.error('iFood webhook: ACK falhou', e)
+    }
+  }
   res.status(202).send('ok')
 })
 
@@ -129,3 +195,13 @@ export const rappiWebhook = onRequest({ secrets: SEGREDOS }, async (req, res) =>
   console.log('Rappi webhook', JSON.stringify(req.body))
   res.status(202).send('ok')
 })
+
+/* -------------------------- Stripe (assinaturas) ------------------------- */
+export {
+  criarCheckoutAssinatura,
+  portalAssinatura,
+  stripeWebhook,
+} from './stripe'
+
+/* ----------------------------- Convites de equipe ------------------------ */
+export { criarConvite, verConvite, aceitarConvite } from './convites'
