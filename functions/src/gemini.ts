@@ -14,6 +14,17 @@ import { getFirestore } from 'firebase-admin/firestore'
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY')
 
+/**
+ * Modelo de visão. Fica FIXO de propósito: 'latest' muda sozinho e um dia
+ * quebra o formato da resposta sem ninguém mexer no código.
+ *
+ * O Google aposenta modelo antigo — o gemini-2.0-flash que estava aqui saiu
+ * do ar e derrubou a leitura de nota com 404. Se voltar a dar 404, veja os
+ * modelos vivos e troque esta linha:
+ *   curl "https://generativelanguage.googleapis.com/v1beta/models?key=SUA_CHAVE"
+ */
+const MODELO = 'gemini-3.5-flash'
+
 /* Cota diária por usuário. A demonstração entra com login anônimo, então
  * sem isto qualquer visitante poderia queimar a chave do Gemini. */
 const COTA_DIA = 60
@@ -133,7 +144,7 @@ export const analisarFoto = onCall(
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value())
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: MODELO,
       generationConfig: { responseMimeType: 'application/json' },
     })
 
@@ -145,7 +156,8 @@ export const analisarFoto = onCall(
       ])
       texto = r.response.text()
     } catch (e) {
-      console.error('Gemini falhou', e)
+      // O nome do modelo no log é o que denuncia rápido uma aposentadoria.
+      console.error(`Gemini falhou (modelo ${MODELO})`, e)
       throw new HttpsError('internal', 'Não conseguimos ler a foto. Tente outra imagem.')
     }
 
