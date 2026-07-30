@@ -112,13 +112,13 @@ export function receitaDiaDoIFood(resumo: ResumoDiaIFood) {
   }
 }
 
-/** A comissão/taxa do iFood do dia → despesa em taxas_app. */
+/** A comissão/taxa do iFood do dia → despesa em comissao_marketplace. */
 export function despesaTaxaDoIFood(resumo: ResumoDiaIFood) {
   return {
     id: `ifood-taxa-${resumo.data}`,
     fornecedor: 'Taxa iFood',
     descricao: `${resumo.pedidos} pedidos`,
-    categoria: 'taxas_app' as const,
+    categoria: 'comissao_marketplace' as const,
     valorTotal: Math.round(resumo.taxa * 100) / 100,
     dataCompetencia: resumo.data,
     formaPagamento: 'automatico' as const,

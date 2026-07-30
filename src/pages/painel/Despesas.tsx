@@ -8,16 +8,9 @@ import { brl, brlInteiro, quando, dataCurta } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, HOJE } from '@/data/derive'
-import type { CategoriaDespesa } from '@/types'
+import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import type { DespesaDoc } from '@/data/types'
 
-const CAT_ROTULO: Record<CategoriaDespesa, string> = {
-  mercadoria: 'Mercadoria', pessoal: 'Pessoal', ocupacao: 'Ocupação', taxas_app: 'Taxas de app',
-}
-const CAT_COR: Record<CategoriaDespesa, string> = {
-  mercadoria: 'bg-telhado/12 text-telhado', pessoal: 'bg-mar/12 text-mar',
-  ocupacao: 'bg-sol/20 text-insight-rotulo', taxas_app: 'bg-mata/12 text-mata',
-}
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
   pago: { txt: 'pago', cls: 'text-mata' }, a_pagar: { txt: 'a pagar', cls: 'text-tinta-4' }, vence: { txt: 'vence', cls: 'text-telha-alerta' },
 }
@@ -33,16 +26,22 @@ export function Despesas() {
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const [busca, setBusca] = useState('')
-  const [filtro, setFiltro] = useState<CategoriaDespesa | 'todas'>('todas')
+  const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
 
   const resumo = despesasResumo(ctx.despesas)
   const fat = resumoInicio(ctx, 'mes').entrou
   const cats = categoriasResumo(ctx.despesas, fat)
   const cfg = restaurante.data
 
+  // Só os grupos do DRE que já têm lançamento — chip vazio só atrapalha.
+  const gruposUsados = useMemo(() => {
+    const ids = new Set(ctx.despesas.map((d) => CONTA[d.categoria]?.grupo).filter(Boolean))
+    return GRUPOS.filter((g) => ids.has(g.id))
+  }, [ctx.despesas])
+
   const lista = useMemo(() => {
     return ctx.despesas
-      .filter((d) => (filtro === 'todas' ? true : d.categoria === filtro))
+      .filter((d) => (filtro === 'todas' ? true : CONTA[d.categoria]?.grupo === filtro))
       .filter((d) => (busca ? (d.fornecedor + (d.descricao ?? '')).toLowerCase().includes(busca.toLowerCase()) : true))
       .sort((a, b) => (a.dataCompetencia < b.dataCompetencia ? 1 : -1))
   }, [ctx.despesas, filtro, busca])
@@ -69,13 +68,16 @@ export function Despesas() {
         </div>
         <div className="flex h-3 w-full overflow-hidden rounded-full bg-preenchimento">
           {cats.map((c) => (
-            <div key={c.cat} className={cn('h-full', CAT_COR[c.cat].split(' ')[0].replace('/12', ''))} style={{ width: `${(c.valor / (resumo.saiu || 1)) * 100}%`, background: barCor(c.cat) }} />
+            <div key={c.cat} className="h-full" style={{ width: `${(c.valor / (resumo.saiu || 1)) * 100}%`, background: c.cor }} />
           ))}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 tab:grid-cols-4">
           {cats.map((c) => (
             <div key={c.cat} className="text-sm">
-              <span className="text-tinta-3">{c.nome}</span>
+              <span className="flex items-center gap-1.5 text-tinta-3">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.cor }} />
+                {c.nome}
+              </span>
               <div className="mono font-bold text-tinta">{brl(c.valor)} · {c.pct.toFixed(1)}%</div>
             </div>
           ))}
@@ -90,7 +92,7 @@ export function Despesas() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Chip rotulo="Todas" selecionado={filtro === 'todas'} aoClicar={() => setFiltro('todas')} />
-          {(Object.keys(CAT_ROTULO) as CategoriaDespesa[]).map((c) => <Chip key={c} rotulo={CAT_ROTULO[c]} selecionado={filtro === c} aoClicar={() => setFiltro(c)} />)}
+          {gruposUsados.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={filtro === g.id} aoClicar={() => setFiltro(g.id)} />)}
         </div>
       </div>
 
@@ -100,7 +102,7 @@ export function Despesas() {
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                <Th>Fornecedor</Th><Th>Categoria</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>Data</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th>
+                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>Data</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +112,7 @@ export function Despesas() {
                     <div className="font-semibold text-tinta">{d.fornecedor}</div>
                     {d.descricao && <div className="text-xs text-tinta-4">{d.descricao}</div>}
                   </td>
-                  <td className="px-4 py-3"><span className={cn('rounded-chip px-2 py-0.5 text-xs font-semibold', CAT_COR[d.categoria])}>{CAT_ROTULO[d.categoria]}</span></td>
+                  <td className="px-4 py-3"><EtiquetaConta categoria={d.categoria} /></td>
                   <td className="hidden px-4 py-3 capitalize text-tinta-2 tab:table-cell">{d.formaPagamento}</td>
                   <td className="mono px-4 py-3 text-tinta-2">{dataCurta(new Date(d.dataCompetencia))}</td>
                   <td className="px-4 py-3">
@@ -135,8 +137,21 @@ export function Despesas() {
   )
 }
 
-function barCor(c: CategoriaDespesa): string {
-  return { mercadoria: '#C05437', pessoal: '#2E5F73', ocupacao: '#EFAB5C', taxas_app: '#2F6B4A' }[c]
+/** Conta do lançamento + o grupo do DRE em que ela cai. */
+function EtiquetaConta({ categoria }: { categoria: DespesaDoc['categoria'] }) {
+  const conta = CONTA[categoria]
+  const grupo = GRUPO[conta?.grupo ?? 'cmv']
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span
+        className="w-fit rounded-chip px-2 py-0.5 text-xs font-semibold"
+        style={{ background: `${grupo.cor}1f`, color: grupo.cor }}
+      >
+        {conta?.nome ?? categoria}
+      </span>
+      <span className="text-[11px] text-tinta-4">{grupo.simples}</span>
+    </span>
+  )
 }
 
 function CartaoMini({ rotulo, valor, apoio, tom }: { rotulo: string; valor: number; apoio: string; tom?: 'mata' | 'telha' }) {

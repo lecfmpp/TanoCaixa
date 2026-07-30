@@ -6,6 +6,7 @@ import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
 import { resumoInicio } from '@/data/derive'
+import { tetosNormalizados } from '@/data/planoContas'
 
 const HISTORICO = [
   { mes: 'Fev', valor: 3200 },
@@ -25,7 +26,12 @@ export function Numeros() {
   const fat = r.entrou
   const pctv = (v: number) => (fat ? (v / fat) * 100 : 0)
 
+  // Metas dos KPIs saem dos tetos do Plano do mês, não de número fixo.
+  const tetos = tetosNormalizados(cfg?.tetos as Record<string, number> | undefined)
   const cmvPct = pctv(r.cmv)
+  const tetoCmv = tetos.cmv ?? 30
+  const tetoPessoal = tetos.pessoal ?? 25
+  const tetoDeducao = tetos.deducao ?? 12
 
   return (
     <div className="flex flex-col gap-4">
@@ -40,20 +46,20 @@ export function Numeros() {
         <CartaoKpi
           rotulo="CMV"
           valor={`${cmvPct.toFixed(1)}%`}
-          meta="meta 30%"
-          texto="Custo de mercadoria vendida"
-          corValor={cmvPct <= 30 ? 'text-mata' : 'text-telha-alerta'}
+          meta={`meta ${tetoCmv}%`}
+          texto={r.cmv > 0 ? 'Compras ± estoque contado' : 'Custo de mercadoria vendida'}
+          corValor={cmvPct <= tetoCmv ? 'text-mata' : 'text-telha-alerta'}
         />
         <CartaoKpi
           rotulo="Custo de pessoal"
           valor={`${pctv(r.pessoal).toFixed(1)}%`}
-          meta="meta 25%"
-          texto="Peso da folha"
+          meta={`meta ${tetoPessoal}%`}
+          texto="Folha, encargos e benefícios"
         />
         <CartaoKpi
-          rotulo="Peso dos apps"
+          rotulo="Taxas sobre venda"
           valor={`${pctv(r.apps).toFixed(1)}%`}
-          meta="meta 12%"
+          meta={`meta ${tetoDeducao}%`}
           texto="iFood, Rappi, maquininha"
         />
         <CartaoKpi

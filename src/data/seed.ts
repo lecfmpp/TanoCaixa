@@ -1,6 +1,9 @@
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
+import { TETOS_PADRAO } from './planoContas'
+import { getRede, salvarRede } from './rede'
+import { DEMO_TENANT, LOJAS_DEMO, REDE_DEMO } from './tenant'
 import type {
   DespesaDoc,
   ProdutoDoc,
@@ -11,6 +14,10 @@ import type {
   InsightDoc,
 } from './types'
 import type { Origem } from './tenant'
+
+/** Versão dos dados da demonstração.
+ *  2 = plano de contas do DRE padrão. 3 = rede com três lojas. */
+const SEED_VERSAO = 3
 
 const dia = (d: number) => `2026-07-${String(d).padStart(2, '0')}`
 const autor = (nome: string, id: string, o: Origem = 'computador', d = 27) => ({
@@ -41,11 +48,34 @@ const produtos: ProdutoDoc[] = [
   { id: 'p8', nome: 'Detergente neutro', categoria: 'Limpeza', unidade: 'un', custoAtual: 4.5, fornecedor: 'Atacadão', entraNoCmv: false, ...autor('Wesley', 'wesley', 'celular') },
 ]
 
+/** Uma linha de receita por canal — as quatro linhas de receita bruta do DRE. */
+const R = (
+  id: string,
+  d: number,
+  v: { ifood: [number, number, number]; balcao: [number, number]; whatsapp?: number; outros?: number },
+): ReceitaDiaDoc => {
+  const canais = [
+    { canal: 'ifood' as const, valorBruto: v.ifood[0], taxa: v.ifood[1], pedidos: v.ifood[2] },
+    { canal: 'balcao' as const, valorBruto: v.balcao[0], taxa: 0, pedidos: v.balcao[1] },
+    ...(v.whatsapp ? [{ canal: 'whatsapp' as const, valorBruto: v.whatsapp, taxa: 0, pedidos: 0 }] : []),
+    ...(v.outros ? [{ canal: 'outros' as const, valorBruto: v.outros, taxa: 0, pedidos: 0 }] : []),
+  ]
+  return {
+    id,
+    data: dia(d),
+    canais,
+    recebimentos: [],
+    sangria: 0,
+    totalDia: canais.reduce((s, c) => s + c.valorBruto, 0),
+    ...autor('Automático', 'sistema', 'integracao', d),
+  }
+}
+
 const receita: ReceitaDiaDoc[] = [
-  { id: 'r1', data: dia(4), canais: [{ canal: 'ifood', valorBruto: 7000, taxa: 1610, pedidos: 92 }, { canal: 'balcao', valorBruto: 4240, taxa: 0, pedidos: 61 }], recebimentos: [], sangria: 0, totalDia: 11240, ...autor('Automático', 'sistema', 'integracao', 4) },
-  { id: 'r2', data: dia(11), canais: [{ canal: 'ifood', valorBruto: 8000, taxa: 1840, pedidos: 104 }, { canal: 'balcao', valorBruto: 5240, taxa: 0, pedidos: 72 }], recebimentos: [], sangria: 0, totalDia: 13240, ...autor('Automático', 'sistema', 'integracao', 11) },
-  { id: 'r3', data: dia(18), canais: [{ canal: 'ifood', valorBruto: 6500, taxa: 1495, pedidos: 85 }, { canal: 'balcao', valorBruto: 3860, taxa: 0, pedidos: 54 }], recebimentos: [], sangria: 0, totalDia: 10360, ...autor('Automático', 'sistema', 'integracao', 18) },
-  { id: 'r4', data: dia(25), canais: [{ canal: 'ifood', valorBruto: 7500, taxa: 1725, pedidos: 98 }, { canal: 'balcao', valorBruto: 4980, taxa: 0, pedidos: 69 }], recebimentos: [], sangria: 0, totalDia: 12480, ...autor('Automático', 'sistema', 'integracao', 25) },
+  R('r1', 4, { ifood: [7000, 1610, 92], balcao: [4240, 61], whatsapp: 1180 }),
+  R('r2', 11, { ifood: [8000, 1840, 104], balcao: [5240, 72], whatsapp: 1420 }),
+  R('r3', 18, { ifood: [6500, 1495, 85], balcao: [3860, 54], whatsapp: 980 }),
+  R('r4', 25, { ifood: [7500, 1725, 98], balcao: [4980, 69], whatsapp: 1320, outros: 900 }),
 ]
 
 const D = (
@@ -71,29 +101,56 @@ const D = (
 })
 
 const despesas: DespesaDoc[] = [
-  // Mercadoria (CMV) = 14.640
-  D('d1', 'Hortifrúti Zona Sul', 'mercadoria', 842, 26, 'pago', 'pix', { descricao: 'Feira da semana', origemNota: true, ...autor('Jamile', 'jamile', 'ia_foto', 26) }),
-  D('d2', 'Frigorífico Salomão', 'mercadoria', 1284, 28, 'pago', 'pix', { descricao: 'Carnes', origemNota: true, ...autor('Jamile', 'jamile', 'ia_foto', 28) }),
-  D('d3', 'Casa Líbano', 'mercadoria', 2450, 3, 'pago', 'boleto', { descricao: 'Secos e grãos' }),
-  D('d4', 'Hortifrúti Cadeg', 'mercadoria', 1960, 10, 'pago', 'pix'),
-  D('d5', 'Distribuidora Zona Sul', 'mercadoria', 1740, 12, 'pago', 'cartao', { descricao: 'Bebidas' }),
-  D('d6', 'Frigorífico Salomão', 'mercadoria', 3180, 17, 'pago', 'boleto', { descricao: 'Carnes halal' }),
-  D('d7', 'Embalagens RJ', 'mercadoria', 1120, 19, 'a_pagar', 'boleto', { dataVencimento: dia(29) }),
-  D('d8', 'Hortifrúti do Zé', 'mercadoria', 2064, 6, 'pago', 'pix'),
-  // Pessoal = 10.900
-  D('d9', 'Folha da equipe', 'pessoal', 9200, 5, 'pago', 'automatico', { descricao: 'Salários', ...autor('Automático', 'sistema', 'integracao', 5) }),
-  D('d10', 'Vale-transporte', 'pessoal', 900, 5, 'pago', 'automatico'),
-  D('d11', 'Alimentação da equipe', 'pessoal', 800, 15, 'pago', 'dinheiro'),
-  // Ocupação = 6.300
-  D('d12', 'Aluguel', 'ocupacao', 3400, 1, 'a_pagar', 'boleto', { recorrente: true, dataVencimento: dia(5), descricao: 'todo dia 5' }),
-  D('d13', 'Light · conta de luz', 'ocupacao', 1240, 14, 'vence', 'boleto', { recorrente: true, dataVencimento: dia(31), descricao: 'todo dia 31' }),
-  D('d14', 'Ultragaz', 'ocupacao', 680, 10, 'pago', 'pix', { recorrente: true }),
-  D('d15', 'Internet e telefone', 'ocupacao', 320, 18, 'pago', 'automatico', { recorrente: true, descricao: 'todo dia 18' }),
-  D('d16', 'Condomínio', 'ocupacao', 660, 8, 'pago', 'boleto'),
-  // Taxas de app = 7.340
-  D('d17', 'Taxa iFood · julho', 'taxas_app', 4980, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
-  D('d18', 'Taxa Rappi · julho', 'taxas_app', 1310, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
-  D('d19', 'Maquininha Stone', 'taxas_app', 1050, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
+  // (−) Impostos, taxas e comissões sobre vendas = 10.943,20
+  D('d17', 'Taxa iFood · julho', 'comissao_marketplace', 4980, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
+  D('d18', 'Taxa Rappi · julho', 'comissao_marketplace', 1310, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
+  D('d19', 'Maquininha Stone', 'taxa_cartao', 1050, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
+  D('d20', 'Antecipação Stone', 'antecipacao', 320, 27, 'pago', 'automatico', { descricao: 'recebíveis de julho' }),
+  D('d21', 'Tarifas · Banco do Brasil', 'tarifa_bancaria', 96, 27, 'pago', 'automatico', { recorrente: true }),
+  D('d22', 'Simples Nacional · DAS', 'imposto_vendas', 3187.2, 20, 'pago', 'boleto', { descricao: '6% sobre o faturamento' }),
+
+  // CMV — compras do mês = 14.640
+  D('d1', 'Hortifrúti Zona Sul', 'cmv_alimentos', 842, 26, 'pago', 'pix', { descricao: 'Feira da semana', origemNota: true, ...autor('Jamile', 'jamile', 'ia_foto', 26) }),
+  D('d2', 'Frigorífico Salomão', 'cmv_alimentos', 1284, 28, 'pago', 'pix', { descricao: 'Carnes', origemNota: true, ...autor('Jamile', 'jamile', 'ia_foto', 28) }),
+  D('d3', 'Casa Líbano', 'cmv_alimentos', 2450, 3, 'pago', 'boleto', { descricao: 'Secos e grãos' }),
+  D('d4', 'Hortifrúti Cadeg', 'cmv_alimentos', 1960, 10, 'pago', 'pix'),
+  D('d5', 'Distribuidora Zona Sul', 'cmv_bebidas', 1740, 12, 'pago', 'cartao', { descricao: 'Refrigerantes e cervejas' }),
+  D('d6', 'Frigorífico Salomão', 'cmv_alimentos', 3180, 17, 'pago', 'boleto', { descricao: 'Carnes halal' }),
+  D('d7', 'Embalagens RJ', 'cmv_descartaveis', 1120, 19, 'a_pagar', 'boleto', { dataVencimento: dia(29) }),
+  D('d8', 'Hortifrúti do Zé', 'cmv_alimentos', 2064, 6, 'pago', 'pix'),
+
+  // (−) Ocupação = 6.710
+  D('d12', 'Aluguel', 'aluguel', 3400, 1, 'a_pagar', 'boleto', { recorrente: true, dataVencimento: dia(5), descricao: 'todo dia 5' }),
+  D('d13', 'Light · conta de luz', 'luz', 1240, 14, 'vence', 'boleto', { recorrente: true, dataVencimento: dia(31), descricao: 'todo dia 31' }),
+  D('d14', 'Ultragaz', 'gas', 680, 10, 'pago', 'pix', { recorrente: true }),
+  D('d16', 'Condomínio', 'condominio', 660, 8, 'pago', 'boleto'),
+  D('d23', 'Cedae', 'agua', 310, 12, 'pago', 'boleto', { recorrente: true }),
+  D('d24', 'IPTU · parcela 7', 'iptu', 240, 10, 'pago', 'boleto', { recorrente: true }),
+  D('d25', 'Seguro do ponto', 'seguro', 180, 5, 'pago', 'automatico', { recorrente: true }),
+
+  // (−) Despesas com pessoal = 11.220
+  D('d9', 'Folha da equipe', 'folha', 8400, 5, 'pago', 'automatico', { descricao: 'Salários', ...autor('Automático', 'sistema', 'integracao', 5) }),
+  D('d26', 'FGTS e INSS', 'encargos', 1120, 7, 'pago', 'boleto', { descricao: 'Encargos da folha' }),
+  D('d10', 'Vale-transporte', 'vale_transporte', 900, 5, 'pago', 'automatico'),
+  D('d11', 'Alimentação da equipe', 'vale_alimentacao', 800, 15, 'pago', 'dinheiro'),
+
+  // (−) Despesas administrativas = 1.249
+  D('d15', 'Internet e telefone', 'sistemas', 320, 18, 'pago', 'automatico', { recorrente: true, descricao: 'todo dia 18' }),
+  D('d27', 'TanoCaixa · plano Casa cheia', 'sistemas', 149, 3, 'pago', 'cartao', { recorrente: true }),
+  D('d28', 'Contabilidade Nassar', 'contador', 780, 10, 'pago', 'pix', { recorrente: true, descricao: 'Honorários de julho' }),
+
+  // (−) Despesas operacionais = 830
+  D('d29', 'Atacadão · material de limpeza', 'limpeza', 380, 9, 'pago', 'cartao'),
+  D('d30', 'Dedetizadora Botafogo', 'detetizacao', 260, 16, 'pago', 'pix', { descricao: 'Visita trimestral' }),
+  D('d31', 'Coleta de óleo e lixo', 'coleta_lixo', 190, 22, 'pago', 'pix', { recorrente: true }),
+
+  // (−) Despesas variáveis = 1.540
+  D('d32', 'Cupons iFood', 'cupons_app', 640, 27, 'pago', 'automatico', { descricao: 'Promoção do fim de semana' }),
+  D('d33', 'Social media · Larissa', 'marketing', 900, 12, 'pago', 'pix', { recorrente: true }),
+
+  // (−) Outras despesas, provisões e retiradas = 1.587
+  D('d34', 'Retirada dos sócios', 'retiradas', 1500, 20, 'pago', 'transferencia'),
+  D('d35', 'Juros · conta de luz de junho', 'multas', 87, 8, 'pago', 'boleto'),
 ]
 
 const atividades: AtividadeDoc[] = [
@@ -114,20 +171,89 @@ const insights: InsightDoc[] = [
   },
 ]
 
-const contagem: ContagemDoc = {
-  id: '2026-07',
-  mesReferencia: '2026-07',
-  status: 'aberta',
+/** Contagem de um mês. Fechada, ela vira o estoque que fecha o CMV do DRE. */
+const C = (mes: string, quantidades: number[], valorEstoque: number, d: number): ContagemDoc => ({
+  id: mes,
+  mesReferencia: mes,
+  status: 'fechada',
   itens: produtos.map((p, i) => ({
     produtoId: p.id,
     nome: p.nome,
     unidade: p.unidade,
     custoUnitario: p.custoAtual,
-    quantidade: [18, 14, 9, 11, 7, 48, 320, 12][i] ?? 0,
+    quantidade: quantidades[i] ?? 0,
     contadoPor: 'Wesley',
   })),
-  valorEstoque: 12418.2,
-  ...autor('Wesley', 'wesley', 'celular', 26),
+  valorEstoque,
+  ...autor('Wesley', 'wesley', 'celular', d),
+})
+
+// Estoque no fim de junho = estoque inicial de julho. Sem ele o CMV é só compra.
+const contagens: ContagemDoc[] = [
+  C('2026-06', [16, 12, 8, 10, 6, 44, 290, 10], 11840, 1),
+  C('2026-07', [18, 14, 9, 11, 7, 48, 320, 12], 12418.2, 26),
+]
+
+/* --------------------- Rede de demonstração --------------------------- *
+ * A matriz (Botafogo) é a franqueadora; as outras duas são franqueadas, com
+ * royalties e fundo de promoção. Cada uma é um tenant próprio — é exatamente
+ * assim que a rede de um cliente real fica.
+ * ------------------------------------------------------------------------ */
+
+const escalar = (v: number, f: number) => Math.round(v * f * 100) / 100
+
+/** Copia os dados da matriz numa loja da rede, com o movimento escalado. */
+async function seedLojaDaRede(l: (typeof LOJAS_DEMO)[number]): Promise<void> {
+  await setRestaurante(l.id, {
+    seedVersao: SEED_VERSAO,
+    nome: l.nome,
+    bairro: l.bairro,
+    cidade: 'Rio de Janeiro',
+    tipoOperacao: 'delivery_salao',
+    tipoCozinha: 'Árabe',
+    cnpj: '',
+    regimeTributario: 'simples',
+    aliquotaImposto: 0.06,
+    metaFaturamento: Math.round(50000 * l.fator),
+    tetos: TETOS_PADRAO,
+    aberturaMes: 'julho de 2026',
+    tipoNegocio: 'franqueada',
+    redeId: REDE_DEMO,
+    bandeira: 'Zaatar',
+    taxasFranquia: { royalties: 5, fundoPromocao: 2 },
+  } as never)
+
+  await Promise.all([
+    ...receita.map((r) =>
+      repo.receitaDia.salvar(l.id, r.id, {
+        ...r,
+        canais: r.canais.map((c) => ({ ...c, valorBruto: escalar(c.valorBruto, l.fator), taxa: escalar(c.taxa, l.fator) })),
+        totalDia: escalar(r.totalDia, l.fator),
+      }),
+    ),
+    // O imposto acompanha o faturamento; o resto escala junto.
+    ...despesas.map((d) => repo.despesas.salvar(l.id, d.id, { ...d, valorTotal: escalar(d.valorTotal, l.fator) })),
+    ...contagens.map((c) =>
+      repo.contagens.salvar(l.id, c.id, { ...c, valorEstoque: escalar(c.valorEstoque ?? 0, l.fator) }),
+    ),
+  ])
+}
+
+/** Idempotente e independente do tenant matriz: se a rede não existe, cria. */
+async function seedRedeDemo(): Promise<void> {
+  if (await getRede(REDE_DEMO)) return
+  await Promise.all(LOJAS_DEMO.map(seedLojaDaRede))
+  await salvarRede(REDE_DEMO, {
+    id: REDE_DEMO,
+    nome: 'Zaatar',
+    tipo: 'franquia',
+    donoUid: 'halim',
+    lojas: [
+      { restauranteId: DEMO_TENANT, nome: 'Zaatar Botafogo', bairro: 'Botafogo', cidade: 'Rio de Janeiro', propria: true },
+      ...LOJAS_DEMO.map((l) => ({ restauranteId: l.id, nome: l.nome, bairro: l.bairro, cidade: 'Rio de Janeiro' })),
+    ],
+    criadoEm: `${dia(1)}T09:00:00.000Z`,
+  })
 }
 
 /** Cria os dados da demonstração se o tenant ainda estiver vazio. */
@@ -151,10 +277,17 @@ export async function seedDemoSeVazio(tenant: string): Promise<void> {
     { merge: true },
   )
 
+  // Rede de demonstração — garantida à parte, pelo mesmo motivo das
+  // integrações: independe do estado do tenant matriz.
+  await seedRedeDemo()
+
+  // Sobe a versão sempre que os dados da demo mudarem de forma (aqui: plano de
+  // contas do DRE) — senão o tenant demo antigo fica preso no modelo velho.
   const existente = await getRestaurante(tenant)
-  if (existente) return
+  if ((existente as { seedVersao?: number } | null)?.seedVersao === SEED_VERSAO) return
 
   await setRestaurante(tenant, {
+    seedVersao: SEED_VERSAO,
     nome: 'Zaatar Cozinha Árabe',
     bairro: 'Botafogo',
     cidade: 'Rio de Janeiro',
@@ -164,9 +297,14 @@ export async function seedDemoSeVazio(tenant: string): Promise<void> {
     regimeTributario: 'simples',
     aliquotaImposto: 0.06,
     metaFaturamento: 50000,
-    tetos: { mercadoria: 30, pessoal: 25, ocupacao: 15, taxas_app: 12 },
+    tetos: TETOS_PADRAO,
     aberturaMes: 'julho de 2026',
-  })
+    // A matriz é a franqueadora da rede — não paga royalties, mas enxerga
+    // o consolidado das lojas.
+    tipoNegocio: 'franqueadora',
+    redeId: REDE_DEMO,
+    bandeira: 'Zaatar',
+  } as never)
 
   await Promise.all([
     ...membros.map((m) => repo.membros.salvar(tenant, m.id, m)),
@@ -175,6 +313,6 @@ export async function seedDemoSeVazio(tenant: string): Promise<void> {
     ...despesas.map((d) => repo.despesas.salvar(tenant, d.id, d)),
     ...atividades.map((a) => repo.atividades.salvar(tenant, a.id, a)),
     ...insights.map((i) => repo.insights.salvar(tenant, i.id, i)),
-    repo.contagens.salvar(tenant, contagem.id, contagem),
+    ...contagens.map((c) => repo.contagens.salvar(tenant, c.id, c)),
   ])
 }

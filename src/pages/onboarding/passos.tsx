@@ -9,6 +9,7 @@ import { HorarioSemana } from '@/components/ui/HorarioSemana'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
 import { pctDaMeta, TAXA_APP_TETO_PADRAO, type RespostasOnboarding } from '@/data/hooks'
+import { TIPOS_NEGOCIO, temRede } from '@/types'
 
 type Upd = (p: Partial<RespostasOnboarding>) => void
 import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
@@ -22,6 +23,8 @@ const OPERACOES = ['Só delivery', 'Delivery + salão', 'Só salão', 'Buffet / 
 const COZINHAS = ['Árabe', 'Boteco', 'Pizza', 'Japonês', 'Outro']
 
 export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
+  const franqueada = r.tipoNegocio === 'franqueada'
+  const rede = temRede(r.tipoNegocio)
   return (
     <div>
       <TituloPasso titulo="Me conta do seu restaurante" sub="Só o básico. Dá pra mudar depois." />
@@ -31,6 +34,51 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
           <CampoTexto rotulo="Bairro" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
           <CampoTexto rotulo="Lojas" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
         </div>
+
+        {/* Tipo de negócio — define o DRE (linha de franqueadora) e a visão de rede */}
+        <div>
+          <Rotulo>Como é o seu negócio</Rotulo>
+          <div className="flex flex-wrap gap-2">
+            {TIPOS_NEGOCIO.map((t) => (
+              <Chip key={t.id} rotulo={t.nome} selecionado={r.tipoNegocio === t.id} aoClicar={() => upd({ tipoNegocio: t.id })} />
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-tinta-4">
+            {TIPOS_NEGOCIO.find((t) => t.id === r.tipoNegocio)?.desc}
+          </p>
+        </div>
+
+        {(franqueada || rede) && (
+          <CampoTexto
+            rotulo={franqueada ? 'Nome da rede que você é franqueado' : 'Nome da sua rede'}
+            placeholder="Zaatar"
+            value={r.nomeRede}
+            onChange={(e) => upd({ nomeRede: e.target.value })}
+          />
+        )}
+
+        {franqueada && (
+          <div>
+            <Rotulo>O que você paga pra franqueadora</Rotulo>
+            <div className="grid grid-cols-2 gap-3">
+              <CampoTexto
+                rotulo="Royalties (% da receita)"
+                inputMode="decimal"
+                value={String(r.royalties || '')}
+                onChange={(e) => upd({ royalties: Number(e.target.value.replace(',', '.')) || 0 })}
+              />
+              <CampoTexto
+                rotulo="Fundo de promoção (%)"
+                inputMode="decimal"
+                value={String(r.fundoPromocao || '')}
+                onChange={(e) => upd({ fundoPromocao: Number(e.target.value.replace(',', '.')) || 0 })}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-tinta-4">
+              Entram como linha própria no DRE. Se você não lançar o boleto, a gente provisiona por esse percentual.
+            </p>
+          </div>
+        )}
 
         <div>
           <Rotulo>Como você opera</Rotulo>

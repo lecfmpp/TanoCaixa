@@ -19,7 +19,7 @@ export interface ContextoSyncRappi {
 /**
  * Sync financeiro de um dia (Rappi): puxa os pagamentos/repasse da loja,
  * agrega e grava receita_dia (bruto/taxa/pedidos) + a despesa da comissão
- * (taxas_app) + trilha de autoria. Rodar de fábrica às 06:00.
+ * (comissao_marketplace) + trilha de autoria. Rodar de fábrica às 06:00.
  */
 export async function syncFinanceiroDiaRappi(
   ctx: ContextoSyncRappi,

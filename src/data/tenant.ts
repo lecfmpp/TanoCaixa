@@ -6,6 +6,15 @@
  */
 export const DEMO_TENANT = 'demo-zaatar'
 
+/** Rede da demonstração — a matriz acima mais as lojas de exemplo. */
+export const REDE_DEMO = 'rede-demo'
+
+/** Lojas extras da rede de demonstração (cada uma é um tenant próprio). */
+export const LOJAS_DEMO = [
+  { id: 'demo-zaatar-tijuca', nome: 'Zaatar Tijuca', bairro: 'Tijuca', fator: 0.72 },
+  { id: 'demo-zaatar-barra', nome: 'Zaatar Barra', bairro: 'Barra da Tijuca', fator: 1.18 },
+] as const
+
 /** Origem de uma ação (autoria). */
 export type Origem = 'celular' | 'computador' | 'integracao' | 'ia_foto'
 

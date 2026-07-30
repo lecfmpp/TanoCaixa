@@ -5,6 +5,7 @@ import { gerarCSV, baixarCSV, lerArquivo, parseCSVObjetos } from '@/lib/csv'
 import { useImportar } from '@/data/hooks'
 import { useUI } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
+import { CONTA, GRUPO, GRUPOS, contasDoGrupo, normalizarCategoria } from '@/data/planoContas'
 
 interface Props {
   tipo: TipoImport
@@ -70,6 +71,30 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
         </button>
       </div>
 
+      {/* Plano de contas — pra preencher a coluna "categoria" sem errar */}
+      {tipo === 'despesas' && (
+        <details className="rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-3.5">
+          <summary className="cursor-pointer text-sm font-bold text-tinta">Contas aceitas na coluna “categoria”</summary>
+          <div className="mt-3 flex flex-col gap-3">
+            {GRUPOS.map((g) => (
+              <div key={g.id}>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-tinta-2">
+                  <span className="h-2 w-2 rounded-full" style={{ background: g.cor }} />
+                  {g.nome}
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                  {contasDoGrupo(g.id).map((c) => (
+                    <span key={c.id} className="text-xs text-tinta-4">
+                      <code className="text-tinta-3">{c.id}</code> · {c.nome}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {/* Passo 2: enviar o arquivo preenchido */}
       <div>
         <input
@@ -110,6 +135,7 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
                       {c.rotulo}
                     </th>
                   ))}
+                  {tipo === 'despesas' && <th className="rotulo whitespace-nowrap px-3 py-2 text-tinta-4">Vai entrar em</th>}
                 </tr>
               </thead>
               <tbody>
@@ -120,6 +146,7 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
                         {r[c.chave] || <span className="text-tinta-5">—</span>}
                       </td>
                     ))}
+                    {tipo === 'despesas' && <DestinoDaLinha categoria={r.categoria} />}
                   </tr>
                 ))}
               </tbody>
@@ -127,6 +154,12 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
           </div>
           {registros.length > 5 && (
             <p className="text-xs text-tinta-4">…e mais {registros.length - 5} linhas.</p>
+          )}
+          {tipo === 'despesas' && (
+            <p className="text-xs text-tinta-4">
+              A coluna “Vai entrar em” mostra a conta do DRE que o app entendeu. Se alguma linha caiu no lugar errado,
+              corrija a coluna <code>categoria</code> na planilha e envie de novo.
+            </p>
           )}
           <button
             onClick={confirmarImport}
@@ -140,5 +173,19 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
         </div>
       )}
     </div>
+  )
+}
+
+/** Onde a linha da planilha vai cair no DRE, com a mesma regra do import. */
+function DestinoDaLinha({ categoria }: { categoria?: string }) {
+  const conta = CONTA[normalizarCategoria(categoria)]
+  const grupo = GRUPO[conta.grupo]
+  return (
+    <td className="whitespace-nowrap px-3 py-2">
+      <span className="rounded-chip px-2 py-0.5 text-xs font-semibold" style={{ background: `${grupo.cor}1f`, color: grupo.cor }}>
+        {conta.nome}
+      </span>
+      <span className="ml-1.5 text-[11px] text-tinta-4">{grupo.simples}</span>
+    </td>
   )
 }

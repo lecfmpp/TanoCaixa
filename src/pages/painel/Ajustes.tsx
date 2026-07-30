@@ -5,6 +5,7 @@ import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
+import { Campo } from '@/components/ui/Campo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import {
@@ -15,12 +16,13 @@ import {
   useConectarIntegracao,
   useSalvarMembro,
   useRemoverMembro,
+  useSalvarRestaurante,
 } from '@/data/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { functions } from '@/lib/firebase'
 import { HOJE } from '@/data/derive'
-import { PAPEIS, rotuloPapel, normalizarPapel, type Papel, type Origem } from '@/types'
+import { PAPEIS, TIPOS_NEGOCIO, rotuloPapel, normalizarPapel, type Papel, type Origem, type TipoNegocio } from '@/types'
 import type { IntegracaoDoc } from '@/data/repo'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
@@ -30,6 +32,7 @@ const criarConviteFn = httpsCallable<{ restauranteId: string; papel: Papel }, { 
 )
 
 const PAPEL_DESC: Record<Papel, string> = {
+  franqueador: 'vê o consolidado da rede e o número de cada loja',
   dono: 'vê tudo e gerencia usuários',
   gestao: 'vê tudo; convida com aprovação do dono',
   caixa: 'só abre, fecha e concilia o caixa',
@@ -68,6 +71,9 @@ export function Ajustes() {
         titulo="Ajustes"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
       />
+
+      {/* Natureza do negócio — governa o DRE e a visão de rede */}
+      <SeuNegocio />
 
       {/* Quem usa / gestão de permissões */}
       <Equipe />
@@ -139,6 +145,85 @@ const STATUS_INT: Record<IntegracaoDoc['status'], { txt: string; cls: string }> 
 const DICA_PROV: Record<string, string> = {
   maquininha: 'Stone, Cielo, PagSeguro, Mercado Pago',
   pdv: 'Colibri, Consumer, Goomer…',
+}
+
+/** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
+function SeuNegocio() {
+  const cfg = useRestaurante().data
+  const salvar = useSalvarRestaurante()
+  const { adicionarToast } = useUI()
+
+  const tipo = cfg?.tipoNegocio ?? 'loja_unica'
+  const [royalties, setRoyalties] = useState('')
+  const [fundo, setFundo] = useState('')
+  const taxas = cfg?.taxasFranquia
+
+  async function trocarTipo(novo: TipoNegocio) {
+    // Deixa de ser franqueada → zera as taxas, senão o DRE segue provisionando.
+    await salvar.mutateAsync({
+      tipoNegocio: novo,
+      taxasFranquia:
+        novo === 'franqueada' ? (taxas ?? { royalties: 0, fundoPromocao: 0 }) : { royalties: 0, fundoPromocao: 0 },
+    })
+  }
+
+  async function salvarTaxas() {
+    await salvar.mutateAsync({
+      taxasFranquia: {
+        royalties: Number(royalties.replace(',', '.')) || taxas?.royalties || 0,
+        fundoPromocao: Number(fundo.replace(',', '.')) || taxas?.fundoPromocao || 0,
+      },
+    })
+    adicionarToast({ tipo: 'sucesso', titulo: 'Taxas salvas', texto: 'O DRE já usa esses percentuais.' })
+  }
+
+  return (
+    <Cartao className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-[15px] font-bold text-tinta">Seu negócio</h2>
+        <p className="text-sm text-tinta-3">Define o que aparece no seu DRE e se você tem visão de rede.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {TIPOS_NEGOCIO.map((t) => (
+          <Chip key={t.id} rotulo={t.nome} selecionado={tipo === t.id} aoClicar={() => trocarTipo(t.id)} />
+        ))}
+      </div>
+      <p className="text-xs text-tinta-4">{TIPOS_NEGOCIO.find((t) => t.id === tipo)?.desc}</p>
+
+      {tipo === 'franqueada' && (
+        <div className="flex flex-col gap-3 border-t border-divisoria pt-4">
+          <span className="rotulo text-tinta-4">O que você paga pra franqueadora</span>
+          <div className="grid grid-cols-2 gap-3">
+            <Campo
+              rotulo="Royalties (%)"
+              inputMode="decimal"
+              placeholder={String(taxas?.royalties ?? 0)}
+              value={royalties}
+              onChange={(e) => setRoyalties(e.target.value)}
+            />
+            <Campo
+              rotulo="Fundo de promoção (%)"
+              inputMode="decimal"
+              placeholder={String(taxas?.fundoPromocao ?? 0)}
+              value={fundo}
+              onChange={(e) => setFundo(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={salvarTaxas}
+            disabled={salvar.isPending}
+            className="self-start rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
+          >
+            Salvar percentuais
+          </button>
+          <p className="text-xs text-tinta-4">
+            Hoje: royalties {taxas?.royalties ?? 0}% e fundo {taxas?.fundoPromocao ?? 0}% da receita bruta. Sem o boleto
+            lançado, o DRE provisiona por esses números.
+          </p>
+        </div>
+      )}
+    </Cartao>
+  )
 }
 
 function Integracoes() {

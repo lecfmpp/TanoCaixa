@@ -5,12 +5,13 @@ import { Cartao } from '@/components/ui/Cartao'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useContagens, useRestaurante } from '@/data/hooks'
+import { useContagens, useRestaurante, useSalvarContagem } from '@/data/hooks'
 
 export function Estoque() {
-  const { abrirGaveta, confirmar } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
   const restaurante = useRestaurante()
   const contagens = useContagens()
+  const salvarContagem = useSalvarContagem()
 
   const cfg = restaurante.data
   const contagem = contagens.data?.find((c) => c.mesReferencia === '2026-07') ?? contagens.data?.[0]
@@ -33,6 +34,22 @@ export function Estoque() {
     () => itens.reduce((s, i) => s + qtdDe(i.produtoId, i.quantidade) * i.custoUnitario, 0),
     [itens, quantidades],
   )
+
+  /** Fecha o mês: o valor contado vira o estoque final e entra no CMV do DRE. */
+  async function fecharContagem() {
+    if (!contagem) return
+    await salvarContagem.mutateAsync({
+      ...contagem,
+      status: 'fechada',
+      itens: itens.map((i) => ({ ...i, quantidade: qtdDe(i.produtoId, i.quantidade) })),
+      valorEstoque: valorLive,
+    })
+    adicionarToast({
+      tipo: 'sucesso',
+      titulo: 'Contagem fechada',
+      texto: `${brl(valorLive)} viraram o estoque do mês — o CMV do DRE já considera isso.`,
+    })
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,9 +159,10 @@ export function Estoque() {
                 ],
                 rotuloCancelar: 'Continuar contando',
                 rotuloConfirmar: 'Fechar mês',
-                onConfirmar: () => {},
+                onConfirmar: fecharContagem,
               })
             }
+            disabled={!contagem || salvarContagem.isPending}
             className="rounded-botao bg-mar px-4 py-2.5 text-sm font-bold text-creme transition hover:bg-mar-escuro"
           >
             Fechar contagem

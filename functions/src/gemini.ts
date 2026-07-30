@@ -23,10 +23,22 @@ const PROMPTS: Record<TipoFoto, string> = {
 Responda com um JSON contendo:
 - fornecedor: string — nome da empresa/loja emissora
 - valor: number — total da nota em CENTAVOS, inteiro (ex: 5900 para R$ 59,00)
-- categoria: string — exatamente um de: "mercadoria", "pessoal", "ocupacao", "taxas_app"
+- categoria: string — a conta do plano de contas do DRE. Exatamente um destes códigos:
+  Taxas e impostos sobre venda: "comissao_marketplace" (iFood/Rappi), "taxa_cartao" (maquininha),
+    "antecipacao", "tarifa_bancaria", "imposto_vendas" (Simples Nacional/DAS/ISS)
+  CMV: "cmv_alimentos" (hortifrúti, carnes, secos), "cmv_bebidas", "cmv_descartaveis" (embalagem, marmita)
+  Ocupação: "aluguel", "condominio", "agua", "luz", "gas", "iptu", "seguro"
+  Pessoal: "folha", "encargos" (FGTS/INSS), "vale_transporte", "vale_alimentacao", "bonus",
+    "prolabore", "rescisoes", "pessoal_outros"
+  Administrativas: "sistemas" (software, internet, PDV), "contador"
+  Operacionais: "limpeza", "detetizacao", "coleta_lixo"
+  Variáveis: "cupons_app", "marketing", "variavel_outros"
+  Franqueadora: "fundo_promocao", "royalties"
+  Fora da operação: "retiradas", "multas" (juros e atraso)
 - obs: string — descrição curta do que foi comprado
 
-Omita qualquer campo que você não conseguir ler com confiança.`,
+Omita qualquer campo que você não conseguir ler com confiança. Se estiver em dúvida
+entre duas contas, omita a categoria em vez de chutar.`,
 
   produto: `Analise esta embalagem, etiqueta ou rótulo de produto e extraia:
 - produto: string — nome do item

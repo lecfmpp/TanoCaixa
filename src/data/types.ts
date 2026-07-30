@@ -1,5 +1,6 @@
 import type { Origem } from './tenant'
-import type { CategoriaDespesa, CanalVenda, Papel } from '@/types'
+import type { Papel, TipoNegocio } from '@/types'
+import type { CategoriaDespesa, CanalVenda, Tetos } from './planoContas'
 
 /** Campos de autoria presentes em todo documento. */
 export interface Autoria {
@@ -19,8 +20,17 @@ export interface RestauranteDoc {
   regimeTributario: 'simples' | 'presumido'
   aliquotaImposto: number // ex 0.06
   metaFaturamento: number
-  tetos: Record<CategoriaDespesa, number> // %
+  /** Teto de gasto por grupo do DRE, em % do faturamento. */
+  tetos: Tetos
   aberturaMes: string // 'julho de 2026'
+  /** Natureza do negócio — decide se o DRE tem linha de franqueadora. */
+  tipoNegocio?: TipoNegocio
+  /** Rede/franquia a que a loja pertence. */
+  redeId?: string
+  /** Nome da bandeira, quando faz parte de uma rede. */
+  bandeira?: string
+  /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
+  taxasFranquia?: { royalties: number; fundoPromocao: number }
 }
 
 export interface MembroDoc {

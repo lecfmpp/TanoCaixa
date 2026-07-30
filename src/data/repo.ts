@@ -10,6 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { normalizarCategoria } from './planoContas'
 import type {
   RestauranteDoc,
   MembroDoc,
@@ -72,7 +73,13 @@ export const repo = {
     remover: (t: string, id: string) => remover(t, 'produtos', id),
   },
   despesas: {
-    listar: (t: string) => listar<DespesaDoc>(t, 'despesas'),
+    // Migração na leitura: docs gravados no plano de contas antigo
+    // (mercadoria/pessoal/ocupacao/taxas_app) viram a conta equivalente do DRE.
+    listar: async (t: string) =>
+      (await listar<DespesaDoc>(t, 'despesas')).map((d) => ({
+        ...d,
+        categoria: normalizarCategoria(d.categoria),
+      })),
     salvar: (t: string, id: string, d: Partial<DespesaDoc>) => salvar(t, 'despesas', id, d),
     atualizar: (t: string, id: string, d: Partial<DespesaDoc>) => atualizar(t, 'despesas', id, d),
     remover: (t: string, id: string) => remover(t, 'despesas', id),

@@ -1,29 +1,39 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { doc, deleteDoc } from 'firebase/firestore'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
+import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
+import type { Contexto } from './derive'
 import type { DiaHorario } from '@/components/ui/HorarioSemana'
-import { DEMO_TENANT, origemAtual } from './tenant'
+import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
+import { useLojaAtiva } from './lojaAtiva'
 import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
+import { temRede, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
-import type { CategoriaDespesa } from '@/types'
+import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO } from './planoContas'
 import type {
   DespesaDoc,
   ProdutoDoc,
+  ReceitaDiaDoc,
+  RestauranteDoc,
   AtividadeDoc,
   ContagemDoc,
   MembroDoc,
 } from './types'
 
-const CATEGORIAS: CategoriaDespesa[] = ['mercadoria', 'pessoal', 'ocupacao', 'taxas_app']
-function normalizarCategoria(v: string): CategoriaDespesa {
-  const s = (v || '').toLowerCase().trim()
-  return (CATEGORIAS.find((c) => s.includes(c.replace('_app', ''))) ?? 'mercadoria')
+/**
+ * Tenant atual — a loja que o painel está mostrando. Normalmente é o
+ * restaurante do login; quem tem rede pode estar vendo outra loja dela.
+ */
+export function useTenant() {
+  const { sessao } = useAuth()
+  const loja = useLojaAtiva()
+  return loja ?? sessao?.tenantId ?? DEMO_TENANT
 }
 
-/** Tenant atual — o restaurante do usuário logado, ou o tenant demo. */
-export function useTenant() {
+/** Tenant do login, ignorando a troca de loja. Usado pela própria rede. */
+export function useTenantDoLogin() {
   const { sessao } = useAuth()
   return sessao?.tenantId ?? DEMO_TENANT
 }
@@ -67,16 +77,124 @@ export function useIntegracoes() {
   return useQuery({ queryKey: [t, 'integracoes'], queryFn: () => repo.integracoes.listar(t) })
 }
 
+/* ---------------------------- Rede de lojas --------------------------- */
+
+/** Rede do usuário logado — franquia ou várias lojas do mesmo dono. */
+export function useRede() {
+  const { sessao } = useAuth()
+  const uid = sessao?.usuario.id
+  const demo = sessao?.demo ?? false
+  return useQuery({
+    queryKey: ['rede', demo ? REDE_DEMO : uid],
+    queryFn: async () => {
+      if (demo) return getRede(REDE_DEMO)
+      if (!uid) return null
+      const u = await getDoc(doc(db, 'users', uid))
+      const redeId = u.exists() ? (u.data().redeId as string | undefined) : undefined
+      return redeId ? getRede(redeId) : getRedeDoDono(uid)
+    },
+    enabled: demo || !!uid,
+  })
+}
+
+export interface LojaComContexto {
+  loja: LojaDaRede
+  ctx: Contexto
+}
+
+/**
+ * Carrega o contexto de cálculo de cada loja da rede. As chaves de cache são
+ * as mesmas do tenant individual, então trocar de loja não refaz a busca.
+ */
+export function useContextosDaRede(): { carregando: boolean; lojas: LojaComContexto[] } {
+  const rede = useRede()
+  const lojas = rede.data?.lojas ?? []
+  const resultados = useQueries({
+    queries: lojas.flatMap((l) => [
+      { queryKey: [l.restauranteId, 'despesas'], queryFn: () => repo.despesas.listar(l.restauranteId) },
+      { queryKey: [l.restauranteId, 'receita_dia'], queryFn: () => repo.receitaDia.listar(l.restauranteId) },
+      { queryKey: [l.restauranteId, 'contagens'], queryFn: () => repo.contagens.listar(l.restauranteId) },
+      { queryKey: [l.restauranteId, 'restaurante'], queryFn: () => getRestaurante(l.restauranteId) },
+    ]),
+  })
+
+  return {
+    carregando: rede.isLoading || resultados.some((r) => r.isLoading),
+    lojas: lojas.map((loja, i) => ({
+      loja,
+      ctx: {
+        despesas: (resultados[i * 4]?.data as DespesaDoc[]) ?? [],
+        receitaDia: (resultados[i * 4 + 1]?.data as ReceitaDiaDoc[]) ?? [],
+        contagens: (resultados[i * 4 + 2]?.data as ContagemDoc[]) ?? [],
+        config: (resultados[i * 4 + 3]?.data as RestauranteDoc | undefined) ?? null,
+      },
+    })),
+  }
+}
+
+/** Cria a rede e registra a loja atual como primeira unidade. */
+export function useCriarRede() {
+  const { sessao } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { nome: string; tipo: 'franquia' | 'multi_loja' }) => {
+      if (!sessao) throw new Error('sem sessão')
+      return criarRede({
+        uid: sessao.usuario.id,
+        nome: p.nome,
+        tipo: p.tipo,
+        primeiraLoja: {
+          restauranteId: sessao.tenantId,
+          nome: sessao.restaurante.nome,
+          bairro: sessao.restaurante.bairro,
+          cidade: sessao.restaurante.cidade,
+        },
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rede'] })
+      qc.invalidateQueries({ queryKey: [sessao?.tenantId, 'restaurante'] })
+    },
+  })
+}
+
+/** Abre uma loja nova dentro da rede. */
+export function useAbrirLoja() {
+  const { sessao } = useAuth()
+  const rede = useRede()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { nome: string; bairro: string; cidade: string }) => {
+      if (!sessao || !rede.data) throw new Error('sem rede')
+      return abrirLoja({
+        rede: rede.data,
+        uid: sessao.usuario.id,
+        nome: p.nome,
+        bairro: p.bairro,
+        cidade: p.cidade || 'Rio de Janeiro',
+        // Loja própria da rede: franqueada quando a rede é franquia.
+        tipoNegocio: rede.data.tipo === 'franquia' ? 'franqueada' : 'multi_loja',
+        aliquotaImposto: 0.06,
+        metaFaturamento: 50000,
+      })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
+  })
+}
+
 /** Contexto para os cálculos (despesas + receita + config). */
 export function useContexto() {
   const despesas = useDespesas()
   const receita = useReceitaDia()
+  const contagens = useContagens()
   const config = useRestaurante()
   return {
     carregando: despesas.isLoading || receita.isLoading || config.isLoading,
     ctx: {
       despesas: despesas.data ?? [],
       receitaDia: receita.data ?? [],
+      // Contagem de estoque fecha o CMV do DRE (compras ± inventário).
+      contagens: contagens.data ?? [],
       config: config.data ?? null,
     },
   }
@@ -135,7 +253,6 @@ export function useCriarDespesa() {
       const id = entrada.id ?? novoId('d')
       const doc: DespesaDoc = {
         fornecedor: entrada.fornecedor ?? 'Fornecedor',
-        categoria: entrada.categoria ?? 'mercadoria',
         valorTotal: entrada.valorTotal ?? 0,
         dataCompetencia: entrada.dataCompetencia ?? new Date().toISOString().slice(0, 10),
         formaPagamento: entrada.formaPagamento ?? 'pix',
@@ -146,6 +263,8 @@ export function useCriarDespesa() {
         criadoPorNome: autor.criadoPorNome,
         origem: autor.origem,
         ...entrada,
+        // Depois do spread de propósito: nada entra no banco fora do plano de contas.
+        categoria: normalizarCategoria(entrada.categoria),
         id,
       }
       await repo.despesas.salvar(t, id, doc)
@@ -337,32 +456,46 @@ export function useImportar() {
   })
 }
 
+/** O que já veio das plataformas no dia (enquanto a integração real não roda). */
+export const VENDA_APP_DEMO = {
+  ifood: { bruto: 742.5, taxa: 178.2, pedidos: 38 },
+  rappi: { bruto: 186.4, taxa: 41.3, pedidos: 9 },
+}
+
 export function useCriarFechamento() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async ({ pix, cartao, dinheiro }: { pix: number; cartao: number; dinheiro: number }) => {
+    mutationFn: async (e: { pix: number; cartao: number; dinheiro: number; delivery?: number; outras?: number }) => {
+      const { pix, cartao, dinheiro } = e
       const autor = getAutor()
       const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
       const hoje = new Date().toISOString().slice(0, 10)
       const loja = pix + cartao + dinheiro
+      const delivery = e.delivery ?? 0
+      const outras = e.outras ?? 0
       const id = `fech-${hoje}`
+      // Um canal por linha de receita bruta do DRE: loja própria, delivery de
+      // app, delivery próprio e outras receitas.
+      const canais = [
+        { canal: 'ifood' as const, valorBruto: VENDA_APP_DEMO.ifood.bruto, taxa: VENDA_APP_DEMO.ifood.taxa, pedidos: VENDA_APP_DEMO.ifood.pedidos },
+        { canal: 'rappi' as const, valorBruto: VENDA_APP_DEMO.rappi.bruto, taxa: VENDA_APP_DEMO.rappi.taxa, pedidos: VENDA_APP_DEMO.rappi.pedidos },
+        { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
+        { canal: 'whatsapp' as const, valorBruto: delivery, taxa: 0, pedidos: 0 },
+        { canal: 'outros' as const, valorBruto: outras, taxa: 0, pedidos: 0 },
+      ].filter((c) => c.valorBruto > 0)
       const receita = {
         id,
         data: hoje,
-        canais: [
-          { canal: 'ifood' as const, valorBruto: 742.5, taxa: 178.2, pedidos: 38 },
-          { canal: 'rappi' as const, valorBruto: 186.4, taxa: 41.3, pedidos: 9 },
-          { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
-        ],
+        canais,
         recebimentos: [
           { forma: 'pix', valor: pix },
           { forma: 'cartao', valor: cartao },
           { forma: 'dinheiro', valor: dinheiro },
         ],
         sangria: 0,
-        totalDia: 742.5 + 186.4 + loja,
+        totalDia: canais.reduce((s, c) => s + c.valorBruto, 0),
         ...autoria,
       }
       await repo.receitaDia.salvar(t, id, receita)
@@ -395,9 +528,14 @@ export function useCriarMovimento() {
       })
       let despesaId: string | undefined
       if (e.geraDespesa && valor > 0) {
+        // A conta de CMV sai da categoria do produto (alimento, bebida,
+        // descartável) — assim a entrada de estoque cai na linha certa do DRE.
+        const produtos = await repo.produtos.listar(t)
+        const cadastrado = produtos.find((p) => p.nome.toLowerCase().trim() === e.produto.toLowerCase().trim())
         despesaId = novoId('d')
         await repo.despesas.salvar(t, despesaId, {
-          id: despesaId, fornecedor: 'Entrada de estoque', descricao: e.produto, categoria: 'mercadoria', valorTotal: valor,
+          id: despesaId, fornecedor: 'Entrada de estoque', descricao: e.produto,
+          categoria: contaDeCmvDoProduto(cadastrado?.categoria), valorTotal: valor,
           dataCompetencia: new Date().toISOString().slice(0, 10), formaPagamento: 'automatico', status: 'pago', recorrente: false, ...autoria,
         })
       }
@@ -438,6 +576,13 @@ export interface RespostasOnboarding {
   nome: string
   bairro: string
   lojas: string
+  /** Loja única, várias lojas, franqueada ou franqueadora. */
+  tipoNegocio: TipoNegocio
+  /** Nome da bandeira/rede, quando opera mais de uma loja. */
+  nomeRede: string
+  /** % da receita bruta pagos à franqueadora. */
+  royalties: number
+  fundoPromocao: number
   operacao: string
   cozinha: string
   cnpj: string
@@ -472,6 +617,7 @@ const OP_MAP: Record<string, string> = {
 /** Grava as respostas do onboarding no restaurante do usuário (tenant real). */
 export function usePersistirOnboarding() {
   const t = useTenant()
+  const { sessao } = useAuth()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (r: RespostasOnboarding) => {
@@ -485,13 +631,23 @@ export function usePersistirOnboarding() {
         regimeTributario: 'simples',
         aliquotaImposto: 0.06,
         metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 50000,
+        // Tetos por grupo do DRE — o que o onboarding não pergunta fica no padrão.
         tetos: {
+          ...TETOS_PADRAO,
           ocupacao: pctDaMeta(r.contasFixas, r.meta),
           pessoal: pctDaMeta(r.folha, r.meta),
-          mercadoria: pctDaMeta(r.mercadoria, r.meta),
-          taxas_app: TAXA_APP_TETO_PADRAO,
+          cmv: pctDaMeta(r.mercadoria, r.meta),
+          deducao: TAXA_APP_TETO_PADRAO,
         },
         aberturaMes: 'julho de 2026',
+        // Natureza do negócio: é ela que decide se o DRE tem linha de
+        // franqueadora e se existe visão de rede.
+        tipoNegocio: r.tipoNegocio,
+        bandeira: temRede(r.tipoNegocio) || r.tipoNegocio === 'franqueada' ? r.nomeRede : '',
+        taxasFranquia:
+          r.tipoNegocio === 'franqueada'
+            ? { royalties: r.royalties, fundoPromocao: r.fundoPromocao }
+            : null,
         // extras do onboarding (RestauranteDoc tolera campos a mais)
         numLojas: Number(r.lojas) || 1,
         ticketMedio: numeroBR(r.ticket),
@@ -503,6 +659,22 @@ export function usePersistirOnboarding() {
         pessoas: Number(r.pessoas) || 0,
         avisos: r.avisos,
       } as never)
+      // Quem opera mais de uma loja já sai do onboarding com a rede criada,
+      // com a loja atual como primeira unidade.
+      if (temRede(r.tipoNegocio) && sessao && !sessao.demo) {
+        await criarRede({
+          uid: sessao.usuario.id,
+          nome: r.nomeRede || r.nome || 'Minha rede',
+          tipo: r.tipoNegocio === 'franqueadora' ? 'franquia' : 'multi_loja',
+          primeiraLoja: {
+            restauranteId: t,
+            nome: r.nome || sessao.restaurante.nome,
+            bairro: r.bairro,
+            cidade: 'Rio de Janeiro',
+          },
+        })
+      }
+
       // Canais marcados viram integrações "conectando".
       await Promise.all(
         r.canais
@@ -513,6 +685,20 @@ export function usePersistirOnboarding() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [t, 'restaurante'] })
       qc.invalidateQueries({ queryKey: [t, 'integracoes'] })
+      qc.invalidateQueries({ queryKey: ['rede'] })
+    },
+  })
+}
+
+/** Salva campos soltos da configuração do restaurante (tipo de negócio, taxas…). */
+export function useSalvarRestaurante() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: Partial<RestauranteDoc>) => setRestaurante(t, dados as never),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'restaurante'] })
+      qc.invalidateQueries({ queryKey: ['rede'] })
     },
   })
 }

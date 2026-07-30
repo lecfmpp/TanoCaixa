@@ -22,6 +22,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { auth, db, functions } from '@/lib/firebase'
 import { DEMO_TENANT } from '@/data/tenant'
+import { TETOS_PADRAO } from '@/data/planoContas'
+import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
 import { permissoesDoPapel, normalizarPapel, type Permissoes, type Sessao } from '@/types'
 
@@ -74,8 +76,11 @@ async function provisionarRestaurante(user: User, dados?: DadosCadastro): Promis
       regimeTributario: 'simples',
       aliquotaImposto: 0.06,
       metaFaturamento: 50000,
-      tetos: { mercadoria: 30, pessoal: 25, ocupacao: 15, taxas_app: 12 },
+      tetos: TETOS_PADRAO,
       aberturaMes: 'julho de 2026',
+      // O onboarding refina isso; loja única é o padrão seguro (sem linha de
+      // franqueadora no DRE, sem visão de rede).
+      tipoNegocio: 'loja_unica',
       memberUids: [user.uid],
       criadoPor: user.uid,
     },
@@ -297,6 +302,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sair = useCallback(async () => {
     sessionStorage.removeItem(CHAVE_DEMO)
+    // Não deixa a loja escolhida na rede vazar pro próximo login.
+    definirLojaAtiva(null)
     if (sessao) sessaoCache.delete(sessao.usuario.id)
     if (sessao?.demo) {
       setSessao(null)

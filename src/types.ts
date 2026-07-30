@@ -6,9 +6,10 @@
 export type Origem = 'celular' | 'computador' | 'integracao' | 'ia_foto'
 
 /** Papel do membro no restaurante. Governa o que ele enxerga e pode fazer. */
-export type Papel = 'dono' | 'gestao' | 'caixa' | 'cozinha'
+export type Papel = 'franqueador' | 'dono' | 'gestao' | 'caixa' | 'cozinha'
 
 export const PAPEIS: { id: Papel; nome: string; desc: string }[] = [
+  { id: 'franqueador', nome: 'Franqueador', desc: 'Vê o consolidado da rede e o número de cada loja' },
   { id: 'dono', nome: 'Dono', desc: 'Vê tudo e gerencia usuários e permissões' },
   { id: 'gestao', nome: 'Gestão', desc: 'Vê tudo; convida usuários com aprovação do dono' },
   { id: 'caixa', nome: 'Caixa', desc: 'Só abre, fecha e concilia o caixa' },
@@ -21,6 +22,7 @@ export function rotuloPapel(p: Papel): string {
 
 /** Converte papéis antigos (gerente/estoque/…) para o conjunto atual. */
 export function normalizarPapel(p: string | undefined): Papel {
+  if (p === 'franqueador') return 'franqueador'
   if (p === 'dono') return 'dono'
   if (p === 'gestao' || p === 'gerente' || p === 'contador') return 'gestao'
   if (p === 'caixa' || p === 'lancador') return 'caixa'
@@ -29,16 +31,40 @@ export function normalizarPapel(p: string | undefined): Papel {
 
 /** Rota inicial de cada papel. */
 export function homeDoPapel(papel: Papel): string {
+  if (papel === 'franqueador') return '/painel/rede'
   if (papel === 'caixa') return '/painel/caixa'
   if (papel === 'cozinha') return '/painel/estoque'
   return '/painel'
 }
 
+/* ------------------------------------------------------------------ *
+ * Natureza do negócio — define o que aparece no DRE e se existe rede.
+ * ------------------------------------------------------------------ */
+
+export type TipoNegocio = 'loja_unica' | 'multi_loja' | 'franqueada' | 'franqueadora'
+
+export const TIPOS_NEGOCIO: { id: TipoNegocio; nome: string; desc: string }[] = [
+  { id: 'loja_unica', nome: 'Uma loja só', desc: 'Um CNPJ, um endereço' },
+  { id: 'multi_loja', nome: 'Mais de uma loja minha', desc: 'Mesma marca, sem franquia' },
+  { id: 'franqueada', nome: 'Sou franqueado', desc: 'Pago royalties e fundo de promoção' },
+  { id: 'franqueadora', nome: 'Sou a franqueadora', desc: 'Acompanho as lojas da rede' },
+]
+
+/** Só franqueado paga royalties e fundo — nos outros o grupo some do DRE. */
+export function pagaFranqueadora(t: TipoNegocio | undefined): boolean {
+  return t === 'franqueada'
+}
+
+/** Quem opera mais de uma loja ganha a visão consolidada da rede. */
+export function temRede(t: TipoNegocio | undefined): boolean {
+  return t === 'multi_loja' || t === 'franqueadora'
+}
+
 export type Periodo = 'semana' | 'mes'
 
-export type CategoriaDespesa = 'mercadoria' | 'pessoal' | 'ocupacao' | 'taxas_app'
-
-export type CanalVenda = 'ifood' | 'rappi' | 'whatsapp' | 'balcao'
+/* O plano de contas do DRE vive em @/data/planoContas — reexportado aqui
+ * porque metade do app importa esses tipos de '@/types'. */
+export type { CategoriaDespesa, CanalVenda, GrupoDRE } from '@/data/planoContas'
 
 export interface Usuario {
   id: string
@@ -99,6 +125,8 @@ export interface Permissoes {
   veEstoque: boolean
   vePlano: boolean
   veDRE: boolean
+  /** Consolidado da rede e comparativo entre lojas. */
+  veRede: boolean
   veNumeros: boolean
   veFechamento: boolean // caixa: abrir/fechar/conciliar
   veAjustes: boolean
@@ -118,6 +146,7 @@ const NADA: Permissoes = {
   veEstoque: false,
   vePlano: false,
   veDRE: false,
+  veRede: false,
   veNumeros: false,
   veFechamento: false,
   veAjustes: false,
@@ -130,17 +159,26 @@ const NADA: Permissoes = {
 
 export function permissoesDoPapel(papel: Papel): Permissoes {
   switch (papel) {
+    case 'franqueador':
+      // Enxerga o número de todas as lojas, mas não opera nenhuma: quem lança
+      // despesa, conta estoque e fecha caixa é a equipe da loja.
+      return {
+        veInicio: true, veDespesas: true, veProdutos: false, veEstoque: false,
+        vePlano: true, veDRE: true, veRede: true, veNumeros: true, veFechamento: false, veAjustes: true,
+        veLucro: true, veFaturamentoTotal: true,
+        gerenciaEquipe: 'total', lancaDespesa: false, movimentaEstoque: false,
+      }
     case 'dono':
       return {
         veInicio: true, veDespesas: true, veProdutos: true, veEstoque: true,
-        vePlano: true, veDRE: true, veNumeros: true, veFechamento: true, veAjustes: true,
+        vePlano: true, veDRE: true, veRede: true, veNumeros: true, veFechamento: true, veAjustes: true,
         veLucro: true, veFaturamentoTotal: true,
         gerenciaEquipe: 'total', lancaDespesa: true, movimentaEstoque: true,
       }
     case 'gestao':
       return {
         veInicio: true, veDespesas: true, veProdutos: true, veEstoque: true,
-        vePlano: true, veDRE: true, veNumeros: true, veFechamento: true, veAjustes: true,
+        vePlano: true, veDRE: true, veRede: true, veNumeros: true, veFechamento: true, veAjustes: true,
         veLucro: true, veFaturamentoTotal: true,
         gerenciaEquipe: 'proposta', lancaDespesa: true, movimentaEstoque: true,
       }

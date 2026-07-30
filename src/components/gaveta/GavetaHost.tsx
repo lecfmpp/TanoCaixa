@@ -8,11 +8,12 @@ import { Switch } from '@/components/ui/Switch'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useDesfazer } from '@/data/hooks'
+import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useDesfazer, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
-import type { CategoriaDespesa } from '@/types'
+import { CONTA, GRUPOS, contasDoGrupo, normalizarCategoria, type CategoriaDespesa, type GrupoDRE } from '@/data/planoContas'
 import type { DadosExtraidosFoto } from '@/lib/gemini'
 
 /** Gavetas que aceitam importação por planilha e para qual entidade. */
@@ -29,17 +30,23 @@ const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[
   fechamento: { titulo: 'Fechar o dia', sub: 'Vendas do dia', etapas: ['Dados', 'Confere', 'Pronto'] },
 }
 
-const CATS: { id: CategoriaDespesa; nome: string }[] = [
-  { id: 'mercadoria', nome: 'Mercadoria' },
-  { id: 'pessoal', nome: 'Pessoal' },
-  { id: 'ocupacao', nome: 'Ocupação' },
-  { id: 'taxas_app', nome: 'Taxas de app' },
-]
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Ainda vou pagar']
 const CAT_PRODUTO = ['Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza']
 const UNIDADES = ['kg', 'g', 'L', 'un', 'pacote', 'caixa']
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
+const hojeISO = () => new Date().toISOString().slice(0, 10)
+
+const DESPESA_VAZIA = {
+  fornecedor: '',
+  valor: '',
+  grupo: 'cmv' as GrupoDRE,
+  conta: 'cmv_alimentos' as CategoriaDespesa,
+  data: hojeISO(),
+  pagamento: 'Pix',
+  obs: '',
+  repete: false,
+}
 
 export function GavetaHost() {
   const { gaveta, fecharGaveta, adicionarToast } = useUI()
@@ -49,20 +56,31 @@ export function GavetaHost() {
   const criarFechamento = useCriarFechamento()
   const criarMovimento = useCriarMovimento()
   const desfazer = useDesfazer()
+  const cfg = useRestaurante().data
+  // Quem não é franqueado não tem royalties nem fundo — o grupo some da lista
+  // pra ninguém lançar despesa numa linha que o DRE dele nem mostra.
+  const gruposDisponiveis = GRUPOS.filter(
+    (g) => g.id !== 'franqueadora' || pagaFranqueadora(cfg?.tipoNegocio),
+  )
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
   const [cameraAberta, setCameraAberta] = useState(false)
 
   // Estado dos formulários
-  const [despesa, setDespesa] = useState({ fornecedor: '', valor: '', categoria: 'mercadoria' as CategoriaDespesa, pagamento: 'Pix', obs: '', repete: false })
+  const [despesa, setDespesa] = useState(DESPESA_VAZIA)
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '' })
+  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', delivery: '', outras: '' })
   const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: '', quantidade: '', custo: '', geraDespesa: true })
+
+  /** Trocar de grupo leva a conta pra primeira do grupo novo. */
+  function trocarGrupo(g: GrupoDRE) {
+    setDespesa((d) => ({ ...d, grupo: g, conta: contasDoGrupo(g)[0].id }))
+  }
 
   useEffect(() => {
     setEtapa(0)
     setModo('form')
-    setDespesa({ fornecedor: '', valor: '', categoria: 'mercadoria', pagamento: 'Pix', obs: '', repete: false })
+    setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
     setEstoque({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
   }, [gaveta])
@@ -89,7 +107,9 @@ export function GavetaHost() {
       return [
         { rot: 'Fornecedor', val: despesa.fornecedor || '—' },
         { rot: 'Valor', val: brl(soNum(despesa.valor)) },
-        { rot: 'Categoria', val: CATS.find((c) => c.id === despesa.categoria)?.nome ?? '' },
+        { rot: 'Linha do DRE', val: GRUPOS.find((g) => g.id === despesa.grupo)?.nome ?? '' },
+        { rot: 'Conta', val: CONTA[despesa.conta]?.nome ?? '' },
+        { rot: 'Competência', val: despesa.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: despesa.pagamento },
       ]
     if (gaveta === 'produto')
@@ -99,11 +119,14 @@ export function GavetaHost() {
         { rot: 'Custo', val: brl(soNum(produto.custo)) + ' / ' + produto.unidade },
       ]
     if (gaveta === 'fechamento') {
-      const total = 742.5 + 186.4 + soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)
+      const apps = VENDA_APP_DEMO.ifood.bruto + VENDA_APP_DEMO.rappi.bruto
+      const loja = soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)
       return [
-        { rot: 'iFood + Rappi', val: brl(928.9) },
-        { rot: 'Na loja', val: brl(soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)) },
-        { rot: 'Total do dia', val: brl(total) },
+        { rot: 'Vendas delivery (apps)', val: brl(apps) },
+        { rot: 'Vendas loja própria', val: brl(loja) },
+        { rot: 'Venda delivery próprio', val: brl(soNum(fecha.delivery)) },
+        { rot: 'Outras receitas', val: brl(soNum(fecha.outras)) },
+        { rot: 'Total do dia', val: brl(apps + loja + soNum(fecha.delivery) + soNum(fecha.outras)) },
       ]
     }
     return [
@@ -119,7 +142,10 @@ export function GavetaHost() {
     if (gaveta === 'despesa') {
       if (dados.fornecedor) setDespesa((d) => ({ ...d, fornecedor: dados.fornecedor || d.fornecedor }))
       if (dados.valor) setDespesa((d) => ({ ...d, valor: (dados.valor! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
-      if (dados.categoria) setDespesa((d) => ({ ...d, categoria: dados.categoria as CategoriaDespesa }))
+      if (dados.categoria) {
+        const conta = normalizarCategoria(dados.categoria)
+        setDespesa((d) => ({ ...d, conta, grupo: CONTA[conta].grupo }))
+      }
       if (dados.obs) setDespesa((d) => ({ ...d, obs: dados.obs || d.obs }))
     } else if (gaveta === 'produto') {
       if (dados.produto) setProduto((p) => ({ ...p, nome: dados.produto || p.nome }))
@@ -154,13 +180,14 @@ export function GavetaHost() {
       const d = await criarDespesa.mutateAsync({
         fornecedor: despesa.fornecedor || 'Fornecedor',
         valorTotal: soNum(despesa.valor),
-        categoria: despesa.categoria,
+        categoria: despesa.conta,
+        dataCompetencia: despesa.data,
         formaPagamento: (despesa.pagamento === 'Ainda vou pagar' ? 'boleto' : despesa.pagamento.toLowerCase()) as never,
         status: st as never,
         observacao: despesa.obs,
         recorrente: despesa.repete,
       })
-      toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CATS.find((c) => c.id === despesa.categoria)?.nome}.`, [{ colecao: 'despesas', id: d.id }])
+      toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'produto') {
       const p = await criarProduto.mutateAsync({
         nome: produto.nome || 'Produto',
@@ -173,7 +200,13 @@ export function GavetaHost() {
       })
       toastComDesfazer('Produto cadastrado', `${produto.nome || 'Produto'} entrou no estoque.`, [{ colecao: 'produtos', id: p.id }])
     } else if (gaveta === 'fechamento') {
-      const f = await criarFechamento.mutateAsync({ pix: soNum(fecha.pix), cartao: soNum(fecha.cartao), dinheiro: soNum(fecha.dinheiro) })
+      const f = await criarFechamento.mutateAsync({
+        pix: soNum(fecha.pix),
+        cartao: soNum(fecha.cartao),
+        dinheiro: soNum(fecha.dinheiro),
+        delivery: soNum(fecha.delivery),
+        outras: soNum(fecha.outras),
+      })
       toastComDesfazer('Dia fechado', `${brl(f.totalDia)} confirmados no caixa de hoje.`, [{ colecao: 'receita_dia', id: f.id }])
     } else {
       const m = await criarMovimento.mutateAsync({
@@ -243,12 +276,26 @@ export function GavetaHost() {
           {etapa === 0 && modo === 'form' && gaveta === 'despesa' && (
             <div className="flex flex-col gap-4">
               <Campo rotulo="Fornecedor" placeholder="Ex: Hortifrúti Zona Sul" value={despesa.fornecedor} onChange={(e) => setDespesa({ ...despesa, fornecedor: e.target.value })} />
-              <Campo rotulo="Quanto foi" placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <Campo rotulo="Quanto foi" placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
+                <Campo rotulo="Data da despesa" type="date" value={despesa.data} onChange={(e) => setDespesa({ ...despesa, data: e.target.value })} />
+              </div>
               <div>
-                <span className="rotulo mb-1.5 block text-tinta-4">Categoria</span>
+                <span className="rotulo mb-1.5 block text-tinta-4">Onde entra no DRE</span>
                 <div className="flex flex-wrap gap-2">
-                  {CATS.map((c) => <Chip key={c.id} rotulo={c.nome} selecionado={despesa.categoria === c.id} aoClicar={() => setDespesa({ ...despesa, categoria: c.id })} />)}
+                  {gruposDisponiveis.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={despesa.grupo === g.id} aoClicar={() => trocarGrupo(g.id)} />)}
                 </div>
+              </div>
+              <div>
+                <span className="rotulo mb-1.5 block text-tinta-4">Qual conta</span>
+                <div className="flex flex-wrap gap-2">
+                  {contasDoGrupo(despesa.grupo).map((c) => (
+                    <Chip key={c.id} rotulo={c.nome} selecionado={despesa.conta === c.id} aoClicar={() => setDespesa({ ...despesa, conta: c.id })} />
+                  ))}
+                </div>
+                {CONTA[despesa.conta]?.ajuda && (
+                  <p className="mt-1.5 text-xs text-tinta-4">{CONTA[despesa.conta].ajuda}</p>
+                )}
               </div>
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">Como pagou</span>
@@ -307,16 +354,23 @@ export function GavetaHost() {
           {etapa === 0 && modo === 'form' && gaveta === 'fechamento' && (
             <div className="flex flex-col gap-4">
               <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
-                <span className="rotulo text-tinta-4">Já veio das plataformas</span>
-                <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · 38 pedidos · taxa {brl(178.2)}</span><span className="mono font-bold">{brl(742.5)}</span></div>
-                <div className="mt-1 flex items-center justify-between text-sm"><span className="text-tinta-2">Rappi · 9 pedidos · taxa {brl(41.3)}</span><span className="mono font-bold">{brl(186.4)}</span></div>
+                <span className="rotulo text-tinta-4">Vendas delivery (apps) · já veio das plataformas</span>
+                <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · {VENDA_APP_DEMO.ifood.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.ifood.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.ifood.bruto)}</span></div>
+                <div className="mt-1 flex items-center justify-between text-sm"><span className="text-tinta-2">Rappi · {VENDA_APP_DEMO.rappi.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.rappi.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.rappi.bruto)}</span></div>
               </div>
-              <span className="rotulo text-tinta-4">O que você recebeu na loja</span>
+              <span className="rotulo text-tinta-4">Vendas loja própria · o que você recebeu no balcão</span>
               <div className="grid grid-cols-3 gap-3">
-                <Campo rotulo="Pix / WhatsApp" inputMode="decimal" value={fecha.pix} onChange={(e) => setFecha({ ...fecha, pix: e.target.value })} />
+                <Campo rotulo="Pix" inputMode="decimal" value={fecha.pix} onChange={(e) => setFecha({ ...fecha, pix: e.target.value })} />
                 <Campo rotulo="Cartão" inputMode="decimal" value={fecha.cartao} onChange={(e) => setFecha({ ...fecha, cartao: e.target.value })} />
                 <Campo rotulo="Dinheiro" inputMode="decimal" value={fecha.dinheiro} onChange={(e) => setFecha({ ...fecha, dinheiro: e.target.value })} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Campo rotulo="Delivery próprio" placeholder="WhatsApp, telefone" inputMode="decimal" value={fecha.delivery} onChange={(e) => setFecha({ ...fecha, delivery: e.target.value })} />
+                <Campo rotulo="Outras receitas" placeholder="evento, buffet" inputMode="decimal" value={fecha.outras} onChange={(e) => setFecha({ ...fecha, outras: e.target.value })} />
+              </div>
+              <p className="text-xs text-tinta-4">
+                Cada campo aqui é uma linha da receita bruta do DRE. As taxas dos apps entram sozinhas como dedução sobre venda.
+              </p>
             </div>
           )}
 
@@ -332,7 +386,7 @@ export function GavetaHost() {
                 <Campo rotulo="Custo unitário" placeholder="R$ 9,80" value={estoque.custo} onChange={(e) => setEstoque({ ...estoque, custo: e.target.value })} inputMode="decimal" />
               </div>
               <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
-                <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} em Mercadoria</span></span>
+                <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} no CMV, na conta do produto</span></span>
                 <Switch ligado={estoque.geraDespesa} aoTrocar={(v) => setEstoque({ ...estoque, geraDespesa: v })} />
               </label>
               <button
@@ -359,9 +413,9 @@ export function GavetaHost() {
               <p className="text-xs text-tinta-4">
                 Vai ficar registrado como <strong className="font-semibold text-tinta-2">{nome}</strong>, hoje às {hora}, pelo computador da loja.
               </p>
-              {gaveta === 'despesa' && despesa.categoria === 'mercadoria' && (
+              {gaveta === 'despesa' && (
                 <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
-                  Seu CMV vai de <span className="mono font-bold">29,9%</span> para <span className="mono font-bold">30,9%</span>.
+                  No DRE isso entra em <strong className="font-bold text-tinta">{GRUPOS.find((g) => g.id === despesa.grupo)?.nome}</strong>, na conta <strong className="font-bold text-tinta">{CONTA[despesa.conta]?.nome}</strong>.
                 </div>
               )}
             </div>

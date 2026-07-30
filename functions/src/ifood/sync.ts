@@ -29,7 +29,7 @@ export interface ContextoSync {
 
 /**
  * Sync financeiro de um dia: puxa as vendas do iFood, agrega e grava
- * receita_dia (bruto/taxa/pedidos) + a despesa da comissão (taxas_app) +
+ * receita_dia (bruto/taxa/pedidos) + a despesa da comissão (comissao_marketplace) +
  * uma linha na trilha de autoria. Rodar de fábrica às 06:00.
  */
 export async function syncFinanceiroDia(ctx: ContextoSync, data: string): Promise<{ pedidos: number; bruto: number }> {

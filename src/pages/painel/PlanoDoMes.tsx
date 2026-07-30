@@ -25,6 +25,11 @@ export function PlanoDoMes() {
   const linhas = planoLinhas(ctx)
   const cfg = useRestaurante().data
 
+  // O grupo que mais passou do teto — é ele que come a margem.
+  const vazamento = [...linhas]
+    .filter((l) => l.realPct > l.teto)
+    .sort((a, b) => b.realPct - b.teto - (a.realPct - a.teto))[0]
+
   const meta = cfg?.metaFaturamento ?? 50000
   const feito = r.entrou
   const progresso = Math.round((feito / meta) * 100)
@@ -61,7 +66,10 @@ export function PlanoDoMes() {
             <tbody>
               {linhas.map((l) => (
                 <tr key={l.cat} className="border-b border-divisoria last:border-0 hover:bg-preenchimento/30">
-                  <td className="px-4 py-3 font-semibold text-tinta">{l.nome}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-tinta">{l.nome}</div>
+                    <div className="text-xs text-tinta-4">{l.contabil}</div>
+                  </td>
                   <td className="mono px-4 py-3 text-right text-tinta-2">{l.teto}%</td>
                   <td className={cn('mono px-4 py-3 text-right font-bold', corReal(l.status))}>{l.realPct.toFixed(1)}%</td>
                   <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(l.valor)}</td>
@@ -81,7 +89,15 @@ export function PlanoDoMes() {
           <span className="rotulo text-insight-rotulo">Onde a margem tá vazando</span>
         </div>
         <p className="pretty text-[15px] leading-relaxed text-insight-texto">
-          Onde a margem tá vazando: <span className="font-bold">taxa de app</span> R$ 1.100 por mês.
+          {vazamento ? (
+            <>
+              Onde a margem tá vazando: <span className="font-bold">{vazamento.nome.toLowerCase()}</span> está{' '}
+              <span className="mono font-bold">{(vazamento.realPct - vazamento.teto).toFixed(1)} ponto(s)</span> acima do teto —{' '}
+              <span className="mono font-bold">{brlInteiro((r.entrou * (vazamento.realPct - vazamento.teto)) / 100)}</span> no mês.
+            </>
+          ) : (
+            <>Nenhum grupo passou do teto neste mês. Margem no lugar.</>
+          )}
         </p>
       </Cartao>
 

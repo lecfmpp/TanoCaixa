@@ -112,7 +112,7 @@ export function despesaTaxaDoRappi(r: ResumoDiaRappi) {
     id: `rappi-taxa-${r.data}`,
     fornecedor: 'Taxa Rappi',
     descricao: `${r.pedidos} pedidos`,
-    categoria: 'taxas_app' as const,
+    categoria: 'comissao_marketplace' as const,
     valorTotal: Math.round(r.taxa * 100) / 100,
     dataCompetencia: r.data,
     formaPagamento: 'automatico' as const,

@@ -57,7 +57,7 @@ export function Inicio() {
       <div className="grid grid-cols-1 gap-3.5 cel:grid-cols-2 tab:grid-cols-4">
         <CartaoValor rotulo="Entrou" valor={r.entrou} delta={d.entrou} visivel={permissoes?.veFaturamentoTotal ?? true} motivo="só o dono vê o faturamento" />
         <CartaoValor rotulo="Saiu" valor={r.saiu} delta={d.saiu} visivel />
-        <CartaoSobrou valor={r.sobrou} margem={r.margem} visivel={permissoes?.veLucro ?? true} />
+        <CartaoSobrou valor={r.sobrouFinal} margem={r.margem} visivel={permissoes?.veLucro ?? true} />
         <CartaoValor rotulo="Ponto de equilíbrio" valor={r.pontoEquilibrio} delta={d.ponto} visivel />
       </div>
 

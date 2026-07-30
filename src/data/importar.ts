@@ -46,11 +46,12 @@ export const CONFIGS_IMPORT: Record<TipoImport, ConfigImport> = {
   despesas: {
     tipo: 'despesas',
     titulo: 'Despesas',
-    descricao: 'Importe contas e compras já pagas ou a pagar do mês.',
+    descricao:
+      'Importe contas e compras já pagas ou a pagar do mês. A coluna "conta" é o plano de contas do DRE — vale o código (ex.: aluguel, cmv_bebidas, contador) ou o nome por extenso.',
     nomeModelo: 'modelo-despesas-tanocaixa',
     colunas: [
       { chave: 'fornecedor', rotulo: 'Fornecedor', exemplo: 'Hortifrúti Zona Sul', obrigatorio: true },
-      { chave: 'categoria', rotulo: 'Categoria (mercadoria/pessoal/ocupacao/taxas_app)', exemplo: 'mercadoria' },
+      { chave: 'categoria', rotulo: 'Conta do DRE', exemplo: 'cmv_alimentos' },
       { chave: 'valor', rotulo: 'Valor (R$)', exemplo: '842,00', obrigatorio: true },
       { chave: 'data', rotulo: 'Data (DD/MM/AAAA)', exemplo: '26/07/2026' },
       { chave: 'forma_pagamento', rotulo: 'Pagamento (pix/dinheiro/cartao/boleto)', exemplo: 'pix' },
@@ -58,9 +59,12 @@ export const CONFIGS_IMPORT: Record<TipoImport, ConfigImport> = {
       { chave: 'descricao', rotulo: 'Observação', exemplo: 'Feira da semana' },
     ],
     exemplos: [
-      ['Hortifrúti Zona Sul', 'mercadoria', '842,00', '26/07/2026', 'pix', 'pago', 'Feira da semana'],
-      ['Aluguel', 'ocupacao', '3400,00', '05/07/2026', 'boleto', 'a_pagar', ''],
-      ['Folha da equipe', 'pessoal', '9200,00', '05/07/2026', 'automatico', 'pago', 'Salários'],
+      ['Hortifrúti Zona Sul', 'cmv_alimentos', '842,00', '26/07/2026', 'pix', 'pago', 'Feira da semana'],
+      ['Distribuidora Zona Sul', 'cmv_bebidas', '1740,00', '12/07/2026', 'cartao', 'pago', 'Bebidas'],
+      ['Aluguel', 'aluguel', '3400,00', '05/07/2026', 'boleto', 'a_pagar', ''],
+      ['Folha da equipe', 'folha', '9200,00', '05/07/2026', 'automatico', 'pago', 'Salários'],
+      ['Contabilidade Nassar', 'contador', '780,00', '10/07/2026', 'pix', 'pago', 'Honorários'],
+      ['Simples Nacional · DAS', 'imposto_vendas', '2848,00', '20/07/2026', 'boleto', 'pago', ''],
     ],
   },
   estoque: {
