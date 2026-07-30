@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { extrairDadosDeFoto, type DadosExtraidosFoto } from '@/lib/gemini'
+import { extrairDadosDeFoto, prepararFoto, type DadosExtraidosFoto } from '@/lib/gemini'
 
 interface SeletorFotoProps {
   tipo: 'despesa' | 'produto' | 'estoque'
@@ -12,32 +12,23 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
-  function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
+    // Zera o input: sem isso, escolher a MESMA foto de novo não dispara change.
+    e.target.value = ''
     if (!arquivo) return
 
     setCarregando(true)
     setErro('')
 
-    const reader = new FileReader()
-
-    reader.onload = async (evt) => {
-      try {
-        const base64 = (evt.target?.result as string).split(',')[1]
-        const dados = await extrairDadosDeFoto(base64, tipo, arquivo.type || 'image/jpeg')
-        onExtrair(dados)
-      } catch (err) {
-        setErro((err as Error).message || 'Erro ao analisar a foto. Tente novamente.')
-        setCarregando(false)
-      }
-    }
-
-    reader.onerror = () => {
-      setErro('Não conseguimos abrir esse arquivo. Tente outra foto.')
+    try {
+      const { base64, mimeType } = await prepararFoto(arquivo)
+      if (!base64) throw new Error('Não conseguimos abrir esse arquivo. Tente outra foto.')
+      onExtrair(await extrairDadosDeFoto(base64, tipo, mimeType))
+    } catch (err) {
+      setErro((err as Error).message || 'Erro ao analisar a foto. Tente novamente.')
       setCarregando(false)
     }
-
-    reader.readAsDataURL(arquivo)
   }
 
   return (

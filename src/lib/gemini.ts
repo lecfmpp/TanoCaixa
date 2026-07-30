@@ -22,6 +22,52 @@ const analisar = httpsCallable<
   DadosExtraidosFoto
 >(functions, 'analisarFoto')
 
+/** Lado maior da imagem enviada. Nota fiscal fica legível de sobra nisso. */
+const LADO_MAX = 1600
+
+/**
+ * Reduz e recomprime a foto antes de subir. Câmera de celular gera 4–12 MB,
+ * o que em base64 estoura o limite da função e ainda deixa o upload lento.
+ * Se algo falhar (canvas bloqueado, formato exótico), devolve o original.
+ */
+export function prepararFoto(arquivo: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(arquivo)
+    const img = new Image()
+
+    const semRedimensionar = () => {
+      URL.revokeObjectURL(url)
+      const reader = new FileReader()
+      reader.onload = (e) =>
+        resolve({
+          base64: String(e.target?.result ?? '').split(',')[1] ?? '',
+          mimeType: arquivo.type || 'image/jpeg',
+        })
+      reader.onerror = () => resolve({ base64: '', mimeType: arquivo.type || 'image/jpeg' })
+      reader.readAsDataURL(arquivo)
+    }
+
+    img.onload = () => {
+      try {
+        const escala = Math.min(1, LADO_MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * escala)
+        canvas.height = Math.round(img.height * escala)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return semRedimensionar()
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+        resolve({ base64: dataUrl.split(',')[1] ?? '', mimeType: 'image/jpeg' })
+      } catch {
+        semRedimensionar()
+      }
+    }
+    img.onerror = semRedimensionar
+    img.src = url
+  })
+}
+
 /** Manda a foto pra Cloud Function e devolve os dados que o Gemini leu. */
 export async function extrairDadosDeFoto(
   base64: string,
@@ -34,7 +80,12 @@ export async function extrairDadosDeFoto(
   } catch (e) {
     const err = e as FunctionsError
     if (err.code === 'functions/unauthenticated') {
-      throw new Error('Faça login novamente para usar a análise por foto.')
+      throw new Error(
+        'A leitura por foto ainda não está liberada nesta sessão. Crie sua conta (é rápido) e ela funciona na hora.',
+      )
+    }
+    if (err.code === 'functions/resource-exhausted') {
+      throw new Error(err.message)
     }
     throw new Error(err.message || 'Não conseguimos ler a foto. Tente outra imagem.')
   }

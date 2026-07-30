@@ -10,8 +10,39 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
+import { getFirestore } from 'firebase-admin/firestore'
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY')
+
+/* Cota diária por usuário. A demonstração entra com login anônimo, então
+ * sem isto qualquer visitante poderia queimar a chave do Gemini. */
+const COTA_DIA = 60
+const COTA_DIA_ANONIMO = 10
+
+/** Consome uma chamada da cota do dia. Estoura → resource-exhausted. */
+async function consumirCota(uid: string, anonimo: boolean): Promise<void> {
+  const db = getFirestore()
+  const hoje = new Date().toISOString().slice(0, 10)
+  const ref = db.collection('cotas_foto').doc(`${uid}_${hoje}`)
+  const limite = anonimo ? COTA_DIA_ANONIMO : COTA_DIA
+
+  const passou = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref)
+    const usados = (snap.data()?.usados as number | undefined) ?? 0
+    if (usados >= limite) return false
+    tx.set(ref, { usados: usados + 1, atualizadoEm: new Date().toISOString() }, { merge: true })
+    return true
+  })
+
+  if (!passou) {
+    throw new HttpsError(
+      'resource-exhausted',
+      anonimo
+        ? 'A demonstração permite algumas fotos por dia. Crie sua conta pra usar sem limite.'
+        : 'Você bateu o limite de fotos de hoje. Tente de novo amanhã.',
+    )
+  }
+}
 
 /** Limite do payload: fotos de celular passam fácil de 1 MB em base64. */
 const MAX_BASE64 = 8 * 1024 * 1024
@@ -96,6 +127,9 @@ export const analisarFoto = onCall(
     if (imagemBase64.length > MAX_BASE64) {
       throw new HttpsError('invalid-argument', 'Foto muito grande. Tire uma foto menor.')
     }
+
+    const anonimo = req.auth.token.firebase?.sign_in_provider === 'anonymous'
+    await consumirCota(req.auth.uid, anonimo)
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value())
     const model = genAI.getGenerativeModel({

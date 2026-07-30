@@ -14,6 +14,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
+  signInAnonymously,
   updateProfile,
   signOut,
   type User,
@@ -189,7 +190,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const timeout = setTimeout(() => setCarregando(false), 8000)
     const cancelar = onAuthStateChanged(auth, async (user) => {
       clearTimeout(timeout)
-      if (user) {
+      if (user?.isAnonymous && sessionStorage.getItem(CHAVE_DEMO) === '1') {
+        // Usuário anônimo da demonstração: NÃO provisiona restaurante nem sai
+        // do tenant de exemplo. Ele existe só pra autenticar as functions.
+        setSessao(sessaoDemo())
+      } else if (user) {
         sessionStorage.removeItem(CHAVE_DEMO)
         try {
           setSessao(await construirSessaoCacheada(user))
@@ -211,6 +216,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem(CHAVE_DEMO, '1')
     setSessao(sessaoDemo())
     setCarregando(false)
+    // Login anônimo em segundo plano: a demo continua no tenant de exemplo,
+    // mas passa a ter um principal do Firebase — é o que as Cloud Functions
+    // exigem (a análise de foto por IA, por exemplo). Se o provedor anônimo
+    // estiver desabilitado no projeto, a demo segue normal e só a foto avisa.
+    signInAnonymously(auth).catch((e) => console.warn('demo anônima:', e))
   }, [])
 
   const entrarComEmail = useCallback(async (email: string, senha: string) => {
@@ -306,6 +316,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     definirLojaAtiva(null)
     if (sessao) sessaoCache.delete(sessao.usuario.id)
     if (sessao?.demo) {
+      // A demo pode ter um usuário anônimo pendurado — derruba ele também.
+      if (auth.currentUser?.isAnonymous) await signOut(auth)
       setSessao(null)
       return
     }
