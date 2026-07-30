@@ -13,7 +13,18 @@ import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
-import { CONTA, GRUPOS, contasDoGrupo, normalizarCategoria, type CategoriaDespesa, type GrupoDRE } from '@/data/planoContas'
+import {
+  CONTA,
+  GRUPOS,
+  CATEGORIAS_PRODUTO,
+  UNIDADES_PRODUTO,
+  contasDoGrupo,
+  normalizarCategoria,
+  normalizarCategoriaProduto,
+  normalizarUnidade,
+  type CategoriaDespesa,
+  type GrupoDRE,
+} from '@/data/planoContas'
 import type { DadosExtraidosFoto } from '@/lib/gemini'
 
 /** Gavetas que aceitam importação por planilha e para qual entidade. */
@@ -31,8 +42,6 @@ const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[
 }
 
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Ainda vou pagar']
-const CAT_PRODUTO = ['Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza']
-const UNIDADES = ['kg', 'g', 'L', 'un', 'pacote', 'caixa']
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
 
@@ -185,8 +194,12 @@ export function GavetaHost() {
       if (dados.obs) { setDespesa((d) => ({ ...d, obs: dados.obs! })); vindos.push('obs') }
     } else if (gaveta === 'produto') {
       if (dados.produto) { setProduto((p) => ({ ...p, nome: dados.produto! })); vindos.push('nome') }
-      if (dados.categoria) { setProduto((p) => ({ ...p, categoria: dados.categoria! })); vindos.push('categoria') }
+      // Normaliza: a IA pode devolver "hortifruti" ou "quilo" e o chip não casaria.
+      if (dados.categoria) { setProduto((p) => ({ ...p, categoria: normalizarCategoriaProduto(dados.categoria) })); vindos.push('categoria') }
+      if (dados.unidade) { setProduto((p) => ({ ...p, unidade: normalizarUnidade(dados.unidade) })); vindos.push('unidade') }
       if (dados.custo) { setProduto((p) => ({ ...p, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) })); vindos.push('custo') }
+      if (dados.fornecedor) { setProduto((p) => ({ ...p, fornecedor: dados.fornecedor! })); vindos.push('fornecedorProduto') }
+      if (typeof dados.entraNoCmv === 'boolean') { setProduto((p) => ({ ...p, cmv: dados.entraNoCmv! })); vindos.push('cmv') }
     } else if (gaveta === 'estoque') {
       if (dados.produto) { setEstoque((e) => ({ ...e, produto: dados.produto! })); vindos.push('produto') }
       if (dados.quantidade) { setEstoque((e) => ({ ...e, quantidade: String(dados.quantidade) })); vindos.push('quantidade') }
@@ -370,20 +383,20 @@ export function GavetaHost() {
               />
               <AvisoIA campos={iaPreencheu} />
               <Campo rotulo="Nome do produto" destaque={daIA('nome')} placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
-              <div>
+              <div className={cn(daIA('categoria') && 'rounded-campo border border-telhado/40 bg-insight-fundo/40 p-3')}>
                 <span className="rotulo mb-1.5 block text-tinta-4">Categoria</span>
-                <div className="flex flex-wrap gap-2">{CAT_PRODUTO.map((c) => <Chip key={c} rotulo={c} selecionado={produto.categoria === c} aoClicar={() => setProduto({ ...produto, categoria: c })} />)}</div>
+                <div className="flex flex-wrap gap-2">{CATEGORIAS_PRODUTO.map((c) => <Chip key={c} rotulo={c} selecionado={produto.categoria === c} aoClicar={() => setProduto({ ...produto, categoria: c })} />)}</div>
               </div>
-              <div>
+              <div className={cn(daIA('unidade') && 'rounded-campo border border-telhado/40 bg-insight-fundo/40 p-3')}>
                 <span className="rotulo mb-1.5 block text-tinta-4">Unidade de medida</span>
-                <div className="flex flex-wrap gap-2">{UNIDADES.map((u) => <Chip key={u} rotulo={u} selecionado={produto.unidade === u} aoClicar={() => setProduto({ ...produto, unidade: u })} />)}</div>
+                <div className="flex flex-wrap gap-2">{UNIDADES_PRODUTO.map((u) => <Chip key={u} rotulo={u} selecionado={produto.unidade === u} aoClicar={() => setProduto({ ...produto, unidade: u })} />)}</div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Custo de hoje" destaque={daIA('custo')} placeholder="R$ 9,80" inputMode="decimal" value={produto.custo} onChange={(e) => setProduto({ ...produto, custo: e.target.value })} />
                 <Campo rotulo="Estoque mínimo" placeholder="15 kg" value={produto.minimo} onChange={(e) => setProduto({ ...produto, minimo: e.target.value })} />
               </div>
-              <Campo rotulo="Fornecedor padrão" placeholder="Casa Líbano" value={produto.fornecedor} onChange={(e) => setProduto({ ...produto, fornecedor: e.target.value })} />
-              <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
+              <Campo rotulo="Fornecedor padrão" destaque={daIA('fornecedorProduto')} placeholder="Casa Líbano" value={produto.fornecedor} onChange={(e) => setProduto({ ...produto, fornecedor: e.target.value })} />
+              <label className={cn('flex items-center justify-between rounded-campo border bg-superficie px-4 py-3', daIA('cmv') ? 'border-telhado/40 bg-insight-fundo/40' : 'border-[rgba(46,95,115,0.14)]')}>
                 <span><span className="block text-sm font-bold text-tinta">Entra no CMV</span><span className="block text-xs text-tinta-4">desliga pra material de limpeza e descartável</span></span>
                 <Switch ligado={produto.cmv} aoTrocar={(v) => setProduto({ ...produto, cmv: v })} />
               </label>

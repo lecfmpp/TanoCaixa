@@ -218,6 +218,60 @@ export function normalizarCategoria(v: string | undefined): CategoriaDespesa {
   return 'cmv_alimentos'
 }
 
+/* --------------------- Vocabulário do estoque ------------------------ *
+ * Usado no cadastro de produto, na importação por planilha e na leitura de
+ * foto por IA. Fica aqui pra não existirem três listas divergentes.
+ * --------------------------------------------------------------------- */
+
+export const CATEGORIAS_PRODUTO = ['Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza'] as const
+export type CategoriaProduto = (typeof CATEGORIAS_PRODUTO)[number]
+
+export const UNIDADES_PRODUTO = ['kg', 'g', 'L', 'un', 'pacote', 'caixa'] as const
+export type UnidadeProduto = (typeof UNIDADES_PRODUTO)[number]
+
+const APELIDOS_CATEGORIA: Record<CategoriaProduto, string[]> = {
+  'Hortifrúti': ['hortifruti', 'hortifrutigranjeiro', 'legume', 'verdura', 'fruta', 'tempero', 'folha'],
+  Carnes: ['carne', 'frango', 'boi', 'bovino', 'suino', 'peixe', 'frios', 'acougue', 'proteina'],
+  Secos: ['seco', 'grao', 'farinha', 'arroz', 'feijao', 'massa', 'enlatado', 'mercearia', 'pao'],
+  Bebidas: ['bebida', 'refrigerante', 'cerveja', 'suco', 'agua', 'vinho', 'destilado'],
+  Embalagens: ['embalagem', 'descartavel', 'marmita', 'sacola', 'copo', 'guardanapo', 'papel'],
+  Limpeza: ['limpeza', 'higiene', 'detergente', 'desinfetante', 'sabao', 'alvejante'],
+}
+
+const APELIDOS_UNIDADE: Record<UnidadeProduto, string[]> = {
+  kg: ['kg', 'quilo', 'kilo', 'quilograma', 'kgs'],
+  g: ['g', 'grama', 'gr', 'gramas'],
+  L: ['l', 'litro', 'litros', 'lt', 'ml'],
+  un: ['un', 'und', 'unidade', 'uni', 'peca', 'pc', 'item'],
+  pacote: ['pacote', 'pct', 'pack', 'fardo', 'saco'],
+  caixa: ['caixa', 'cx', 'engradado', 'bandeja'],
+}
+
+/** Texto livre (IA, planilha) → uma das categorias de produto válidas. */
+export function normalizarCategoriaProduto(v: string | undefined): CategoriaProduto {
+  const k = chave(v ?? '')
+  if (!k) return 'Secos'
+  const exata = CATEGORIAS_PRODUTO.find((c) => chave(c) === k)
+  if (exata) return exata
+  for (const [cat, apelidos] of Object.entries(APELIDOS_CATEGORIA)) {
+    if (apelidos.some((a) => k.includes(a) || a.includes(k))) return cat as CategoriaProduto
+  }
+  return 'Secos'
+}
+
+/** Texto livre → unidade de medida válida ('quilo' → 'kg', 'litro' → 'L'). */
+export function normalizarUnidade(v: string | undefined): UnidadeProduto {
+  const k = chave(v ?? '')
+  if (!k) return 'un'
+  for (const [uni, apelidos] of Object.entries(APELIDOS_UNIDADE)) {
+    if (apelidos.includes(k)) return uni as UnidadeProduto
+  }
+  for (const [uni, apelidos] of Object.entries(APELIDOS_UNIDADE)) {
+    if (apelidos.some((a) => k.startsWith(a))) return uni as UnidadeProduto
+  }
+  return 'un'
+}
+
 /** Categoria de produto do estoque → conta de CMV correspondente. */
 export function contaDeCmvDoProduto(categoriaProduto: string | undefined): CategoriaDespesa {
   const k = chave(categoriaProduto ?? '')

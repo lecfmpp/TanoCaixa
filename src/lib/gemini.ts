@@ -15,6 +15,10 @@ export interface DadosExtraidosFoto {
   produto?: string
   quantidade?: number
   custo?: number
+  /** Unidade de compra do produto (kg, un, pacote…). */
+  unidade?: string
+  /** Se o item vira prato/bebida vendida — desliga em limpeza e descartável. */
+  entraNoCmv?: boolean
 }
 
 const analisar = httpsCallable<

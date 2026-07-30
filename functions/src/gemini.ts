@@ -7,7 +7,7 @@
  * PRÉ-REQUISITO:
  *   firebase functions:secrets:set GEMINI_API_KEY
  * ------------------------------------------------------------------ */
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -60,6 +60,61 @@ const MAX_BASE64 = 8 * 1024 * 1024
 
 type TipoFoto = 'despesa' | 'produto' | 'estoque'
 
+/* Vocabulários fechados. Entram no prompt E no schema de resposta, então o
+ * modelo não consegue devolver valor fora da lista. */
+const CONTAS_DRE = [
+  'comissao_marketplace', 'taxa_cartao', 'antecipacao', 'tarifa_bancaria', 'imposto_vendas',
+  'cmv_alimentos', 'cmv_bebidas', 'cmv_descartaveis',
+  'aluguel', 'condominio', 'agua', 'luz', 'gas', 'iptu', 'seguro',
+  'folha', 'encargos', 'vale_transporte', 'vale_alimentacao', 'bonus', 'prolabore', 'rescisoes', 'pessoal_outros',
+  'sistemas', 'contador',
+  'limpeza', 'detetizacao', 'coleta_lixo',
+  'cupons_app', 'marketing', 'variavel_outros',
+  'fundo_promocao', 'royalties',
+  'retiradas', 'multas',
+]
+const CATEGORIAS_PRODUTO = ['Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 'Limpeza']
+const UNIDADES_PRODUTO = ['kg', 'g', 'L', 'un', 'pacote', 'caixa']
+
+const S = SchemaType
+
+/**
+ * Schema da resposta, por tipo de foto. Sem isto o modelo às vezes devolve
+ * um ARRAY de objetos, ou dois JSONs colados — e o JSON.parse quebrava,
+ * virando "a foto não estava legível" pro usuário.
+ */
+const SCHEMAS: Record<TipoFoto, object> = {
+  despesa: {
+    type: S.OBJECT,
+    properties: {
+      fornecedor: { type: S.STRING },
+      valor: { type: S.INTEGER },
+      categoria: { type: S.STRING, enum: CONTAS_DRE, format: 'enum' },
+      obs: { type: S.STRING },
+    },
+  },
+  produto: {
+    type: S.OBJECT,
+    properties: {
+      produto: { type: S.STRING },
+      categoria: { type: S.STRING, enum: CATEGORIAS_PRODUTO, format: 'enum' },
+      unidade: { type: S.STRING, enum: UNIDADES_PRODUTO, format: 'enum' },
+      custo: { type: S.INTEGER },
+      fornecedor: { type: S.STRING },
+      entraNoCmv: { type: S.BOOLEAN },
+    },
+  },
+  estoque: {
+    type: S.OBJECT,
+    properties: {
+      produto: { type: S.STRING },
+      quantidade: { type: S.NUMBER },
+      custo: { type: S.INTEGER },
+      fornecedor: { type: S.STRING },
+    },
+  },
+}
+
 const PROMPTS: Record<TipoFoto, string> = {
   despesa: `Analise esta nota fiscal, cupom ou boleto e extraia os dados.
 Responda com um JSON contendo:
@@ -82,19 +137,35 @@ Responda com um JSON contendo:
 Omita qualquer campo que você não conseguir ler com confiança. Se estiver em dúvida
 entre duas contas, omita a categoria em vez de chutar.`,
 
-  produto: `Analise esta embalagem, etiqueta ou rótulo de produto e extraia:
+  produto: `Analise esta embalagem, etiqueta de preço, rótulo ou ficha de produto de
+restaurante e extraia os dados de cadastro:
+- produto: string — nome do item como a cozinha chama, com o peso/volume da
+  embalagem quando aparecer (ex: "Grão de bico seco 1kg", "Coca-Cola lata 350ml").
+  Não invente marca que não esteja na foto.
+- categoria: string — SEMPRE classifique pelo nome do item, mesmo que a foto não
+  diga a categoria. É uma classificação sua, não uma leitura.
+- unidade: string — como esse item é comprado
+- custo: number — preço de compra de UMA unidade, em CENTAVOS, inteiro (ex: 980 para
+  R$ 9,80). Preço por quilo É o preço unitário quando a unidade for "kg"; o mesmo
+  vale pra litro e "L". Se a etiqueta mostrar preço de venda ao consumidor, use esse.
+- fornecedor: string — qualquer marca, distribuidora, frigorífico ou mercado na foto
+- entraNoCmv: boolean — SEMPRE responda: true quando o item vira prato ou bebida
+  vendida ao cliente; false para material de limpeza, descartável e embalagem
+
+Só omita um campo se ele realmente não estiver na foto nem puder ser deduzido do
+nome do produto.`,
+
+  estoque: `Analise esta foto de mercadoria, caixa, lote na prateleira ou nota de
+entrada e extraia o movimento de estoque:
 - produto: string — nome do item
-- categoria: string — exatamente um de: "Hortifrúti", "Carnes", "Secos", "Bebidas", "Embalagens", "Limpeza"
-- custo: number — preço unitário em CENTAVOS, inteiro (ex: 980 para R$ 9,80)
+- quantidade: number — quanto tem na foto. Conte as unidades visíveis, ou use o peso/
+  volume total se estiver escrito na etiqueta. Aceita decimal (ex: 12.5 para 12,5 kg).
+- custo: number — custo de UMA unidade em CENTAVOS, inteiro. Se só houver o valor
+  total, divida pela quantidade.
+- fornecedor: string — quem entregou, se aparecer
 
-Omita qualquer campo que você não conseguir ler com confiança.`,
-
-  estoque: `Analise esta foto de mercadoria, caixa ou lote e extraia:
-- produto: string — nome do item
-- quantidade: number — número de unidades
-- custo: number — preço unitário em CENTAVOS, inteiro
-
-Omita qualquer campo que você não conseguir ler com confiança.`,
+Conte só o item principal da foto. Omita qualquer campo que você não conseguir ler
+com confiança — chutar quantidade estraga o estoque do restaurante.`,
 }
 
 export interface DadosExtraidosFoto {
@@ -105,6 +176,10 @@ export interface DadosExtraidosFoto {
   produto?: string
   quantidade?: number
   custo?: number
+  /** Unidade de compra do produto (kg, un, pacote…). */
+  unidade?: string
+  /** Se o item vira prato/bebida vendida — desliga em limpeza e descartável. */
+  entraNoCmv?: boolean
 }
 
 /** Remove cercas markdown (```json ... ```) que o modelo às vezes devolve. */
@@ -145,7 +220,10 @@ export const analisarFoto = onCall(
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value())
     const model = genAI.getGenerativeModel({
       model: MODELO,
-      generationConfig: { responseMimeType: 'application/json' },
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: SCHEMAS[tipo] as never,
+      },
     })
 
     let texto: string
