@@ -36,6 +36,19 @@ const UNIDADES = ['kg', 'g', 'L', 'un', 'pacote', 'caixa']
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
 
+/** Ação principal da gaveta: fica no topo, sólida, antes de qualquer campo. */
+function BotaoFoto({ rotulo, apoio, aoClicar }: { rotulo: string; apoio: string; aoClicar: () => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Button variante="lancar" bloco onClick={aoClicar}>
+        <Camera size={18} />
+        {rotulo}
+      </Button>
+      <p className="text-center text-xs text-tinta-4">{apoio}</p>
+    </div>
+  )
+}
+
 /** Faixa que aparece depois da leitura por foto, apontando o que conferir. */
 function AvisoIA({ campos }: { campos: string[] }) {
   if (!campos.length) return null
@@ -305,6 +318,11 @@ export function GavetaHost() {
 
           {etapa === 0 && modo === 'form' && gaveta === 'despesa' && (
             <div className="flex flex-col gap-4">
+              <BotaoFoto
+                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
+                apoio="A IA lê a nota e preenche os campos abaixo. Você só confere."
+                aoClicar={() => setCameraAberta(true)}
+              />
               <AvisoIA campos={iaPreencheu} />
               <Campo rotulo="Fornecedor" destaque={daIA('fornecedor')} placeholder="Ex: Hortifrúti Zona Sul" value={despesa.fornecedor} onChange={(e) => setDespesa({ ...despesa, fornecedor: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
@@ -339,24 +357,16 @@ export function GavetaHost() {
                 <Switch ligado={despesa.repete} aoTrocar={(v) => setDespesa({ ...despesa, repete: v })} />
               </label>
               <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: compra de reposição do fim de semana" value={despesa.obs} onChange={(e) => setDespesa({ ...despesa, obs: e.target.value })} />
-              <button
-                onClick={() => setCameraAberta(true)}
-                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
-              >
-                <Camera size={18} />
-                {iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
-              </button>
-              {/* Convite só faz sentido antes da leitura — depois vira contradição. */}
-              {!iaPreencheu.length && (
-                <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4 text-sm text-insight-texto">
-                  Tem a nota na mão? <strong className="font-bold">Tira uma foto</strong> que a gente preenche tudo isso sozinho em 5 segundos.
-                </div>
-              )}
             </div>
           )}
 
           {etapa === 0 && modo === 'form' && gaveta === 'produto' && (
             <div className="flex flex-col gap-4">
+              <BotaoFoto
+                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto do produto'}
+                apoio="A IA lê o rótulo e preenche os campos abaixo. Você só confere."
+                aoClicar={() => setCameraAberta(true)}
+              />
               <AvisoIA campos={iaPreencheu} />
               <Campo rotulo="Nome do produto" destaque={daIA('nome')} placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
               <div>
@@ -376,13 +386,6 @@ export function GavetaHost() {
                 <span><span className="block text-sm font-bold text-tinta">Entra no CMV</span><span className="block text-xs text-tinta-4">desliga pra material de limpeza e descartável</span></span>
                 <Switch ligado={produto.cmv} aoTrocar={(v) => setProduto({ ...produto, cmv: v })} />
               </label>
-              <button
-                onClick={() => setCameraAberta(true)}
-                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
-              >
-                <Camera size={18} />
-                Tirar foto do produto
-              </button>
             </div>
           )}
 
@@ -411,11 +414,16 @@ export function GavetaHost() {
 
           {etapa === 0 && modo === 'form' && gaveta === 'estoque' && (
             <div className="flex flex-col gap-4">
+              <BotaoFoto
+                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da mercadoria'}
+                apoio="A IA lê a mercadoria e preenche os campos abaixo. Você só confere."
+                aoClicar={() => setCameraAberta(true)}
+              />
+              <AvisoIA campos={iaPreencheu} />
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
                 <div className="flex flex-wrap gap-2">{['Entrou mercadoria', 'Contagem do mês', 'Perda ou quebra', 'Transferência'].map((o) => <Chip key={o} rotulo={o} selecionado={estoque.tipo === o} aoClicar={() => setEstoque({ ...estoque, tipo: o })} />)}</div>
               </div>
-              <AvisoIA campos={iaPreencheu} />
               <Campo rotulo="Produto" destaque={daIA('produto')} value={estoque.produto} onChange={(e) => setEstoque({ ...estoque, produto: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Quantidade" destaque={daIA('quantidade')} value={estoque.quantidade} onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })} inputMode="numeric" />
@@ -425,13 +433,6 @@ export function GavetaHost() {
                 <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} no CMV, na conta do produto</span></span>
                 <Switch ligado={estoque.geraDespesa} aoTrocar={(v) => setEstoque({ ...estoque, geraDespesa: v })} />
               </label>
-              <button
-                onClick={() => setCameraAberta(true)}
-                className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
-              >
-                <Camera size={18} />
-                Tirar foto da mercadoria
-              </button>
             </div>
           )}
 
