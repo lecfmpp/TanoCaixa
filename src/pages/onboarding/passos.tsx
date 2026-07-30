@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
-import { TituloPasso, CaixaViva, CampoTexto, Rotulo } from './ui'
+import { TituloPasso, CaixaViva, CampoTexto, Rotulo, LinhaPontilhada } from './ui'
 import { Chip } from '@/components/ui/Chip'
 import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { HorarioSemana } from '@/components/ui/HorarioSemana'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
-import type { RespostasOnboarding } from '@/data/hooks'
+import { pctDaMeta, TAXA_APP_TETO_PADRAO, type RespostasOnboarding } from '@/data/hooks'
 
 type Upd = (p: Partial<RespostasOnboarding>) => void
 import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
@@ -341,89 +341,134 @@ function LinhaMembro({
 
 /* -------------------------------- Passo 6 ------------------------------- */
 
-type Tetos = { mercadoria: number; pessoal: number; ocupacao: number; taxas_app: number }
-const ROTULO_TETO: Record<keyof Tetos, string> = {
-  mercadoria: 'Mercadoria',
-  pessoal: 'Pessoal',
-  ocupacao: 'Ocupação',
-  taxas_app: 'Taxas de app',
+/** Campo de despesa em R$ com o % da meta calculado sozinho embaixo. */
+function CampoDespesa({
+  rotulo,
+  valor,
+  onValor,
+  meta,
+}: {
+  rotulo: string
+  valor: number
+  onValor: (n: number) => void
+  meta: string
+}) {
+  return (
+    <div>
+      <CampoTexto
+        grande
+        destaque
+        rotulo={rotulo}
+        prefixo="R$"
+        inputMode="numeric"
+        value={inteiro(valor)}
+        onChange={(e) => onValor(soDigitos(e.target.value))}
+      />
+      <p className="mt-1 text-xs text-tinta-4">≈ {pctDaMeta(valor, meta)}% da meta de faturamento</p>
+    </div>
+  )
 }
 
 export function Passo6Metas({
-  tetos,
-  onTetos,
-  sobraPct,
-  sobraReais,
   meta,
   onMeta,
+  contasFixas,
+  onContasFixas,
+  folha,
+  onFolha,
+  mercadoria,
+  onMercadoria,
+  sobraPct,
+  sobraReais,
 }: {
-  tetos: Tetos
-  onTetos: (t: Tetos) => void
-  sobraPct: number
-  sobraReais: number
   meta: string
   onMeta: (v: string) => void
+  contasFixas: number
+  onContasFixas: (n: number) => void
+  folha: number
+  onFolha: (n: number) => void
+  mercadoria: number
+  onMercadoria: (n: number) => void
+  sobraPct: number
+  sobraReais: number
 }) {
-  const [avisos, setAvisos] = useState({ whatsapp: true, email: true, sms: false })
   return (
     <div>
       <TituloPasso
         titulo="Suas metas do primeiro mês"
-        sub="Já deixamos preenchido com o que costuma funcionar. Ajusta se quiser."
+        sub="Já deixamos preenchido com o que você disse antes. Ajusta se quiser."
       />
 
-      <CampoTexto rotulo="Meta de faturamento" prefixo="R$" inputMode="numeric" value={meta} onChange={(e) => onMeta(e.target.value)} />
+      <Rotulo>Receita</Rotulo>
+      <CampoTexto
+        grande
+        rotulo="Meta de faturamento"
+        prefixo="R$"
+        inputMode="numeric"
+        value={meta}
+        onChange={(e) => onMeta(e.target.value)}
+      />
       <p className="mt-1.5 text-xs text-tinta-4">Um degrau acima de julho, sem apertar demais.</p>
 
-      <div className="mt-5 flex flex-col gap-2">
-        {(Object.keys(ROTULO_TETO) as (keyof Tetos)[]).map((k) => (
-          <div
-            key={k}
-            className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-2.5"
-          >
-            <span className="text-sm font-semibold text-tinta-2">{ROTULO_TETO[k]}</span>
-            <span className="flex items-center gap-1">
-              <input
-                type="number"
-                value={tetos[k]}
-                onChange={(e) => onTetos({ ...tetos, [k]: soDigitos(e.target.value) })}
-                className="mono w-14 rounded-[8px] border border-[rgba(46,95,115,0.14)] bg-fundo-app px-2 py-1 text-right text-sm text-tinta outline-none focus:border-mar"
-              />
-              <span className="mono text-sm text-tinta-4">%</span>
-            </span>
-          </div>
-        ))}
+      <LinhaPontilhada rotulo="despesas" />
+
+      <div className="flex flex-col gap-4">
+        <CampoDespesa rotulo="Aluguel e contas" valor={contasFixas} onValor={onContasFixas} meta={meta} />
+        <CampoDespesa rotulo="Pessoal" valor={folha} onValor={onFolha} meta={meta} />
+        <CampoDespesa rotulo="Compras · estoque" valor={mercadoria} onValor={onMercadoria} meta={meta} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between rounded-cartao bg-mar px-5 py-3.5 text-creme">
+      <LinhaPontilhada rotulo="taxa de app" />
+
+      <p className="pretty text-sm text-tinta-3">
+        As taxas de app (iFood, Rappi…) entram sozinhas quando você conecta as integrações — cerca de{' '}
+        <strong className="font-bold text-tinta-2">{TAXA_APP_TETO_PADRAO}%</strong> pra começar. Dá pra ajustar
+        depois no Plano do mês.
+      </p>
+
+      <LinhaPontilhada />
+
+      <div className="flex items-center justify-between rounded-cartao bg-mar px-5 py-3.5 text-creme">
         <span className="text-sm font-semibold">Sobra prevista</span>
         <span className="mono text-sm font-bold">
           {sobraPct}% · {brlInteiro(sobraReais)}
         </span>
       </div>
+    </div>
+  )
+}
 
-      <div className="mt-6">
-        <Rotulo>Onde te avisar</Rotulo>
-        <div className="flex flex-col gap-2">
-          <LinhaAviso
-            nome="WhatsApp"
-            dica="alerta quando um teto chega perto"
-            ligado={avisos.whatsapp}
-            aoTrocar={(v) => setAvisos({ ...avisos, whatsapp: v })}
-          />
-          <LinhaAviso
-            nome="E-mail"
-            dica="resumo toda segunda de manhã"
-            ligado={avisos.email}
-            aoTrocar={(v) => setAvisos({ ...avisos, email: v })}
-          />
-          <LinhaAviso
-            nome="SMS"
-            dica="só emergência, se faltar internet"
-            ligado={avisos.sms}
-            aoTrocar={(v) => setAvisos({ ...avisos, sms: v })}
-          />
-        </div>
+/* -------------------------------- Passo 7 ------------------------------- */
+
+export function Passo7Avisos({
+  avisos,
+  onAvisos,
+}: {
+  avisos: { whatsapp: boolean; email: boolean; sms: boolean }
+  onAvisos: (a: { whatsapp: boolean; email: boolean; sms: boolean }) => void
+}) {
+  return (
+    <div>
+      <TituloPasso titulo="Onde te avisar" sub="A gente só chama a atenção quando importa — sem spam." />
+      <div className="flex flex-col gap-2">
+        <LinhaAviso
+          nome="WhatsApp"
+          dica="alerta quando um teto chega perto"
+          ligado={avisos.whatsapp}
+          aoTrocar={(v) => onAvisos({ ...avisos, whatsapp: v })}
+        />
+        <LinhaAviso
+          nome="E-mail"
+          dica="resumo toda segunda de manhã"
+          ligado={avisos.email}
+          aoTrocar={(v) => onAvisos({ ...avisos, email: v })}
+        />
+        <LinhaAviso
+          nome="SMS"
+          dica="só emergência, se faltar internet"
+          ligado={avisos.sms}
+          aoTrocar={(v) => onAvisos({ ...avisos, sms: v })}
+        />
       </div>
     </div>
   )
@@ -451,11 +496,11 @@ function LinhaAviso({
   )
 }
 
-/* -------------------------------- Passo 7 ------------------------------- */
+/* -------------------------------- Passo 8 ------------------------------- */
 
 const TIPOS_IMPORT: TipoImport[] = ['produtos', 'despesas', 'estoque']
 
-export function Passo7Pronto() {
+export function Passo8Pronto() {
   const [tipoImp, setTipoImp] = useState<TipoImport>('produtos')
   const feitos = [
     'Restaurante e equipe cadastrados',

@@ -28,17 +28,32 @@ export function Rotulo({ children }: { children: ReactNode }) {
   return <span className="rotulo mb-1.5 block text-tinta-4">{children}</span>
 }
 
+/** Separador com linha pontilhada — marca a virada entre receita, despesa,
+ * taxa de app e sobra num passo com vários blocos de dinheiro. */
+export function LinhaPontilhada({ rotulo }: { rotulo?: string }) {
+  return (
+    <div className="my-5 flex items-center gap-3">
+      <span className="h-0 flex-1 border-t border-dashed border-[rgba(46,95,115,0.28)]" />
+      {rotulo && <span className="rotulo shrink-0 text-tinta-4">{rotulo}</span>}
+      <span className="h-0 flex-1 border-t border-dashed border-[rgba(46,95,115,0.28)]" />
+    </div>
+  )
+}
+
 /** Campo de texto simples (não controlado por padrão). */
 export function CampoTexto({
   rotulo,
   prefixo,
   className,
   destaque,
+  grande,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   rotulo: string
   prefixo?: string
   destaque?: boolean
+  /** Campo maior e com texto em destaque — pros números que mais importam. */
+  grande?: boolean
 }) {
   return (
     <label className="block">
@@ -50,9 +65,15 @@ export function CampoTexto({
           destaque ? 'border-telhado/40 bg-insight-fundo/40' : 'border-[rgba(46,95,115,0.14)]',
         )}
       >
-        {prefixo && <span className="mono text-sm text-tinta-4">{prefixo}</span>}
+        {prefixo && (
+          <span className={cn('mono text-tinta-4', grande ? 'text-lg font-bold' : 'text-sm')}>{prefixo}</span>
+        )}
         <input
-          className={cn('w-full bg-transparent py-2.5 text-[15px] text-tinta outline-none placeholder:text-tinta-5', className)}
+          className={cn(
+            'w-full bg-transparent text-tinta outline-none placeholder:text-tinta-5',
+            grande ? 'py-3.5 text-xl font-bold' : 'py-2.5 text-[15px]',
+            className,
+          )}
           {...props}
         />
       </span>

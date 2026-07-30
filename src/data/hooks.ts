@@ -430,6 +430,10 @@ export function useDesfazer() {
   })
 }
 
+/** Teto padrão de taxas de app (%) até o dono conectar as integrações e a
+ * gente passar a calcular de verdade a partir dos pedidos reais. */
+export const TAXA_APP_TETO_PADRAO = 12
+
 export interface RespostasOnboarding {
   nome: string
   bairro: string
@@ -444,10 +448,18 @@ export interface RespostasOnboarding {
   faturamento: string
   folha: number
   contasFixas: number
+  mercadoria: number
   pessoas: string
   meta: string
-  tetos: { mercadoria: number; pessoal: number; ocupacao: number; taxas_app: number }
   avisos: { whatsapp: boolean; email: boolean; sms: boolean }
+}
+
+/** % de um valor em R$/mês sobre a meta de faturamento (base dos tetos).
+ * `meta` vem mascarado como dígitos formatados (ex.: "50.000"), não no
+ * padrão decimal BR do numeroBR — por isso só limpa os dígitos. */
+export function pctDaMeta(valor: number, meta: string): number {
+  const base = Number(meta.replace(/\D/g, '')) || 50000
+  return base > 0 ? Math.round((valor / base) * 100) : 0
 }
 
 const OP_MAP: Record<string, string> = {
@@ -472,8 +484,13 @@ export function usePersistirOnboarding() {
         cnpj: r.cnpj,
         regimeTributario: 'simples',
         aliquotaImposto: 0.06,
-        metaFaturamento: numeroBR(r.meta) || 50000,
-        tetos: r.tetos,
+        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 50000,
+        tetos: {
+          ocupacao: pctDaMeta(r.contasFixas, r.meta),
+          pessoal: pctDaMeta(r.folha, r.meta),
+          mercadoria: pctDaMeta(r.mercadoria, r.meta),
+          taxas_app: TAXA_APP_TETO_PADRAO,
+        },
         aberturaMes: 'julho de 2026',
         // extras do onboarding (RestauranteDoc tolera campos a mais)
         numLojas: Number(r.lojas) || 1,
@@ -482,6 +499,7 @@ export function usePersistirOnboarding() {
         horarios: r.horarios,
         folha: r.folha,
         contasFixas: r.contasFixas,
+        mercadoria: r.mercadoria,
         pessoas: Number(r.pessoas) || 0,
         avisos: r.avisos,
       } as never)

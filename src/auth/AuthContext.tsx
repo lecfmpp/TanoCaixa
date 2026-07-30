@@ -19,7 +19,8 @@ import {
   type User,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { auth, db, functions } from '@/lib/firebase'
 import { DEMO_TENANT } from '@/data/tenant'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
 import { permissoesDoPapel, normalizarPapel, type Permissoes, type Sessao } from '@/types'
@@ -35,14 +36,27 @@ interface AuthContextValor {
   permissoes: Permissoes | null
   carregando: boolean
   entrarDemo: () => void
-  entrarComEmail: (email: string, senha: string) => Promise<void>
-  criarConta: (nome: string, email: string, senha: string, restauranteNome?: string, bairro?: string) => Promise<void>
-  entrarComGoogle: () => Promise<void>
+  /** Retorna o uid autenticado — use pra saber quando `sessao` passou a
+   * refletir ESTE login (e não uma sessão antiga que já estava ativa). */
+  entrarComEmail: (email: string, senha: string) => Promise<string>
+  criarConta: (nome: string, email: string, senha: string, restauranteNome?: string, bairro?: string) => Promise<string>
+  entrarComGoogle: () => Promise<string>
   sair: () => Promise<void>
+  atualizarPerfil: (dados: { nome?: string; photoURL?: string }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValor | null>(null)
 const CHAVE_DEMO = 'tanocaixa:demo'
+/** Token de convite guardado antes do login/cadastro em /convite/:token. */
+export const CHAVE_CONVITE = 'tanocaixa:convite'
+/** Dados do formulário de cadastro (nome do restaurante, bairro), guardados
+ * até o construirSessao rodar — ver comentário em criarConta sobre por quê. */
+const CHAVE_CADASTRO = 'tanocaixa:cadastro'
+
+export const aceitarConviteFn = httpsCallable<{ token: string; nome?: string }, { restauranteId: string }>(
+  functions,
+  'aceitarConvite',
+)
 
 /** Cria (idempotente) o restaurante do usuário: tenant = uid do dono. */
 async function provisionarRestaurante(user: User, dados?: DadosCadastro): Promise<string> {
@@ -80,11 +94,32 @@ async function provisionarRestaurante(user: User, dados?: DadosCadastro): Promis
   return rid
 }
 
-/** Monta a sessão de um usuário real (provisiona o restaurante se faltar). */
+/** Monta a sessão de um usuário real (consome convite pendente, ou provisiona
+ * um restaurante novo, se faltar). */
 async function construirSessao(user: User): Promise<Sessao> {
   const uSnap = await getDoc(doc(db, 'users', user.uid))
   let rid = uSnap.exists() ? (uSnap.data().restauranteId as string | undefined) : undefined
-  if (!rid) rid = await provisionarRestaurante(user)
+  if (!rid) {
+    const tokenConvite = sessionStorage.getItem(CHAVE_CONVITE)
+    if (tokenConvite) {
+      sessionStorage.removeItem(CHAVE_CONVITE)
+      try {
+        const resp = await aceitarConviteFn({ token: tokenConvite, nome: user.displayName ?? undefined })
+        rid = resp.data.restauranteId
+      } catch (e) {
+        console.warn('convite:', e)
+      }
+    }
+    if (!rid) {
+      // Dados do formulário de cadastro (nome do restaurante, bairro), se
+      // vieram de criarConta — ver comentário lá sobre por que não provisiona
+      // direto (evita duas escritas concorrentes no mesmo restaurants/{rid}).
+      const bruto = sessionStorage.getItem(CHAVE_CADASTRO)
+      sessionStorage.removeItem(CHAVE_CADASTRO)
+      const dadosCadastro = bruto ? (JSON.parse(bruto) as DadosCadastro) : undefined
+      rid = await provisionarRestaurante(user, dadosCadastro)
+    }
+  }
 
   const [rSnap, mSnap] = await Promise.all([
     getDoc(doc(db, 'restaurants', rid)),
@@ -101,6 +136,7 @@ async function construirSessao(user: User): Promise<Sessao> {
       email: user.email || '',
       avatarInicial: (nome[0] || 'V').toUpperCase(),
       avatarCor: '#2E5F73',
+      photoURL: user.photoURL || (uSnap.data()?.photoURL as string) || undefined,
       papel,
     },
     restaurante: {
@@ -120,6 +156,24 @@ function sessaoDemo(): Sessao {
   return { usuario: usuarioDemo, restaurante: restauranteDemo, tenantId: DEMO_TENANT, demo: true }
 }
 
+/** onAuthStateChanged pode disparar mais de uma vez pro mesmo usuário — inclusive
+ * em disparos SEQUENCIAIS (não só concorrentes), o 2º só começando depois que o
+ * 1º já terminou. Por isso o cache não expira quando a promise resolve: sem
+ * isso, o 2º disparo acha o CHAVE_CADASTRO já consumido pelo 1º e reprovisiona
+ * o restaurante com valores padrão, sobrescrevendo o nome/bairro reais gravados
+ * pela 1ª chamada (visto na prática: dois writes no Firestore a ~37ms um do
+ * outro). Só provisiona/consome o cadastro pendente UMA vez por uid por sessão
+ * do navegador. atualizarPerfil mantém esse cache em dia nas edições depois.
+ */
+const sessaoCache = new Map<string, Promise<Sessao>>()
+function construirSessaoCacheada(user: User): Promise<Sessao> {
+  const existente = sessaoCache.get(user.uid)
+  if (existente) return existente
+  const p = construirSessao(user)
+  sessaoCache.set(user.uid, p)
+  return p
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessao] = useState<Sessao | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -133,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user) {
         sessionStorage.removeItem(CHAVE_DEMO)
         try {
-          setSessao(await construirSessao(user))
+          setSessao(await construirSessaoCacheada(user))
         } catch (e) {
           console.warn('sessão:', e)
           setSessao(null)
@@ -155,14 +209,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const entrarComEmail = useCallback(async (email: string, senha: string) => {
-    await signInWithEmailAndPassword(auth, email, senha)
+    const cred = await signInWithEmailAndPassword(auth, email, senha)
+    return cred.user.uid
   }, [])
 
   const criarConta = useCallback(
     async (nome: string, email: string, senha: string, restauranteNome?: string, bairro?: string) => {
+      // Guarda os dados do formulário ANTES de criar a conta: createUserWithEmailAndPassword
+      // já dispara o onAuthStateChanged (que roda construirSessao) antes mesmo
+      // de terminarmos esta função — se cada um chamasse provisionarRestaurante
+      // por conta própria, as duas escritas concorrentes em restaurants/{rid}
+      // corriam risco de uma sobrescrever a outra com os valores padrão. Por
+      // isso só o construirSessao provisiona; aqui só deixamos os dados prontos
+      // pra ele achar (mesmo esquema do CHAVE_CONVITE).
+      if (!sessionStorage.getItem(CHAVE_CONVITE)) {
+        sessionStorage.setItem(CHAVE_CADASTRO, JSON.stringify({ nome, restauranteNome, bairro }))
+      }
       const cred = await createUserWithEmailAndPassword(auth, email, senha)
       if (nome) await updateProfile(cred.user, { displayName: nome })
-      await provisionarRestaurante(cred.user, { nome, restauranteNome, bairro })
+      return cred.user.uid
     },
     [],
   )
@@ -171,10 +236,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
     try {
-      await signInWithPopup(auth, provider)
+      const cred = await signInWithPopup(auth, provider)
+      return cred.user.uid
     } catch (e) {
       const code = (e as { code?: string }).code ?? ''
-      // Popup bloqueado ou ambiente sem suporte a popup → redireciona.
+      // Popup bloqueado ou ambiente sem suporte a popup → redireciona (a
+      // página recarrega e o uid sai do onAuthStateChanged, não daqui).
       if (
         code === 'auth/popup-blocked' ||
         code === 'auth/cancelled-popup-request' ||
@@ -182,14 +249,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         code === 'auth/popup-closed-by-user'
       ) {
         await signInWithRedirect(auth, provider)
-        return
+        return ''
       }
       throw e
     }
   }, [])
 
+  const atualizarPerfil = useCallback(
+    async (dados: { nome?: string; photoURL?: string }) => {
+      if (!auth.currentUser || !sessao || sessao.demo) return
+      const perfilAuth: { displayName?: string; photoURL?: string } = {}
+      if (dados.nome !== undefined) perfilAuth.displayName = dados.nome
+      if (dados.photoURL !== undefined) perfilAuth.photoURL = dados.photoURL
+      if (Object.keys(perfilAuth).length) await updateProfile(auth.currentUser, perfilAuth)
+
+      const patchUser: Record<string, unknown> = {}
+      const patchMembro: Record<string, unknown> = {}
+      if (dados.nome !== undefined) {
+        patchUser.nome = dados.nome
+        patchMembro.nome = dados.nome
+        patchMembro.inicial = (dados.nome[0] || 'V').toUpperCase()
+      }
+      if (dados.photoURL !== undefined) patchUser.photoURL = dados.photoURL
+
+      await Promise.all([
+        setDoc(doc(db, 'users', sessao.usuario.id), patchUser, { merge: true }),
+        setDoc(doc(db, 'restaurants', sessao.tenantId, 'membros', sessao.usuario.id), patchMembro, { merge: true }),
+      ])
+
+      const novaSessao: Sessao = {
+        ...sessao,
+        usuario: {
+          ...sessao.usuario,
+          nome: dados.nome ?? sessao.usuario.nome,
+          avatarInicial: dados.nome ? (dados.nome[0] || 'V').toUpperCase() : sessao.usuario.avatarInicial,
+          photoURL: dados.photoURL ?? sessao.usuario.photoURL,
+        },
+      }
+      // Mantém o cache de sessão em dia — sem isso, um próximo disparo do
+      // onAuthStateChanged (ex.: refresh de token) reconstruiria a sessão do
+      // zero e sobrescreveria essa edição com o valor cacheado antigo.
+      sessaoCache.set(sessao.usuario.id, Promise.resolve(novaSessao))
+      setSessao(novaSessao)
+    },
+    [sessao],
+  )
+
   const sair = useCallback(async () => {
     sessionStorage.removeItem(CHAVE_DEMO)
+    if (sessao) sessaoCache.delete(sessao.usuario.id)
     if (sessao?.demo) {
       setSessao(null)
       return
@@ -208,8 +316,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       criarConta,
       entrarComGoogle,
       sair,
+      atualizarPerfil,
     }),
-    [sessao, carregando, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair],
+    [sessao, carregando, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

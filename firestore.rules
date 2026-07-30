@@ -26,6 +26,13 @@ service cloud.firestore {
       allow read, write: if logado() && request.auth.uid == userId;
     }
 
+    // Convites de equipe: só acessados via Cloud Functions (Admin SDK, que
+    // ignora estas regras). O cliente nunca lê/escreve aqui direto — evita o
+    // problema de "quem ainda não é membro precisa se adicionar ao restaurante".
+    match /convites/{token} {
+      allow read, write: if false;
+    }
+
     // Tenant de demonstração — aberto (exemplo, sem dados reais).
     match /restaurants/demo-zaatar {
       allow read, write: if true;

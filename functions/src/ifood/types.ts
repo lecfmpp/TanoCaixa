@@ -58,11 +58,12 @@ export interface RepasseIFood {
 
 /* -------------------------------- Order --------------------------------- */
 
-/** Evento do polling de pedidos. */
+/** Evento do polling de pedidos (mesma forma chega via webhook, +merchantId). */
 export interface EventoPedidoIFood {
   id: string
   code: string // PLC (placed), CFM (confirmed), CAN (cancelled)...
   orderId: string
+  merchantId?: string
   createdAt: string
 }
 

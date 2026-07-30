@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { httpsCallable } from 'firebase/functions'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
@@ -17,11 +18,16 @@ import {
 } from '@/data/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
+import { functions } from '@/lib/firebase'
 import { HOJE } from '@/data/derive'
-import { mascararTelefone } from '@/lib/format'
 import { PAPEIS, rotuloPapel, normalizarPapel, type Papel, type Origem } from '@/types'
 import type { IntegracaoDoc } from '@/data/repo'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
+
+const criarConviteFn = httpsCallable<{ restauranteId: string; papel: Papel }, { token: string; url: string }>(
+  functions,
+  'criarConvite',
+)
 
 const PAPEL_DESC: Record<Papel, string> = {
   dono: 'vê tudo e gerencia usuários',
@@ -236,8 +242,6 @@ function Integracoes() {
   )
 }
 
-const CORES_AVATAR = ['#2E5F73', '#C05437', '#2F6B4A', '#1E4354', '#8A5A28']
-
 function Equipe() {
   const { sessao, permissoes } = useAuth()
   const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
@@ -249,31 +253,31 @@ function Equipe() {
   const podeGerenciar = gestao !== 'nao'
   const ehDono = gestao === 'total'
 
-  const [nome, setNome] = useState('')
-  const [celular, setCelular] = useState('')
   const [papelNovo, setPapelNovo] = useState<Papel>('caixa')
+  const [linkGerado, setLinkGerado] = useState<string | null>(null)
+  const [gerando, setGerando] = useState(false)
 
-  function adicionar() {
-    if (!nome.trim()) return
-    const id = `m-${Math.random().toString(36).slice(2, 9)}`
-    salvar.mutate({
-      id,
-      dados: {
-        nome: nome.trim(),
-        inicial: nome.trim()[0].toUpperCase(),
-        cor: CORES_AVATAR[membros.length % CORES_AVATAR.length],
-        papel: papelNovo,
-        celular,
-        conviteStatus: ehDono ? 'convite_enviado' : 'aguardando_dono',
-      },
-    })
+  async function gerarConvite() {
+    if (!sessao) return
+    setGerando(true)
+    try {
+      const resp = await criarConviteFn({ restauranteId: sessao.tenantId, papel: papelNovo })
+      setLinkGerado(resp.data.url)
+    } catch {
+      adicionarToast({ tipo: 'sistema', titulo: 'Não deu pra gerar o convite', texto: 'Tenta de novo em instantes.' })
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  async function copiarLink() {
+    if (!linkGerado) return
+    await navigator.clipboard.writeText(linkGerado)
     adicionarToast({
-      tipo: ehDono ? 'sucesso' : 'sistema',
-      titulo: ehDono ? 'Convite enviado' : 'Enviado pro dono aprovar',
-      texto: ehDono ? `${nome} entra como ${PAPEIS.find((p) => p.id === papelNovo)?.nome}.` : 'A permissão vale quando o dono aprovar.',
+      tipo: 'sucesso',
+      titulo: 'Link copiado',
+      texto: 'Manda por WhatsApp (ou onde preferir) pra pessoa entrar como ' + rotuloPapel(papelNovo) + '.',
     })
-    setNome('')
-    setCelular('')
   }
 
   return (
@@ -335,18 +339,33 @@ function Equipe() {
 
       {podeGerenciar && (
         <div className="mt-4 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-fundo-app p-4">
-          <span className="rotulo text-tinta-4">Adicionar usuário</span>
+          <span className="rotulo text-tinta-4">Convidar alguém pra equipe</span>
+          <p className="mt-1 text-xs text-tinta-4">
+            Gera um link único já com o papel definido. Você manda por WhatsApp (ou onde preferir) — a pessoa cria a conta e entra direto neste restaurante.
+          </p>
           <div className="mt-2 flex flex-col gap-2 cel:flex-row">
-            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar" />
-            <input value={celular} onChange={(e) => setCelular(mascararTelefone(e.target.value))} placeholder="(21) 90000-0000" inputMode="tel" className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar" />
             <select value={papelNovo} onChange={(e) => setPapelNovo(e.target.value as Papel)} className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2 py-2 text-sm text-tinta-2 outline-none focus:border-mar">
               {PAPEIS.filter((p) => p.id !== 'dono').map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
-            <button onClick={adicionar} disabled={!nome.trim()} className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50">
-              {ehDono ? 'Convidar' : 'Enviar pro dono'}
+            <button onClick={gerarConvite} disabled={gerando} className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50">
+              {gerando ? 'Gerando…' : 'Gerar link de convite'}
             </button>
           </div>
+
+          {linkGerado && (
+            <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
+              <input readOnly value={linkGerado} className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta-2 outline-none" />
+              <button onClick={copiarLink} className="shrink-0 rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme transition hover:brightness-95">
+                Copiar link
+              </button>
+            </div>
+          )}
         </div>
+      )}
+      {!ehDono && gestao === 'proposta' && podeGerenciar && (
+        <p className="mt-2 text-xs text-tinta-4">
+          Quem entra por esse link já começa ativo com o papel escolhido — mudanças de permissão depois é que passam pela aprovação do dono.
+        </p>
       )}
     </Cartao>
   )

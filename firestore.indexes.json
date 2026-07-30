@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "integracoes",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "provedor", "order": "ASCENDING" },
+        { "fieldPath": "merchantId", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

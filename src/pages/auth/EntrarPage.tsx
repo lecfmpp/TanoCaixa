@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
@@ -7,27 +7,37 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon'
 import { useAuth } from '@/auth/AuthContext'
 
 export function EntrarPage() {
-  const { entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
+  const { sessao, entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
   const navegar = useNavigate()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrar, setMostrar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [uidEsperado, setUidEsperado] = useState<string | null>(null)
+
+  // entrarComEmail/entrarComGoogle só esperam a autenticação do Firebase Auth
+  // — a sessão (que provisiona/lê o restaurante no Firestore) monta depois,
+  // de forma assíncrona. Navegar antes disso faz o RotaProtegida mandar de
+  // volta pro /entrar achando que ninguém tá logado. Comparamos o uid (não só
+  // "sessao existe") porque o navegador pode já ter uma sessão antiga
+  // persistida (outra conta) quando esta página monta.
+  useEffect(() => {
+    if (uidEsperado && sessao?.usuario.id === uidEsperado) navegar('/painel')
+  }, [uidEsperado, sessao, navegar])
 
   async function aoEnviar(e: FormEvent) {
     e.preventDefault()
     setErro(null)
     setEnviando(true)
     try {
-      await entrarComEmail(email, senha)
-      navegar('/painel')
+      const uid = await entrarComEmail(email, senha)
+      setUidEsperado(uid)
     } catch {
+      setEnviando(false)
       setErro(
         'Não deu pra entrar. Confira e-mail e senha — ou use a demonstração aqui embaixo.',
       )
-    } finally {
-      setEnviando(false)
     }
   }
 
@@ -109,8 +119,8 @@ export function EntrarPage() {
         type="button"
         onClick={async () => {
           try {
-            await entrarComGoogle()
-            navegar('/painel')
+            const uid = await entrarComGoogle()
+            setUidEsperado(uid)
           } catch {
             setErro('Não deu pra entrar com o Google. Tenta de novo.')
           }

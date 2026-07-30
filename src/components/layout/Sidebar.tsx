@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Logo } from '@/components/ui/Logo'
+import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
 import { useAuth } from '@/auth/AuthContext'
@@ -7,7 +8,8 @@ import { contagemProgresso } from '@/data/mock'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
-  const { permissoes, sair } = useAuth()
+  const { sessao, permissoes, sair } = useAuth()
+  const usuario = sessao?.usuario
 
   const itens = itensNav.filter((i) => permissoes?.[i.chave])
   const { feitos, total, mes } = contagemProgresso
@@ -16,7 +18,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   return (
     <nav className="flex h-full w-[236px] shrink-0 flex-col bg-mar text-creme">
       <div className="px-6 pt-6 pb-6">
-        <Logo tom="claro" tamanho={18} />
+        <Logo tom="claro" tamanho={18} href="/painel" />
       </div>
 
       <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4">
@@ -52,12 +54,32 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
         </div>
       </div>
 
-      <button
-        onClick={sair}
-        className="border-t border-white/10 px-6 py-4 text-left text-sm text-creme/70 transition hover:text-creme"
-      >
-        Sair da conta
-      </button>
+      <div className="border-t border-white/10">
+        {usuario && (
+          <NavLink
+            to="/painel/perfil"
+            onClick={aoNavegar}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-6 py-3.5 transition hover:bg-white/6',
+                isActive && 'bg-white/12',
+              )
+            }
+          >
+            <Avatar inicial={usuario.avatarInicial} cor={usuario.avatarCor} foto={usuario.photoURL} tamanho={30} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-bold text-creme">{usuario.nome}</span>
+              <span className="block truncate text-xs text-creme/60">Ver perfil</span>
+            </span>
+          </NavLink>
+        )}
+        <button
+          onClick={sair}
+          className="w-full px-6 py-3 text-left text-sm text-creme/70 transition hover:text-creme"
+        >
+          Sair da conta
+        </button>
+      </div>
     </nav>
   )
 }

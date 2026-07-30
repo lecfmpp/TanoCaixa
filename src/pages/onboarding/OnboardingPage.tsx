@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { fotos } from '@/lib/fotos'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthContext'
-import { usePersistirOnboarding, type RespostasOnboarding } from '@/data/hooks'
+import { pctDaMeta, TAXA_APP_TETO_PADRAO, usePersistirOnboarding, type RespostasOnboarding } from '@/data/hooks'
 import { HORARIO_PADRAO } from '@/components/ui/HorarioSemana'
 import {
   Passo1Restaurante,
@@ -15,7 +15,8 @@ import {
   Passo4Integracoes,
   Passo5Equipe,
   Passo6Metas,
-  Passo7Pronto,
+  Passo7Avisos,
+  Passo8Pronto,
 } from './passos'
 
 const PASSOS = [
@@ -24,11 +25,13 @@ const PASSOS = [
   { indice: 3, nome: 'Números de partida' },
   { indice: 4, nome: 'Integrações' },
   { indice: 5, nome: 'Sua equipe' },
-  { indice: 6, nome: 'Metas e avisos' },
-  { indice: 7, nome: 'Tudo pronto' },
+  { indice: 6, nome: 'Metas' },
+  { indice: 7, nome: 'Avisos' },
+  { indice: 8, nome: 'Tudo pronto' },
 ]
 
-const RESPOSTAS_INICIAIS: RespostasOnboarding = {
+/** Dados de exemplo pra demonstração (sem sessão real = tenant demo). */
+const RESPOSTAS_DEMO: RespostasOnboarding = {
   nome: 'Zaatar Cozinha Árabe',
   bairro: 'Botafogo',
   lojas: '1',
@@ -42,10 +45,33 @@ const RESPOSTAS_INICIAIS: RespostasOnboarding = {
   faturamento: '50.000',
   folha: 10900,
   contasFixas: 6300,
+  mercadoria: 15000,
   pessoas: '6',
   meta: '50.000',
-  tetos: { mercadoria: 30, pessoal: 25, ocupacao: 15, taxas_app: 12 },
   avisos: { whatsapp: true, email: true, sms: false },
+}
+
+/** Semeia o onboarding com o que a pessoa já digitou no cadastro (nome do
+ * restaurante, bairro) — só cai nos dados de exemplo quando não há sessão
+ * real (demo). O resto (números, metas) começa em branco/no padrão, porque
+ * o cadastro não pergunta isso — só o onboarding pergunta. */
+function respostasIniciais(sessao: ReturnType<typeof useAuth>['sessao']): RespostasOnboarding {
+  if (!sessao || sessao.demo) return RESPOSTAS_DEMO
+  const rest = sessao.restaurante
+  return {
+    ...RESPOSTAS_DEMO,
+    nome: rest.nome && rest.nome !== 'Meu restaurante' ? rest.nome : '',
+    bairro: rest.bairro || '',
+    cozinha: '',
+    ticket: '',
+    pedidos: '',
+    faturamento: '',
+    folha: 0,
+    contasFixas: 0,
+    mercadoria: 0,
+    pessoas: '',
+    meta: '',
+  }
 }
 
 export function OnboardingPage() {
@@ -53,14 +79,16 @@ export function OnboardingPage() {
   const { entrarDemo, sessao } = useAuth()
   const persistir = usePersistirOnboarding()
   const [passo, setPasso] = useState(1)
-  const [r, setR] = useState<RespostasOnboarding>(RESPOSTAS_INICIAIS)
+  const [r, setR] = useState<RespostasOnboarding>(() => respostasIniciais(sessao))
   const upd = (patch: Partial<RespostasOnboarding>) => setR((atual) => ({ ...atual, ...patch }))
 
   const pontoEquilibrio = useMemo(
     () => Math.round((r.folha + r.contasFixas) / 0.415 / 100) * 100,
     [r.folha, r.contasFixas],
   )
-  const sobraPct = 100 - (r.tetos.mercadoria + r.tetos.pessoal + r.tetos.ocupacao + r.tetos.taxas_app)
+  const sobraPct =
+    100 -
+    (pctDaMeta(r.contasFixas, r.meta) + pctDaMeta(r.folha, r.meta) + pctDaMeta(r.mercadoria, r.meta) + TAXA_APP_TETO_PADRAO)
   const sobraReais = Math.round(((Number(r.meta.replace(/\D/g, '')) || 50000) * sobraPct) / 100)
 
   const ehUltimo = passo === PASSOS.length
@@ -104,7 +132,7 @@ export function OnboardingPage() {
             className="mt-8 text-creme"
             style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}
           >
-            Sete perguntas e seu painel fica pronto
+            Oito perguntas e seu painel fica pronto
           </h1>
           <p className="pretty mt-2 text-sm text-creme/85">
             Dá pra mudar tudo depois. O que você não souber agora, deixa em branco.
@@ -187,15 +215,20 @@ export function OnboardingPage() {
             {passo === 5 && <Passo5Equipe />}
             {passo === 6 && (
               <Passo6Metas
-                tetos={r.tetos}
-                onTetos={(tt) => upd({ tetos: tt })}
-                sobraPct={sobraPct}
-                sobraReais={sobraReais}
                 meta={r.meta}
                 onMeta={(v) => upd({ meta: v })}
+                contasFixas={r.contasFixas}
+                onContasFixas={(n) => upd({ contasFixas: n })}
+                folha={r.folha}
+                onFolha={(n) => upd({ folha: n })}
+                mercadoria={r.mercadoria}
+                onMercadoria={(n) => upd({ mercadoria: n })}
+                sobraPct={sobraPct}
+                sobraReais={sobraReais}
               />
             )}
-            {passo === 7 && <Passo7Pronto />}
+            {passo === 7 && <Passo7Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
+            {passo === 8 && <Passo8Pronto />}
           </div>
         </div>
 

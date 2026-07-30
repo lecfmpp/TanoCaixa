@@ -25,16 +25,25 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
         try {
           const base64 = evt.target?.result as string
           const base64String = base64.split(',')[1]
+
+          if (!import.meta.env.VITE_GOOGLE_API_KEY) {
+            throw new Error('Chave do Google Gemini não configurada. Adicione VITE_GOOGLE_API_KEY em .env.local')
+          }
+
           const dados = await extrairDadosDeFoto(base64String, tipo)
           onExtrair(dados)
         } catch (e) {
-          setErro(`Erro ao analisar foto: ${(e as Error).message}`)
+          const msg = (e as Error).message
+          console.error('Erro Gemini:', msg)
+          setErro(msg || 'Erro ao analisar foto. Tente novamente.')
           setCarregando(false)
         }
       }
       reader.readAsDataURL(arquivo)
     } catch (e) {
-      setErro(`Erro ao ler arquivo: ${(e as Error).message}`)
+      const msg = (e as Error).message
+      console.error('Erro ao ler arquivo:', msg)
+      setErro(msg || 'Erro ao ler o arquivo. Tente outro.')
       setCarregando(false)
     }
   }

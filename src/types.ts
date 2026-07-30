@@ -47,6 +47,8 @@ export interface Usuario {
   celularWhatsapp?: string
   avatarInicial: string
   avatarCor: string
+  /** Foto de perfil (do Google, ou enviada manualmente). Sem isso, cai no avatar de inicial+cor. */
+  photoURL?: string
   papel: Papel
 }
 

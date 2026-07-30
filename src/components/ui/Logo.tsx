@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/cn'
 
 interface LogoProps {
@@ -5,29 +6,16 @@ interface LogoProps {
   tom?: 'claro' | 'escuro'
   tamanho?: number
   className?: string
+  /** Para onde a logo leva ao clicar. */
+  href?: string
 }
 
-/** Marca "Tá no Caixa": tile telhado arredondado + wordmark. */
-export function Logo({ tom = 'escuro', tamanho = 22, className }: LogoProps) {
-  const corTexto = tom === 'claro' ? '#F7F5EA' : '#1C2A2E'
+/** Marca "Tá no Caixa": lockup oficial (ícone sol + wordmark), clicável. */
+export function Logo({ tom = 'escuro', tamanho = 22, className, href = '/' }: LogoProps) {
+  const arquivo = tom === 'claro' ? '/logo/tanocaixa-claro.png' : '/logo/tanocaixa-escuro.png'
   return (
-    <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <span
-        className="inline-block shrink-0"
-        style={{
-          width: tamanho * 1.35,
-          height: tamanho * 1.35,
-          borderRadius: tamanho * 0.4,
-          background: '#C05437',
-        }}
-        aria-hidden
-      />
-      <span
-        className="leading-none"
-        style={{ color: corTexto, fontWeight: 700, fontSize: tamanho, letterSpacing: '-0.01em' }}
-      >
-        Tá no Caixa
-      </span>
-    </span>
+    <Link to={href} className={cn('inline-block w-auto shrink-0', className)}>
+      <img src={arquivo} alt="Tá no Caixa" className="block h-full w-auto" style={{ height: tamanho * 2.08 }} />
+    </Link>
   )
 }

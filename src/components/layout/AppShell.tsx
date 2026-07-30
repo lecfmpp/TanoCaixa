@@ -36,7 +36,7 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topo só no mobile/tablet */}
         <header className="flex items-center justify-between border-b border-divisoria bg-superficie px-4 py-3 tab:hidden">
-          <Logo tom="escuro" tamanho={20} />
+          <Logo tom="escuro" tamanho={20} href="/painel" />
           <button
             onClick={() => setGaveta((v) => !v)}
             className="grid h-9 w-9 place-items-center rounded-botao text-tinta-2 hover:bg-preenchimento"

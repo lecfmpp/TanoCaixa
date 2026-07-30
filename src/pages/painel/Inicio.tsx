@@ -21,7 +21,7 @@ const DELTAS: Record<Periodo, { entrou: [string, Tom]; saiu: [string, Tom]; pont
 }
 
 export function Inicio() {
-  const { permissoes } = useAuth()
+  const { permissoes, sessao } = useAuth()
   const { abrirGaveta } = useUI()
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const { ctx } = useContexto()
@@ -44,6 +44,15 @@ export function Inicio() {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader titulo="Como está o mês" subtitulo={sub} periodo={periodo} aoTrocarPeriodo={setPeriodo} />
+
+      {sessao && (
+        <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-preenchimento/50 px-6 py-4">
+          <p className="text-sm text-tinta-2">
+            Opa, <span className="font-bold text-tinta">{sessao.usuario.nome.split(' ')[0]}</span>! 👋
+            Aqui está o resumo do mês pra você tomar as melhores decisões.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3.5 cel:grid-cols-2 tab:grid-cols-4">
         <CartaoValor rotulo="Entrou" valor={r.entrou} delta={d.entrou} visivel={permissoes?.veFaturamentoTotal ?? true} motivo="só o dono vê o faturamento" />

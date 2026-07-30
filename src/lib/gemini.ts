@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const apiKey = import.meta.env.VITE_GOOGLE_API_KEY
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || ''
 if (!apiKey) {
-  console.warn('VITE_GOOGLE_API_KEY não configurada — recurso Gemini desabilitado')
+  console.error('❌ VITE_GOOGLE_API_KEY não configurada. Adicione a chave em .env.local para usar a câmera com IA.')
+  console.error('   Obtenha em: https://aistudio.google.com/app/apikey')
 }
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
@@ -26,13 +26,23 @@ function forcaSenha(senha: string): { nivel: number; frase: string } {
 
 export function CriarContaPage() {
   const navegar = useNavigate()
-  const { criarConta } = useAuth()
+  const { sessao, criarConta } = useAuth()
   const [senha, setSenha] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [aceite, setAceite] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [uidEsperado, setUidEsperado] = useState<string | null>(null)
   const forca = useMemo(() => forcaSenha(senha), [senha])
+
+  // criarConta só espera a autenticação do Firebase Auth — a sessão (que
+  // provisiona o restaurante no Firestore) monta depois, de forma
+  // assíncrona. Navegar antes disso deixa o onboarding sem sessao ainda.
+  // Comparamos o uid (não só "sessao existe") porque o navegador pode já
+  // ter uma sessão antiga persistida (outra conta) quando esta página monta.
+  useEffect(() => {
+    if (uidEsperado && sessao?.usuario.id === uidEsperado) navegar('/onboarding')
+  }, [uidEsperado, sessao, navegar])
 
   async function aoEnviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,12 +54,11 @@ export function CriarContaPage() {
     setErro(null)
     setEnviando(true)
     try {
-      await criarConta(nome, email, senha, restaurante, bairro)
-      navegar('/onboarding')
+      const uid = await criarConta(nome, email, senha, restaurante, bairro)
+      setUidEsperado(uid)
     } catch {
-      setErro('Não deu pra criar a conta. Talvez esse e-mail já tenha cadastro, ou a senha esteja curta (mínimo 6).')
-    } finally {
       setEnviando(false)
+      setErro('Não deu pra criar a conta. Talvez esse e-mail já tenha cadastro, ou a senha esteja curta (mínimo 6).')
     }
   }
 

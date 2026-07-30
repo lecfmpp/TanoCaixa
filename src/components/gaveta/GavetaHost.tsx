@@ -56,8 +56,8 @@ export function GavetaHost() {
   // Estado dos formulários
   const [despesa, setDespesa] = useState({ fornecedor: '', valor: '', categoria: 'mercadoria' as CategoriaDespesa, pagamento: 'Pix', obs: '', repete: false })
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-  const [fecha, setFecha] = useState({ pix: '214,60', cartao: '98,50', dinheiro: '38,00' })
-  const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
+  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '' })
+  const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: '', quantidade: '', custo: '', geraDespesa: true })
 
   useEffect(() => {
     setEtapa(0)
