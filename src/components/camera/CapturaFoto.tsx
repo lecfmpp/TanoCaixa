@@ -13,37 +13,58 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const [erro, setErro] = useState('')
 
   async function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
+    console.log('📸 Input change disparado')
     const arquivo = e.target.files?.[0]
-    if (!arquivo) return
+    console.log('📸 Arquivo selecionado:', arquivo?.name, arquivo?.size)
 
+    if (!arquivo) {
+      console.log('⚠️ Nenhum arquivo selecionado')
+      return
+    }
+
+    console.log('🔄 Iniciando carregamento...')
     setCarregando(true)
     setErro('')
 
     try {
       const reader = new FileReader()
+
       reader.onload = async (evt) => {
         try {
+          console.log('📖 Arquivo lido, convertendo para base64...')
           const base64 = evt.target?.result as string
           const base64String = base64.split(',')[1]
+          console.log('✅ Base64 pronto, enviando para Gemini...')
 
           if (!import.meta.env.VITE_GOOGLE_API_KEY) {
-            throw new Error('Chave do Google Gemini não configurada. Adicione VITE_GOOGLE_API_KEY em .env.local')
+            console.error('❌ CHAVE GOOGLE NÃO CONFIGURADA')
+            throw new Error('❌ VITE_GOOGLE_API_KEY não está em .env.local')
           }
 
+          console.log('🤖 Chamando Gemini Vision...')
           const dados = await extrairDadosDeFoto(base64String, tipo)
+          console.log('✅ Dados extraídos:', dados)
           onExtrair(dados)
         } catch (e) {
           const msg = (e as Error).message
-          console.error('Erro Gemini:', msg)
+          console.error('❌ ERRO GEMINI:', msg)
           setErro(msg || 'Erro ao analisar foto. Tente novamente.')
           setCarregando(false)
         }
       }
+
+      reader.onerror = () => {
+        console.error('❌ Erro ao ler arquivo')
+        setErro('Erro ao ler o arquivo')
+        setCarregando(false)
+      }
+
+      console.log('📖 Lendo arquivo...')
       reader.readAsDataURL(arquivo)
     } catch (e) {
       const msg = (e as Error).message
-      console.error('Erro ao ler arquivo:', msg)
-      setErro(msg || 'Erro ao ler o arquivo. Tente outro.')
+      console.error('❌ ERRO:', msg)
+      setErro(msg || 'Erro')
       setCarregando(false)
     }
   }
@@ -56,11 +77,14 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
             <>
               <h2 className="text-lg font-bold text-tinta">Analisar documento</h2>
               <p className="text-sm text-tinta-3">
-                A IA vai extrair os dados automaticamente da foto. Tire uma foto clara do documento ou selecione uma da galeria.
+                Tire uma foto clara ou selecione da galeria.
               </p>
 
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  console.log('🖱️ Botão clicado, abrindo seletor...')
+                  fileInputRef.current?.click()
+                }}
                 className="rounded-botao bg-telhado px-4 py-3 text-sm font-bold text-creme transition hover:brightness-95"
               >
                 📸 Tirar foto ou selecionar
@@ -87,8 +111,8 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
               <div className="animate-spin text-4xl">📸</div>
-              <h2 className="text-lg font-bold text-tinta">Analisando documento...</h2>
-              <p className="text-sm text-tinta-3">Usando IA Gemini para extrair dados</p>
+              <h2 className="text-lg font-bold text-tinta">Analisando...</h2>
+              <p className="text-sm text-tinta-3">Pode levar alguns segundos</p>
             </div>
           )}
         </div>
