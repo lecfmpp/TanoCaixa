@@ -203,5 +203,8 @@ export {
   stripeWebhook,
 } from './stripe'
 
+/* ------------------- Gemini Vision (foto → lançamento) ------------------- */
+export { analisarFoto } from './gemini'
+
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'

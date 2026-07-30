@@ -12,61 +12,32 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
-  async function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
-    console.log('📸 Input change disparado')
+  function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
-    console.log('📸 Arquivo selecionado:', arquivo?.name, arquivo?.size)
+    if (!arquivo) return
 
-    if (!arquivo) {
-      console.log('⚠️ Nenhum arquivo selecionado')
-      return
-    }
-
-    console.log('🔄 Iniciando carregamento...')
     setCarregando(true)
     setErro('')
 
-    try {
-      const reader = new FileReader()
+    const reader = new FileReader()
 
-      reader.onload = async (evt) => {
-        try {
-          console.log('📖 Arquivo lido, convertendo para base64...')
-          const base64 = evt.target?.result as string
-          const base64String = base64.split(',')[1]
-          console.log('✅ Base64 pronto, enviando para Gemini...')
-
-          if (!import.meta.env.VITE_GOOGLE_API_KEY) {
-            console.error('❌ CHAVE GOOGLE NÃO CONFIGURADA')
-            throw new Error('❌ VITE_GOOGLE_API_KEY não está em .env.local')
-          }
-
-          console.log('🤖 Chamando Gemini Vision...')
-          const dados = await extrairDadosDeFoto(base64String, tipo)
-          console.log('✅ Dados extraídos:', dados)
-          onExtrair(dados)
-        } catch (e) {
-          const msg = (e as Error).message
-          console.error('❌ ERRO GEMINI:', msg)
-          setErro(msg || 'Erro ao analisar foto. Tente novamente.')
-          setCarregando(false)
-        }
-      }
-
-      reader.onerror = () => {
-        console.error('❌ Erro ao ler arquivo')
-        setErro('Erro ao ler o arquivo')
+    reader.onload = async (evt) => {
+      try {
+        const base64 = (evt.target?.result as string).split(',')[1]
+        const dados = await extrairDadosDeFoto(base64, tipo, arquivo.type || 'image/jpeg')
+        onExtrair(dados)
+      } catch (err) {
+        setErro((err as Error).message || 'Erro ao analisar a foto. Tente novamente.')
         setCarregando(false)
       }
+    }
 
-      console.log('📖 Lendo arquivo...')
-      reader.readAsDataURL(arquivo)
-    } catch (e) {
-      const msg = (e as Error).message
-      console.error('❌ ERRO:', msg)
-      setErro(msg || 'Erro')
+    reader.onerror = () => {
+      setErro('Não conseguimos abrir esse arquivo. Tente outra foto.')
       setCarregando(false)
     }
+
+    reader.readAsDataURL(arquivo)
   }
 
   return (
@@ -81,10 +52,7 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
               </p>
 
               <button
-                onClick={() => {
-                  console.log('🖱️ Botão clicado, abrindo seletor...')
-                  fileInputRef.current?.click()
-                }}
+                onClick={() => fileInputRef.current?.click()}
                 className="rounded-botao bg-telhado px-4 py-3 text-sm font-bold text-creme transition hover:brightness-95"
               >
                 📸 Tirar foto ou selecionar
