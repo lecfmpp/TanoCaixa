@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X, Camera } from 'lucide-react'
+import { X, Camera, Sparkles } from 'lucide-react'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { useAuth } from '@/auth/AuthContext'
 import { Button } from '@/components/ui/Button'
@@ -35,6 +35,21 @@ const CAT_PRODUTO = ['Hortifrúti', 'Carnes', 'Secos', 'Bebidas', 'Embalagens', 
 const UNIDADES = ['kg', 'g', 'L', 'un', 'pacote', 'caixa']
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
+
+/** Faixa que aparece depois da leitura por foto, apontando o que conferir. */
+function AvisoIA({ campos }: { campos: string[] }) {
+  if (!campos.length) return null
+  return (
+    <div className="flex items-start gap-2.5 rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-3.5">
+      <Sparkles size={16} className="mt-0.5 shrink-0 text-telhado" />
+      <p className="text-sm text-insight-texto">
+        A IA leu a foto e preencheu <strong className="font-bold">{campos.length}</strong>{' '}
+        {campos.length === 1 ? 'campo' : 'campos'}, destacados abaixo.{' '}
+        <strong className="font-bold">Confira antes de continuar</strong> — nada é salvo sem você confirmar.
+      </p>
+    </div>
+  )
+}
 const hojeISO = () => new Date().toISOString().slice(0, 10)
 
 const DESPESA_VAZIA = {
@@ -71,6 +86,9 @@ export function GavetaHost() {
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
   const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', delivery: '', outras: '' })
   const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: '', quantidade: '', custo: '', geraDespesa: true })
+  /** Campos que vieram da leitura da foto — ficam destacados pra conferência. */
+  const [iaPreencheu, setIaPreencheu] = useState<string[]>([])
+  const daIA = (campo: string) => iaPreencheu.includes(campo)
 
   /** Trocar de grupo leva a conta pra primeira do grupo novo. */
   function trocarGrupo(g: GrupoDRE) {
@@ -80,6 +98,7 @@ export function GavetaHost() {
   useEffect(() => {
     setEtapa(0)
     setModo('form')
+    setIaPreencheu([])
     setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
     setEstoque({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
@@ -139,25 +158,36 @@ export function GavetaHost() {
 
   /** Processa dados extraídos pela câmera. */
   function preencherComDadosDaFoto(dados: DadosExtraidosFoto) {
+    // Guarda o que veio da IA pra destacar na tela: o usuário precisa saber
+    // exatamente quais números conferir antes de salvar.
+    const vindos: string[] = []
     if (gaveta === 'despesa') {
-      if (dados.fornecedor) setDespesa((d) => ({ ...d, fornecedor: dados.fornecedor || d.fornecedor }))
-      if (dados.valor) setDespesa((d) => ({ ...d, valor: (dados.valor! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+      if (dados.fornecedor) { setDespesa((d) => ({ ...d, fornecedor: dados.fornecedor! })); vindos.push('fornecedor') }
+      if (dados.valor) { setDespesa((d) => ({ ...d, valor: (dados.valor! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) })); vindos.push('valor') }
       if (dados.categoria) {
         const conta = normalizarCategoria(dados.categoria)
         setDespesa((d) => ({ ...d, conta, grupo: CONTA[conta].grupo }))
+        vindos.push('conta')
       }
-      if (dados.obs) setDespesa((d) => ({ ...d, obs: dados.obs || d.obs }))
+      if (dados.obs) { setDespesa((d) => ({ ...d, obs: dados.obs! })); vindos.push('obs') }
     } else if (gaveta === 'produto') {
-      if (dados.produto) setProduto((p) => ({ ...p, nome: dados.produto || p.nome }))
-      if (dados.categoria) setProduto((p) => ({ ...p, categoria: dados.categoria || p.categoria }))
-      if (dados.custo) setProduto((p) => ({ ...p, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+      if (dados.produto) { setProduto((p) => ({ ...p, nome: dados.produto! })); vindos.push('nome') }
+      if (dados.categoria) { setProduto((p) => ({ ...p, categoria: dados.categoria! })); vindos.push('categoria') }
+      if (dados.custo) { setProduto((p) => ({ ...p, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) })); vindos.push('custo') }
     } else if (gaveta === 'estoque') {
-      if (dados.produto) setEstoque((e) => ({ ...e, produto: dados.produto || e.produto }))
-      if (dados.quantidade) setEstoque((e) => ({ ...e, quantidade: String(dados.quantidade || e.quantidade) }))
-      if (dados.custo) setEstoque((e) => ({ ...e, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }))
+      if (dados.produto) { setEstoque((e) => ({ ...e, produto: dados.produto! })); vindos.push('produto') }
+      if (dados.quantidade) { setEstoque((e) => ({ ...e, quantidade: String(dados.quantidade) })); vindos.push('quantidade') }
+      if (dados.custo) { setEstoque((e) => ({ ...e, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) })); vindos.push('custo') }
     }
+    setIaPreencheu(vindos)
     setCameraAberta(false)
-    adicionarToast({ tipo: 'sistema', titulo: 'Dados preenchidos', texto: 'Revise os campos e confirme.' })
+    adicionarToast({
+      tipo: 'sistema',
+      titulo: vindos.length ? 'A IA leu a foto' : 'Não deu pra ler',
+      texto: vindos.length
+        ? 'Confira os campos destacados e confirme.'
+        : 'Não achamos os dados nessa imagem. Preencha à mão ou tente outra foto.',
+    })
   }
 
   /** Toast de sucesso com "Desfazer" que apaga os docs criados. */
@@ -275,9 +305,10 @@ export function GavetaHost() {
 
           {etapa === 0 && modo === 'form' && gaveta === 'despesa' && (
             <div className="flex flex-col gap-4">
-              <Campo rotulo="Fornecedor" placeholder="Ex: Hortifrúti Zona Sul" value={despesa.fornecedor} onChange={(e) => setDespesa({ ...despesa, fornecedor: e.target.value })} />
+              <AvisoIA campos={iaPreencheu} />
+              <Campo rotulo="Fornecedor" destaque={daIA('fornecedor')} placeholder="Ex: Hortifrúti Zona Sul" value={despesa.fornecedor} onChange={(e) => setDespesa({ ...despesa, fornecedor: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
-                <Campo rotulo="Quanto foi" placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
+                <Campo rotulo="Quanto foi" destaque={daIA('valor')} placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
                 <Campo rotulo="Data da despesa" type="date" value={despesa.data} onChange={(e) => setDespesa({ ...despesa, data: e.target.value })} />
               </div>
               <div>
@@ -286,7 +317,7 @@ export function GavetaHost() {
                   {gruposDisponiveis.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={despesa.grupo === g.id} aoClicar={() => trocarGrupo(g.id)} />)}
                 </div>
               </div>
-              <div>
+              <div className={cn(daIA('conta') && 'rounded-campo border border-telhado/40 bg-insight-fundo/40 p-3')}>
                 <span className="rotulo mb-1.5 block text-tinta-4">Qual conta</span>
                 <div className="flex flex-wrap gap-2">
                   {contasDoGrupo(despesa.grupo).map((c) => (
@@ -307,23 +338,27 @@ export function GavetaHost() {
                 <span><span className="block text-sm font-bold text-tinta">Isso se repete todo mês</span><span className="block text-xs text-tinta-4">aluguel, contador, internet…</span></span>
                 <Switch ligado={despesa.repete} aoTrocar={(v) => setDespesa({ ...despesa, repete: v })} />
               </label>
-              <Campo rotulo="Observação · opcional" placeholder="Ex: compra de reposição do fim de semana" value={despesa.obs} onChange={(e) => setDespesa({ ...despesa, obs: e.target.value })} />
+              <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: compra de reposição do fim de semana" value={despesa.obs} onChange={(e) => setDespesa({ ...despesa, obs: e.target.value })} />
               <button
                 onClick={() => setCameraAberta(true)}
                 className="flex items-center justify-center gap-2 rounded-botao bg-telhado/20 px-4 py-3 text-sm font-bold text-telhado transition hover:bg-telhado/30"
               >
                 <Camera size={18} />
-                Tirar foto da nota
+                {iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
               </button>
-              <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4 text-sm text-insight-texto">
-                Tem a nota na mão? <strong className="font-bold">Tira uma foto</strong> que a gente preenche tudo isso sozinho em 5 segundos.
-              </div>
+              {/* Convite só faz sentido antes da leitura — depois vira contradição. */}
+              {!iaPreencheu.length && (
+                <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4 text-sm text-insight-texto">
+                  Tem a nota na mão? <strong className="font-bold">Tira uma foto</strong> que a gente preenche tudo isso sozinho em 5 segundos.
+                </div>
+              )}
             </div>
           )}
 
           {etapa === 0 && modo === 'form' && gaveta === 'produto' && (
             <div className="flex flex-col gap-4">
-              <Campo rotulo="Nome do produto" placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
+              <AvisoIA campos={iaPreencheu} />
+              <Campo rotulo="Nome do produto" destaque={daIA('nome')} placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">Categoria</span>
                 <div className="flex flex-wrap gap-2">{CAT_PRODUTO.map((c) => <Chip key={c} rotulo={c} selecionado={produto.categoria === c} aoClicar={() => setProduto({ ...produto, categoria: c })} />)}</div>
@@ -333,7 +368,7 @@ export function GavetaHost() {
                 <div className="flex flex-wrap gap-2">{UNIDADES.map((u) => <Chip key={u} rotulo={u} selecionado={produto.unidade === u} aoClicar={() => setProduto({ ...produto, unidade: u })} />)}</div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Campo rotulo="Custo de hoje" placeholder="R$ 9,80" inputMode="decimal" value={produto.custo} onChange={(e) => setProduto({ ...produto, custo: e.target.value })} />
+                <Campo rotulo="Custo de hoje" destaque={daIA('custo')} placeholder="R$ 9,80" inputMode="decimal" value={produto.custo} onChange={(e) => setProduto({ ...produto, custo: e.target.value })} />
                 <Campo rotulo="Estoque mínimo" placeholder="15 kg" value={produto.minimo} onChange={(e) => setProduto({ ...produto, minimo: e.target.value })} />
               </div>
               <Campo rotulo="Fornecedor padrão" placeholder="Casa Líbano" value={produto.fornecedor} onChange={(e) => setProduto({ ...produto, fornecedor: e.target.value })} />
@@ -380,10 +415,11 @@ export function GavetaHost() {
                 <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
                 <div className="flex flex-wrap gap-2">{['Entrou mercadoria', 'Contagem do mês', 'Perda ou quebra', 'Transferência'].map((o) => <Chip key={o} rotulo={o} selecionado={estoque.tipo === o} aoClicar={() => setEstoque({ ...estoque, tipo: o })} />)}</div>
               </div>
-              <Campo rotulo="Produto" value={estoque.produto} onChange={(e) => setEstoque({ ...estoque, produto: e.target.value })} />
+              <AvisoIA campos={iaPreencheu} />
+              <Campo rotulo="Produto" destaque={daIA('produto')} value={estoque.produto} onChange={(e) => setEstoque({ ...estoque, produto: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
-                <Campo rotulo="Quantidade" value={estoque.quantidade} onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })} inputMode="numeric" />
-                <Campo rotulo="Custo unitário" placeholder="R$ 9,80" value={estoque.custo} onChange={(e) => setEstoque({ ...estoque, custo: e.target.value })} inputMode="decimal" />
+                <Campo rotulo="Quantidade" destaque={daIA('quantidade')} value={estoque.quantidade} onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })} inputMode="numeric" />
+                <Campo rotulo="Custo unitário" destaque={daIA('custo')} placeholder="R$ 9,80" value={estoque.custo} onChange={(e) => setEstoque({ ...estoque, custo: e.target.value })} inputMode="decimal" />
               </div>
               <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
                 <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} no CMV, na conta do produto</span></span>

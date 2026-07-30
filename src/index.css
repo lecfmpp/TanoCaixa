@@ -133,3 +133,14 @@ body {
   background: var(--color-areia);
   opacity: 0.72;
 }
+
+/* Barra de progresso indeterminada — leitura de foto pela IA. Vai e volta
+   porque não dá pra saber quanto falta: quem manda no tempo é o modelo. */
+@keyframes barra {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
