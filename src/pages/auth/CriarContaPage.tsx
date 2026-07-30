@@ -4,6 +4,7 @@ import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/auth/AuthContext'
+import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 import { mascararTelefone } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -56,9 +57,10 @@ export function CriarContaPage() {
     try {
       const uid = await criarConta(nome, email, senha, restaurante, bairro)
       setUidEsperado(uid)
-    } catch {
+    } catch (e) {
+      console.error('Falha ao criar conta:', codigoDoErro(e) || e)
       setEnviando(false)
-      setErro('Não deu pra criar a conta. Talvez esse e-mail já tenha cadastro, ou a senha esteja curta (mínimo 6).')
+      setErro(mensagemDeErroAuth(e, 'Não deu pra criar a conta.'))
     }
   }
 

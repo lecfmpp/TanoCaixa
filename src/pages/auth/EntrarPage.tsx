@@ -5,6 +5,7 @@ import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { GoogleIcon } from '@/components/ui/GoogleIcon'
 import { useAuth } from '@/auth/AuthContext'
+import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 
 export function EntrarPage() {
   const { sessao, entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
@@ -33,11 +34,10 @@ export function EntrarPage() {
     try {
       const uid = await entrarComEmail(email, senha)
       setUidEsperado(uid)
-    } catch {
+    } catch (err) {
+      console.error('Falha ao entrar:', codigoDoErro(err) || err)
       setEnviando(false)
-      setErro(
-        'Não deu pra entrar. Confira e-mail e senha — ou use a demonstração aqui embaixo.',
-      )
+      setErro(mensagemDeErroAuth(err, 'Não deu pra entrar. Confira e-mail e senha.'))
     }
   }
 
@@ -121,8 +121,9 @@ export function EntrarPage() {
           try {
             const uid = await entrarComGoogle()
             setUidEsperado(uid)
-          } catch {
-            setErro('Não deu pra entrar com o Google. Tenta de novo.')
+          } catch (err) {
+            console.error('Falha no login Google:', codigoDoErro(err) || err)
+            setErro(mensagemDeErroAuth(err, 'Não deu pra entrar com o Google.'))
           }
         }}
         className="flex w-full items-center justify-center gap-3 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-4 py-2.5 text-sm font-bold text-tinta-2 transition hover:bg-preenchimento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mar"
