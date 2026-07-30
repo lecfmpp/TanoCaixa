@@ -267,11 +267,12 @@ export function GavetaHost() {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex justify-end bg-noite/45" onClick={fecharGaveta}>
-      <div
-        className="flex h-full w-full max-w-[520px] flex-col bg-fundo-app shadow-gaveta"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <>
+      <div className="fixed inset-0 z-[70] flex justify-end bg-noite/45" onClick={fecharGaveta}>
+        <div
+          className="flex h-full w-full max-w-[520px] flex-col bg-fundo-app shadow-gaveta"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Cabeçalho */}
         <div className="flex items-start justify-between border-b border-divisoria bg-superficie px-6 py-4">
           <div>
@@ -487,9 +488,12 @@ export function GavetaHost() {
             </>
           )}
         </div>
+        </div>
       </div>
 
-      {/* Modal de câmera */}
+      {/* Modal de câmera — FORA do backdrop da gaveta de propósito. Dentro
+       * dele, qualquer clique aqui borbulhava até o onClick={fecharGaveta} e
+       * derrubava a gaveta inteira no meio da escolha da foto. */}
       {cameraAberta && gaveta && (
         <CapturaFoto
           tipo={gaveta === 'despesa' ? 'despesa' : gaveta === 'produto' ? 'produto' : 'estoque'}
@@ -497,6 +501,6 @@ export function GavetaHost() {
           onCancelar={() => setCameraAberta(false)}
         />
       )}
-    </div>
+    </>
   )
 }

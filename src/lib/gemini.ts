@@ -34,18 +34,32 @@ export function prepararFoto(arquivo: File): Promise<{ base64: string; mimeType:
   return new Promise((resolve) => {
     const url = URL.createObjectURL(arquivo)
     const img = new Image()
+    let respondido = false
 
+    const entregar = (r: { base64: string; mimeType: string }) => {
+      if (respondido) return
+      respondido = true
+      clearTimeout(prazo)
+      resolve(r)
+    }
+
+    /** Sem redimensionar: manda o arquivo como veio. */
     const semRedimensionar = () => {
       URL.revokeObjectURL(url)
       const reader = new FileReader()
       reader.onload = (e) =>
-        resolve({
+        entregar({
           base64: String(e.target?.result ?? '').split(',')[1] ?? '',
           mimeType: arquivo.type || 'image/jpeg',
         })
-      reader.onerror = () => resolve({ base64: '', mimeType: arquivo.type || 'image/jpeg' })
+      reader.onerror = () => entregar({ base64: '', mimeType: arquivo.type || 'image/jpeg' })
       reader.readAsDataURL(arquivo)
     }
+
+    // Rede de segurança: em foto grande (HEIC de iPhone, principalmente) o
+    // decode pode não disparar onload NEM onerror, e aí a tela ficava parada
+    // pra sempre. Passados 8s, manda o arquivo original e segue.
+    const prazo = setTimeout(semRedimensionar, 8000)
 
     img.onload = () => {
       try {
@@ -58,7 +72,7 @@ export function prepararFoto(arquivo: File): Promise<{ base64: string; mimeType:
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
         URL.revokeObjectURL(url)
         const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
-        resolve({ base64: dataUrl.split(',')[1] ?? '', mimeType: 'image/jpeg' })
+        entregar({ base64: dataUrl.split(',')[1] ?? '', mimeType: 'image/jpeg' })
       } catch {
         semRedimensionar()
       }

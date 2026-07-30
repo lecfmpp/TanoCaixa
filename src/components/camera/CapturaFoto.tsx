@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Check, Loader2, Camera, Sparkles, ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { extrairDadosDeFoto, prepararFoto, type DadosExtraidosFoto } from '@/lib/gemini'
@@ -20,6 +20,7 @@ type Fase = 'escolher' | 'preparando' | 'lendo'
 
 export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const idInput = useId()
   const [fase, setFase] = useState<Fase>('escolher')
   const [erro, setErro] = useState('')
   const [preview, setPreview] = useState('')
@@ -39,7 +40,10 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
     const arquivo = e.target.files?.[0]
     // Zera o input: sem isso, escolher a MESMA foto de novo não dispara change.
     e.target.value = ''
-    if (!arquivo) return
+    if (!arquivo) {
+      setErro('O aparelho não devolveu a imagem. Tente de novo ou escolha da galeria.')
+      return
+    }
 
     setPreview(URL.createObjectURL(arquivo))
     setSegundos(0)
@@ -60,8 +64,26 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const trabalhando = fase !== 'escolher'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    // z-[80] fica acima da gaveta (z-70); o stopPropagation é cinto e
+    // suspensório caso este modal volte a ser aninhado em algo clicável.
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="w-full max-w-md overflow-hidden rounded-cartao bg-superficie shadow-lg">
+        {/* O input fica FORA do bloco condicional e nunca desmonta. No iOS, se
+         * ele some enquanto a câmera está aberta, o evento de "Usar Foto" se
+         * perde e a tela fica parada. Também é `sr-only` em vez de `hidden`:
+         * input com display:none não recebe o clique do label no Safari. */}
+        <input
+          ref={fileInputRef}
+          id={idInput}
+          type="file"
+          accept="image/*"
+          onChange={handleArquivoSelecionado}
+          className="sr-only"
+        />
+
         {trabalhando ? (
           <TrabalhandoNaFoto tipo={tipo} fase={fase} preview={preview} segundos={segundos} />
         ) : (
@@ -71,13 +93,15 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
               Tire uma foto {ALVO[tipo].de} ou escolha uma da galeria. A gente lê os dados e você só confere.
             </p>
 
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-2 rounded-botao bg-telhado px-4 py-3 text-sm font-bold text-creme transition hover:brightness-95"
+            {/* <label> em vez de button + .click(): o clique sintético em input
+             * de arquivo é bloqueado por parte dos navegadores móveis. */}
+            <label
+              htmlFor={idInput}
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-botao bg-telhado px-4 py-3 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95 active:translate-y-px"
             >
               <Camera size={18} />
-              Tirar foto ou escolher arquivo
-            </button>
+              Tirar foto ou escolher da galeria
+            </label>
 
             {erro && (
               <div className="rounded-botao bg-telha-alerta/10 p-3 text-sm text-telha-alerta">{erro}</div>
@@ -86,15 +110,6 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
             <button onClick={onCancelar} className="text-sm font-semibold text-tinta-3 hover:text-tinta">
               ← Voltar
             </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleArquivoSelecionado}
-              className="hidden"
-            />
           </div>
         )}
       </div>
