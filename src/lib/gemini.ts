@@ -50,18 +50,24 @@ export async function extrairDadosDeFoto(
 
        Retorne APENAS JSON válido, sem markdown.`
 
-  const resultado = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: 'image/jpeg',
-        data: base64,
+  try {
+    const resultado = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: base64,
+        },
       },
-    },
-    { text: prompt },
-  ])
+      { text: prompt },
+    ])
 
-  const texto = resultado.response.text()
-  const json = JSON.parse(texto)
+    const texto = resultado.response.text()
+    console.log('✅ Resposta Gemini:', texto)
 
-  return json as DadosExtraidosFoto
+    const json = JSON.parse(texto)
+    return json as DadosExtraidosFoto
+  } catch (e) {
+    console.error('❌ Erro Gemini:', e)
+    throw new Error(`Falha ao analisar foto com Gemini: ${(e as Error).message}`)
+  }
 }
