@@ -117,3 +117,13 @@ export function dataBRparaISO(v: string): string {
   }
   return s.slice(0, 10) // assume já ISO
 }
+
+/** Nome de restaurante → pedaço de nome de arquivo ("Zaatar Árabe" → "zaatar-arabe"). */
+export function arquivoDe(nome: string | undefined): string {
+  return (nome || 'restaurante')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}

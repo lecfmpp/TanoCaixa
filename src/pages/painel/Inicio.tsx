@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Inbox, Lock } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -220,7 +221,7 @@ function QuemMexeu({ feed }: { feed: { id: string; quem: string; quemInicial: st
     <Cartao className="flex flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[15px] font-bold text-tinta">Quem mexeu no quê</h2>
-        <button className="text-sm font-bold text-mar hover:underline">Ver tudo</button>
+        <Link to="/painel/ajustes#historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>
       </div>
       <ul className="flex flex-col">
         {feed.map((a, i) => (

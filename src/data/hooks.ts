@@ -3,6 +3,7 @@ import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
+import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
   salvarSolicitacao,
@@ -18,7 +19,7 @@ import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
 import { temRede, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
-import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO } from './planoContas'
+import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO, type Tetos } from './planoContas'
 import type {
   DespesaDoc,
   ProdutoDoc,
@@ -186,6 +187,32 @@ export function useAbrirLoja() {
       })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
+  })
+}
+
+/* ------------------------- Plano do mês -------------------------------- */
+
+/** Plano de um mês. Sem plano gravado, devolve null e a tela usa os tetos gerais. */
+export function usePlanoMes(mes: string) {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'plano', mes], queryFn: () => getPlanoMes(t, mes) })
+}
+
+export function useSalvarPlanoMes() {
+  const t = useTenant()
+  const { sessao } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { mes: string; metaFaturamento: number; tetos: Tetos }) => {
+      const doc: PlanoMesDoc = {
+        ...p,
+        criadoEm: new Date().toISOString(),
+        criadoPorNome: sessao?.usuario.nome ?? 'Você',
+      }
+      await salvarPlanoMes(t, doc)
+      return doc
+    },
+    onSuccess: (d) => qc.invalidateQueries({ queryKey: [t, 'plano', d.mes] }),
   })
 }
 

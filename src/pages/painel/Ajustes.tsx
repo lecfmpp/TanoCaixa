@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { Download } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -8,6 +10,7 @@ import { Chip } from '@/components/ui/Chip'
 import { Campo } from '@/components/ui/Campo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import {
   useMembros,
   useAtividades,
@@ -46,8 +49,8 @@ const ORIGEM_ROTULO: Record<Origem, string> = {
   integracao: 'integração',
 }
 
-const FILTROS = ['Todos', 'Halim', 'Jamile', 'Wesley'] as const
-type Filtro = (typeof FILTROS)[number]
+/** Quantas linhas o histórico mostra antes de pedir "ver tudo". */
+const HISTORICO_INICIAL = 12
 
 export function Ajustes() {
   const restaurante = useRestaurante()
@@ -61,9 +64,42 @@ export function Ajustes() {
   const [whatsapp, setWhatsapp] = useState(true)
   const [email, setEmail] = useState(true)
   const [sms, setSms] = useState(false)
-  const [filtro, setFiltro] = useState<Filtro>('Todos')
+  const [filtro, setFiltro] = useState('Todos')
+  const [verTudo, setVerTudo] = useState(false)
 
-  const lista = atividades.filter((a) => (filtro === 'Todos' ? true : a.quem === filtro))
+  // Filtros saem de quem realmente aparece no histórico — nomes fixos deixavam
+  // de fora quem entrou na equipe depois.
+  const filtros = useMemo(
+    () => ['Todos', ...[...new Set(atividades.map((a) => a.quem))].sort()],
+    [atividades],
+  )
+
+  const filtrada = atividades.filter((a) => (filtro === 'Todos' ? true : a.quem === filtro))
+  const lista = verTudo ? filtrada : filtrada.slice(0, HISTORICO_INICIAL)
+
+  // Chegando de "Ver tudo" (/painel/ajustes#historico): o router não rola até
+  // a âncora sozinho, e o histórico fica lá embaixo, depois de quatro cartões.
+  const hash = useLocation().hash
+  useEffect(() => {
+    if (hash !== '#historico') return
+    document.getElementById('historico')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hash, atividades.length])
+
+  /** Histórico completo (respeitando o filtro) em CSV, pro Excel pt-BR. */
+  function exportarHistorico() {
+    const linhas = filtrada.map((a) => [
+      new Date(a.criadoEm).toLocaleString('pt-BR'),
+      a.quem,
+      `${a.acao} ${a.entidade}`,
+      a.tipo,
+      ORIGEM_ROTULO[a.origem],
+      a.valor != null ? a.valor.toFixed(2).replace('.', ',') : '',
+    ])
+    baixarCSV(
+      `historico-${arquivoDe(cfg?.nome)}`,
+      gerarCSV(['Quando', 'Quem', 'Ação', 'Tipo', 'Origem', 'Valor (R$)'], linhas),
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,7 +126,7 @@ export function Ajustes() {
       <Integracoes />
 
       {/* Histórico */}
-      <Cartao className="flex flex-col">
+      <Cartao id="historico" className="flex flex-col scroll-mt-6">
         <div className="mb-2 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-[15px] font-bold text-tinta">Histórico de tudo que foi feito</h2>
@@ -98,12 +134,19 @@ export function Ajustes() {
               Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho.
             </p>
           </div>
-          <button className="shrink-0 text-sm font-bold text-mar hover:underline">Exportar</button>
+          <button
+            onClick={exportarHistorico}
+            disabled={!filtrada.length}
+            className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-mar hover:underline disabled:opacity-40"
+          >
+            <Download size={15} />
+            Exportar
+          </button>
         </div>
 
         <div className="mb-3 mt-1 flex flex-wrap gap-2">
-          {FILTROS.map((f) => (
-            <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => setFiltro(f)} />
+          {filtros.map((f) => (
+            <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
           ))}
         </div>
 
@@ -125,6 +168,17 @@ export function Ajustes() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <span className="text-tinta-4">
+            {lista.length} de {filtrada.length} {filtrada.length === 1 ? 'registro' : 'registros'}
+          </span>
+          {filtrada.length > HISTORICO_INICIAL && (
+            <button onClick={() => setVerTudo((v) => !v)} className="font-bold text-mar hover:underline">
+              {verTudo ? 'Ver menos' : `Ver todos os ${filtrada.length}`}
+            </button>
+          )}
         </div>
       </Cartao>
     </div>

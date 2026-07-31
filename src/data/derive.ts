@@ -7,6 +7,7 @@ import {
   LINHAS_RECEITA,
   contasDoGrupo,
   tetosNormalizados,
+  type Tetos,
 } from './planoContas'
 import type { ContagemDoc, DespesaDoc, ReceitaDiaDoc, RestauranteDoc } from './types'
 
@@ -484,10 +485,14 @@ export function categoriasResumo(despesas: DespesaDoc[], faturamentoBruto: numbe
   }).filter((g) => g.valor > 0)
 }
 
-/** Linhas do Plano do mês: teto × realizado × status, por grupo do DRE. */
-export function planoLinhas(ctx: Contexto) {
+/**
+ * Linhas do Plano do mês: teto × realizado × status, por grupo do DRE.
+ * `tetosDoMes` vem do plano daquele mês, quando o dono montou um; sem ele,
+ * valem os tetos gerais do restaurante.
+ */
+export function planoLinhas(ctx: Contexto, tetosDoMes?: Tetos) {
   const dre = dreDoMes(ctx)
-  const tetos = tetosNormalizados(ctx.config?.tetos as Record<string, number> | undefined)
+  const tetos = tetosDoMes ?? tetosNormalizados(ctx.config?.tetos as Record<string, number> | undefined)
   return GRUPOS_COM_TETO.map((id) => {
     const g = dre.grupos.find((x) => x.grupo === id)!
     const teto = tetos[id] ?? 0

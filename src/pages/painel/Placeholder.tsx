@@ -21,7 +21,6 @@ export function Placeholder({
         subtitulo={r ? `${r.nome} · ${r.bairro} · julho de 2026` : ''}
         foto={foto}
         lancar
-        exportar
       />
       <Cartao className="flex flex-col items-center justify-center gap-2 py-16 text-center">
         <span className="rotulo text-tinta-4">{fase}</span>

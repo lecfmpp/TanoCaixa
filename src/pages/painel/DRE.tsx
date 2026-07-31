@@ -83,7 +83,7 @@ export function DRE() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="DRE" subtitulo={sub} />
+      <SectionHeader titulo="DRE" subtitulo={sub} aoExportar={baixarDRE} />
       <p className="-mt-2 text-sm text-tinta-4">Demonstrativo de resultado · {nomeMes(dre.mes)}</p>
       <p className="-mt-3 text-sm text-tinta-4">
         Regime de caixa · {cfg?.nome ?? '—'}

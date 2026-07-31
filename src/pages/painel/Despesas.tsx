@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, HOJE, MES_REF } from '@/data/derive'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
+import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -56,9 +57,28 @@ export function Despesas() {
 
   const vence3 = doMes.find((d) => d.status === 'vence')
 
+  /** Lançamentos que estão na tela (filtro e busca incluídos), em CSV. */
+  function exportar() {
+    const linhas = lista.map((d) => [
+      d.dataCompetencia.slice(0, 10).split('-').reverse().join('/'),
+      d.fornecedor,
+      d.descricao ?? '',
+      GRUPO[CONTA[d.categoria]?.grupo ?? 'cmv'].nome,
+      CONTA[d.categoria]?.nome ?? d.categoria,
+      d.formaPagamento,
+      d.status,
+      d.criadoPorNome,
+      d.valorTotal.toFixed(2).replace('.', ','),
+    ])
+    baixarCSV(
+      `despesas-${MES_REF}-${arquivoDe(cfg?.nome)}`,
+      gerarCSV(['Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)'], linhas),
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''} />
+      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''} aoExportar={lista.length ? exportar : undefined} />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo="Saiu em julho" valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />

@@ -193,9 +193,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const timeout = setTimeout(() => setCarregando(false), 8000)
     const cancelar = onAuthStateChanged(auth, async (user) => {
       clearTimeout(timeout)
-      if (user?.isAnonymous && sessionStorage.getItem(CHAVE_DEMO) === '1') {
-        // Usuário anônimo da demonstração: NÃO provisiona restaurante nem sai
-        // do tenant de exemplo. Ele existe só pra autenticar as functions.
+      if (user?.isAnonymous) {
+        // Anônimo só existe por causa da demonstração — é o login que damos
+        // pra ela poder chamar as Cloud Functions. O usuário fica no
+        // IndexedDB e sobrevive ao fechar a aba, mas a flag de demo vive só
+        // na sessão; sem restaurar aqui, a visita seguinte caía no fluxo de
+        // conta real e provisionava um restaurante fantasma ("Meu
+        // restaurante") pra cada visitante da demo.
+        sessionStorage.setItem(CHAVE_DEMO, '1')
         setSessao(sessaoDemo())
       } else if (user) {
         sessionStorage.removeItem(CHAVE_DEMO)

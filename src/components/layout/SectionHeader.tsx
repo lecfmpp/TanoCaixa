@@ -12,7 +12,9 @@ interface SectionHeaderProps {
   foto?: string
   periodo?: Periodo
   aoTrocarPeriodo?: (p: Periodo) => void
-  exportar?: boolean
+  /** Sem callback, o botão Exportar não aparece — botão que não faz nada
+   *  é pior que botão ausente. */
+  aoExportar?: () => void
   lancar?: boolean
 }
 
@@ -34,7 +36,7 @@ export function SectionHeader({
   foto = fotos.aerea,
   periodo,
   aoTrocarPeriodo,
-  exportar = true,
+  aoExportar,
   lancar = true,
 }: SectionHeaderProps) {
   const [menuAberto, setMenuAberto] = useState(false)
@@ -75,8 +77,11 @@ export function SectionHeader({
           {periodo && aoTrocarPeriodo && (
             <Segmentado valor={periodo} aoTrocar={aoTrocarPeriodo} tom="claro" />
           )}
-          {exportar && (
-            <button className="hidden px-1 text-sm font-semibold text-creme/90 transition hover:text-creme tab:block">
+          {aoExportar && (
+            <button
+              onClick={aoExportar}
+              className="hidden px-1 text-sm font-semibold text-creme/90 transition hover:text-creme tab:block"
+            >
               Exportar
             </button>
           )}
