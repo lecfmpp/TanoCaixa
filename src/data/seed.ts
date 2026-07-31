@@ -18,8 +18,9 @@ import type { Origem } from './tenant'
 /** Versão dos dados da demonstração.
  *  2 = plano de contas do DRE padrão. 3 = rede com três lojas.
  *  4 = mês anterior, pra o crescimento das franquias ser conta de verdade.
- *  5 = demo determinística: lançamento de teste não fica preso no exemplo. */
-const SEED_VERSAO = 5
+ *  5 = demo determinística: lançamento de teste não fica preso no exemplo.
+ *  6 = valor do estoque derivado dos itens contados, não escrito à mão. */
+const SEED_VERSAO = 6
 
 const dia = (d: number) => `2026-07-${String(d).padStart(2, '0')}`
 const autor = (nome: string, id: string, o: Origem = 'computador', d = 27) => ({
@@ -173,29 +174,39 @@ const insights: InsightDoc[] = [
   },
 ]
 
-/** Contagem de um mês. Fechada, ela vira o estoque que fecha o CMV do DRE. */
-const C = (mes: string, quantidades: number[], valorEstoque: number, d: number): ContagemDoc => ({
-  id: mes,
-  mesReferencia: mes,
-  status: 'fechada',
-  itens: produtos.map((p, i) => ({
+/**
+ * Contagem de um mês. Fechada, ela vira o estoque que fecha o CMV do DRE.
+ *
+ * O valorEstoque é DERIVADO dos itens, nunca escrito à mão: quando os dois
+ * discordam, a tela de Estoque mostra um número e o DRE usa outro — foi
+ * exatamente o que aconteceu aqui antes (R$ 1.308,90 contra R$ 12.418,20).
+ */
+const C = (mes: string, quantidades: number[], d: number): ContagemDoc => {
+  const itens = produtos.map((p, i) => ({
     produtoId: p.id,
     nome: p.nome,
     unidade: p.unidade,
     custoUnitario: p.custoAtual,
     quantidade: quantidades[i] ?? 0,
     contadoPor: 'Wesley',
-  })),
-  valorEstoque,
-  ...autor('Wesley', 'wesley', 'celular', d),
-})
+  }))
+  return {
+    id: mes,
+    mesReferencia: mes,
+    status: 'fechada',
+    itens,
+    valorEstoque: Math.round(itens.reduce((s, i) => s + i.quantidade * i.custoUnitario, 0) * 100) / 100,
+    ...autor('Wesley', 'wesley', 'celular', d),
+  }
+}
 
 // Estoque no fim de um mês = estoque inicial do seguinte. Sem maio, o CMV de
 // junho sairia sem estoque inicial e o mês fecharia inflado.
+// Quantidades de um estoque real de restaurante desse porte (~R$ 12 mil).
 const contagens: ContagemDoc[] = [
-  C('2026-05', [15, 11, 7, 9, 6, 41, 275, 9], 11210, 1),
-  C('2026-06', [16, 12, 8, 10, 6, 44, 290, 10], 11840, 1),
-  C('2026-07', [18, 14, 9, 11, 7, 48, 320, 12], 12418.2, 26),
+  C('2026-05', [110, 80, 63, 167, 54, 270, 1360, 54], 1),
+  C('2026-06', [115, 85, 66, 176, 57, 285, 1430, 57], 1),
+  C('2026-07', [120, 90, 70, 185, 60, 300, 1500, 60], 26),
 ]
 
 /* ------------------------- Mês anterior ------------------------------- *

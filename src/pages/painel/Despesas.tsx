@@ -7,7 +7,7 @@ import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
-import { despesasResumo, categoriasResumo, resumoInicio, HOJE } from '@/data/derive'
+import { despesasResumo, categoriasResumo, resumoInicio, HOJE, MES_REF } from '@/data/derive'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import type { DespesaDoc } from '@/data/types'
 
@@ -28,26 +28,33 @@ export function Despesas() {
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
 
-  const resumo = despesasResumo(ctx.despesas)
+  // A tela toda fala do mês corrente ("Saiu em julho"), então os lançamentos
+  // dos meses anteriores ficam de fora — senão os cartões somam o histórico.
+  const doMes = useMemo(
+    () => ctx.despesas.filter((d) => d.dataCompetencia.slice(0, 7) === MES_REF),
+    [ctx.despesas],
+  )
+
+  const resumo = despesasResumo(doMes)
   const fat = resumoInicio(ctx, 'mes').entrou
-  const cats = categoriasResumo(ctx.despesas, fat)
+  const cats = categoriasResumo(doMes, fat)
   const cfg = restaurante.data
 
   // Só os grupos do DRE que já têm lançamento — chip vazio só atrapalha.
   const gruposUsados = useMemo(() => {
-    const ids = new Set(ctx.despesas.map((d) => CONTA[d.categoria]?.grupo).filter(Boolean))
+    const ids = new Set(doMes.map((d) => CONTA[d.categoria]?.grupo).filter(Boolean))
     return GRUPOS.filter((g) => ids.has(g.id))
-  }, [ctx.despesas])
+  }, [doMes])
 
   const lista = useMemo(() => {
-    return ctx.despesas
+    return doMes
       .filter((d) => (filtro === 'todas' ? true : CONTA[d.categoria]?.grupo === filtro))
       .filter((d) => (busca ? (d.fornecedor + (d.descricao ?? '')).toLowerCase().includes(busca.toLowerCase()) : true))
       .sort((a, b) => (a.dataCompetencia < b.dataCompetencia ? 1 : -1))
-  }, [ctx.despesas, filtro, busca])
+  }, [doMes, filtro, busca])
   const totalLista = lista.reduce((s, d) => s + d.valorTotal, 0)
 
-  const vence3 = ctx.despesas.find((d) => d.status === 'vence')
+  const vence3 = doMes.find((d) => d.status === 'vence')
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,7 +63,7 @@ export function Despesas() {
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo="Saiu em julho" valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
         <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do mês`} tom="mata" />
-        <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${ctx.despesas.filter((d) => d.status !== 'pago').length} contas em aberto`} />
+        <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${doMes.filter((d) => d.status !== 'pago').length} contas em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>
 

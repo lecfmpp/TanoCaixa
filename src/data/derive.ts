@@ -23,8 +23,8 @@ export interface Contexto {
 /** Margem de contribuição de fallback, quando ainda não há venda no mês. */
 const MC_PADRAO = 0.415
 
-// Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date).
-const MES_REF = `${HOJE.getFullYear()}-${String(HOJE.getMonth() + 1).padStart(2, '0')}`
+/** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
+export const MES_REF = `${HOJE.getFullYear()}-${String(HOJE.getMonth() + 1).padStart(2, '0')}`
 
 /** '2026-07' → '2026-06'. */
 export function mesAnterior(mes: string): string {
