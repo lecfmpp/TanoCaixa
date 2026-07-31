@@ -11,9 +11,13 @@ export const REDE_DEMO = 'rede-demo'
 
 /** Lojas extras da rede de demonstração (cada uma é um tenant próprio). */
 export const LOJAS_DEMO = [
-  { id: 'demo-zaatar-tijuca', nome: 'Zaatar Tijuca', bairro: 'Tijuca', fator: 0.72 },
-  { id: 'demo-zaatar-barra', nome: 'Zaatar Barra', bairro: 'Barra da Tijuca', fator: 1.18 },
+  // `junho` < 1 significa que a loja cresceu em julho; > 1, que caiu.
+  { id: 'demo-zaatar-tijuca', nome: 'Zaatar Tijuca', bairro: 'Tijuca', fator: 0.72, junho: 1.06 },
+  { id: 'demo-zaatar-barra', nome: 'Zaatar Barra', bairro: 'Barra da Tijuca', fator: 1.18, junho: 0.88 },
 ] as const
+
+/** Junho da matriz — julho cresceu ~7% sobre ele. */
+export const JUNHO_MATRIZ = 0.93
 
 /** Origem de uma ação (autoria). */
 export type Origem = 'celular' | 'computador' | 'integracao' | 'ia_foto'

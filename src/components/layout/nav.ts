@@ -16,6 +16,7 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/estoque', rotulo: 'Estoque', chave: 'veEstoque' },
   { para: '/painel/plano', rotulo: 'Plano do mês', chave: 'vePlano' },
   { para: '/painel/dre', rotulo: 'DRE', chave: 'veDRE' },
+  { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
   { para: '/painel/numeros', rotulo: 'Números', chave: 'veNumeros' },
   { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },

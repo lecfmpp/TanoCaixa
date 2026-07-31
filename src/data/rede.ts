@@ -30,6 +30,8 @@ export interface RedeDoc {
   donoUid: string
   lojas: LojaDaRede[]
   criadoEm: string
+  /** Só na rede de demonstração — versiona os dados de exemplo. */
+  seedVersao?: number
 }
 
 function redeRef(id: string) {

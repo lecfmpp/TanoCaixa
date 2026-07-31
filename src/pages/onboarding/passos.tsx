@@ -29,10 +29,15 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
     <div>
       <TituloPasso titulo="Me conta do seu restaurante" sub="Só o básico. Dá pra mudar depois." />
       <div className="flex flex-col gap-5">
-        <CampoTexto rotulo="Nome que aparece pro cliente" value={r.nome} onChange={(e) => upd({ nome: e.target.value })} />
+        <CampoTexto
+          rotulo="Nome do seu restaurante"
+          placeholder="Como o cliente conhece"
+          value={r.nome}
+          onChange={(e) => upd({ nome: e.target.value })}
+        />
         <div className="grid grid-cols-2 gap-3">
-          <CampoTexto rotulo="Bairro" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
-          <CampoTexto rotulo="Lojas" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
+          <CampoTexto rotulo="Bairro" placeholder="Onde fica a loja" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
+          <CampoTexto rotulo="Quantas lojas" placeholder="1" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
         </div>
 
         {/* Tipo de negócio — define o DRE (linha de franqueadora) e a visão de rede */}
@@ -51,7 +56,7 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
         {(franqueada || rede) && (
           <CampoTexto
             rotulo={franqueada ? 'Nome da rede que você é franqueado' : 'Nome da sua rede'}
-            placeholder="Zaatar"
+            placeholder={franqueada ? 'A marca que você representa' : 'A marca das suas lojas'}
             value={r.nomeRede}
             onChange={(e) => upd({ nomeRede: e.target.value })}
           />
@@ -63,12 +68,14 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
             <div className="grid grid-cols-2 gap-3">
               <CampoTexto
                 rotulo="Royalties (% da receita)"
+                placeholder="Ex: 5"
                 inputMode="decimal"
                 value={String(r.royalties || '')}
                 onChange={(e) => upd({ royalties: Number(e.target.value.replace(',', '.')) || 0 })}
               />
               <CampoTexto
                 rotulo="Fundo de promoção (%)"
+                placeholder="Ex: 2"
                 inputMode="decimal"
                 value={String(r.fundoPromocao || '')}
                 onChange={(e) => upd({ fundoPromocao: Number(e.target.value.replace(',', '.')) || 0 })}
@@ -166,12 +173,14 @@ export function Passo2Canais({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
         <CampoTexto
           rotulo="Ticket médio"
           prefixo="R$"
+          placeholder="Quanto um cliente gasta"
           inputMode="numeric"
           value={r.ticket}
           onChange={(e) => upd({ ticket: apenasDigitos(e.target.value) })}
         />
         <CampoTexto
           rotulo="Pedidos por dia"
+          placeholder="Média de um dia normal"
           inputMode="numeric"
           value={r.pedidos}
           onChange={(e) => upd({ pedidos: apenasDigitos(e.target.value) })}
@@ -220,26 +229,28 @@ export function Passo3Numeros({
         sub="Chute redondo já serve. Depois do primeiro mês o app corrige sozinho."
       />
       <div className="flex flex-col gap-5">
-        <CampoTexto rotulo="Faturamento de um mês normal" prefixo="R$" inputMode="numeric" value={faturamento} onChange={(e) => onFaturamento(e.target.value)} />
+        <CampoTexto rotulo="Faturamento de um mês normal" prefixo="R$" placeholder="Tudo que entra no mês" inputMode="numeric" value={faturamento} onChange={(e) => onFaturamento(e.target.value)} />
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto
             rotulo="Folha por mês"
             prefixo="R$"
+            placeholder="Salários e encargos"
             inputMode="numeric"
             value={inteiro(folha)}
             onChange={(e) => onFolha(soDigitos(e.target.value))}
           />
-          <CampoTexto rotulo="Pessoas" value={pessoas} onChange={(e) => onPessoas(apenasDigitos(e.target.value))} inputMode="numeric" />
+          <CampoTexto rotulo="Pessoas na equipe" placeholder="Quantas trabalham aqui" value={pessoas} onChange={(e) => onPessoas(apenasDigitos(e.target.value))} inputMode="numeric" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto
             rotulo="Contas fixas do mês"
             prefixo="R$"
+            placeholder="Aluguel, luz, água, gás"
             inputMode="numeric"
             value={inteiro(contasFixas)}
             onChange={(e) => onContasFixas(soDigitos(e.target.value))}
           />
-          <CampoTexto rotulo="Estoque parado hoje · se souber" prefixo="R$" defaultValue="0" inputMode="numeric" />
+          <CampoTexto rotulo="Estoque parado hoje · se souber" prefixo="R$" placeholder="Quanto tem guardado" inputMode="numeric" />
         </div>
       </div>
 
@@ -310,8 +321,9 @@ function LinhaIntegracao({
 
 const PAPEIS = ['Gerente', 'Estoque', 'Só lançar nota', 'Contador']
 
-export function Passo5Equipe() {
+export function Passo5Equipe({ nomeDono }: { nomeDono?: string }) {
   const [telConvite, setTelConvite] = useState('')
+  const nome = (nomeDono || '').trim()
   return (
     <div>
       <TituloPasso
@@ -319,19 +331,13 @@ export function Passo5Equipe() {
         sub="Cada um vê só o que precisa. Ninguém vê seu lucro sem você deixar."
       />
       <div className="flex flex-col gap-2.5">
+        {/* Só você — a equipe entra pelos convites, não por gente de exemplo. */}
         <LinhaMembro
-          inicial="H"
+          inicial={(nome[0] || 'V').toUpperCase()}
           cor="#2E5F73"
-          nome="Halim (você)"
+          nome={nome ? `${nome} (você)` : 'Você'}
           info="vê tudo, inclusive o lucro"
           papel="dono"
-        />
-        <LinhaMembro
-          inicial="J"
-          cor="#C05437"
-          nome="Jamile Rocha"
-          info="(21) 99640-1188 · convite enviado"
-          papel="gerente"
         />
       </div>
 
@@ -339,7 +345,7 @@ export function Passo5Equipe() {
         <Rotulo>Convidar mais alguém</Rotulo>
         <div className="flex flex-col gap-2.5 cel:flex-row">
           <input
-            placeholder="(21) 90000-0000"
+            placeholder="Celular de quem você quer convidar"
             inputMode="tel"
             value={telConvite}
             onChange={(e) => setTelConvite(mascararTelefone(e.target.value))}
@@ -452,6 +458,7 @@ export function Passo6Metas({
         grande
         rotulo="Meta de faturamento"
         prefixo="R$"
+        placeholder="Quanto quer faturar no mês"
         inputMode="numeric"
         value={meta}
         onChange={(e) => onMeta(e.target.value)}

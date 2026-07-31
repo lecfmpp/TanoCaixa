@@ -26,7 +26,8 @@ const MC_PADRAO = 0.415
 // Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date).
 const MES_REF = `${HOJE.getFullYear()}-${String(HOJE.getMonth() + 1).padStart(2, '0')}`
 
-function mesAnterior(mes: string): string {
+/** '2026-07' → '2026-06'. */
+export function mesAnterior(mes: string): string {
   const [a, m] = mes.split('-').map(Number)
   return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, '0')}`
 }

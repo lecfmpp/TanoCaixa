@@ -3,6 +3,13 @@ import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
+import {
+  listarSolicitacoes,
+  salvarSolicitacao,
+  OPCAO,
+  type SolicitacaoDoc,
+  type TipoSolicitacao,
+} from './solicitacoes'
 import type { Contexto } from './derive'
 import type { DiaHorario } from '@/components/ui/HorarioSemana'
 import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
@@ -180,6 +187,66 @@ export function useAbrirLoja() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
   })
+}
+
+/* ------------------- Pedidos da franqueadora -------------------------- */
+
+/** Pedidos que a franqueadora fez pra ESTA loja. */
+export function useSolicitacoes() {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'solicitacoes'], queryFn: () => listarSolicitacoes(t) })
+}
+
+/** A franqueadora pede uma informação a uma loja da rede. */
+export function useCriarSolicitacao() {
+  const { sessao } = useAuth()
+  const rede = useRede()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: { lojaId: string; tipo: TipoSolicitacao; detalhe?: string }) => {
+      const opcao = OPCAO[p.tipo]
+      const doc: SolicitacaoDoc = {
+        id: novoId('sol'),
+        tipo: p.tipo,
+        titulo: opcao.titulo,
+        detalhe: p.detalhe?.trim() || opcao.descricao,
+        status: 'aberta',
+        pedidoPorId: sessao?.usuario.id ?? 'franqueador',
+        pedidoPorNome: sessao?.usuario.nome ?? 'Franqueadora',
+        rede: rede.data?.nome ?? 'Rede',
+        criadoEm: new Date().toISOString(),
+      }
+      await salvarSolicitacao(p.lojaId, doc)
+      return doc
+    },
+    onSuccess: (_d, p) => qc.invalidateQueries({ queryKey: [p.lojaId, 'solicitacoes'] }),
+  })
+}
+
+/** A loja marca o pedido como atendido. */
+export function useResponderSolicitacao() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (s: SolicitacaoDoc) =>
+      salvarSolicitacao(t, { ...s, status: 'respondida', respondidoEm: new Date().toISOString() }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'solicitacoes'] }),
+  })
+}
+
+/** Pedidos abertos de cada loja da rede — alimenta os cartões de Franquias. */
+export function useSolicitacoesDaRede(lojas: LojaDaRede[]) {
+  const resultados = useQueries({
+    queries: lojas.map((l) => ({
+      queryKey: [l.restauranteId, 'solicitacoes'],
+      queryFn: () => listarSolicitacoes(l.restauranteId),
+    })),
+  })
+  const porLoja: Record<string, SolicitacaoDoc[]> = {}
+  lojas.forEach((l, i) => {
+    porLoja[l.restauranteId] = (resultados[i]?.data as SolicitacaoDoc[]) ?? []
+  })
+  return porLoja
 }
 
 /** Contexto para os cálculos (despesas + receita + config). */
@@ -640,6 +707,7 @@ export function usePersistirOnboarding() {
           deducao: TAXA_APP_TETO_PADRAO,
         },
         aberturaMes: 'julho de 2026',
+        onboardingConcluido: true,
         // Natureza do negócio: é ela que decide se o DRE tem linha de
         // franqueadora e se existe visão de rede.
         tipoNegocio: r.tipoNegocio,

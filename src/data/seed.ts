@@ -1,9 +1,9 @@
-import { doc, setDoc } from 'firebase/firestore'
+import { deleteDoc, doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { TETOS_PADRAO } from './planoContas'
 import { getRede, salvarRede } from './rede'
-import { DEMO_TENANT, LOJAS_DEMO, REDE_DEMO } from './tenant'
+import { DEMO_TENANT, JUNHO_MATRIZ, LOJAS_DEMO, REDE_DEMO } from './tenant'
 import type {
   DespesaDoc,
   ProdutoDoc,
@@ -16,8 +16,10 @@ import type {
 import type { Origem } from './tenant'
 
 /** Versão dos dados da demonstração.
- *  2 = plano de contas do DRE padrão. 3 = rede com três lojas. */
-const SEED_VERSAO = 3
+ *  2 = plano de contas do DRE padrão. 3 = rede com três lojas.
+ *  4 = mês anterior, pra o crescimento das franquias ser conta de verdade.
+ *  5 = demo determinística: lançamento de teste não fica preso no exemplo. */
+const SEED_VERSAO = 5
 
 const dia = (d: number) => `2026-07-${String(d).padStart(2, '0')}`
 const autor = (nome: string, id: string, o: Origem = 'computador', d = 27) => ({
@@ -188,11 +190,46 @@ const C = (mes: string, quantidades: number[], valorEstoque: number, d: number):
   ...autor('Wesley', 'wesley', 'celular', d),
 })
 
-// Estoque no fim de junho = estoque inicial de julho. Sem ele o CMV é só compra.
+// Estoque no fim de um mês = estoque inicial do seguinte. Sem maio, o CMV de
+// junho sairia sem estoque inicial e o mês fecharia inflado.
 const contagens: ContagemDoc[] = [
+  C('2026-05', [15, 11, 7, 9, 6, 41, 275, 9], 11210, 1),
   C('2026-06', [16, 12, 8, 10, 6, 44, 290, 10], 11840, 1),
   C('2026-07', [18, 14, 9, 11, 7, 48, 320, 12], 12418.2, 26),
 ]
+
+/* ------------------------- Mês anterior ------------------------------- *
+ * Junho existe pra que "cresceu/caiu" nos cartões de Franquias seja conta
+ * de verdade, e não um número inventado na tela.
+ * ---------------------------------------------------------------------- */
+
+const escalar = (v: number, f: number) => Math.round(v * f * 100) / 100
+
+const paraJunho = (iso: string) => iso.replace('2026-07', '2026-06')
+
+function mesAnteriorDe(fator: number): { receita: ReceitaDiaDoc[]; despesas: DespesaDoc[] } {
+  return {
+    receita: receita.map((r) => ({
+      ...r,
+      id: `jun-${r.id}`,
+      data: paraJunho(r.data),
+      canais: r.canais.map((c) => ({ ...c, valorBruto: escalar(c.valorBruto, fator), taxa: escalar(c.taxa, fator) })),
+      totalDia: escalar(r.totalDia, fator),
+      criadoEm: paraJunho(r.criadoEm),
+    })),
+    despesas: despesas.map((d) => ({
+      ...d,
+      id: `jun-${d.id}`,
+      dataCompetencia: paraJunho(d.dataCompetencia),
+      dataVencimento: d.dataVencimento ? paraJunho(d.dataVencimento) : undefined,
+      valorTotal: escalar(d.valorTotal, fator),
+      status: 'pago' as const,
+      criadoEm: paraJunho(d.criadoEm),
+    })),
+  }
+}
+
+const junhoMatriz = mesAnteriorDe(JUNHO_MATRIZ)
 
 /* --------------------- Rede de demonstração --------------------------- *
  * A matriz (Botafogo) é a franqueadora; as outras duas são franqueadas, com
@@ -200,7 +237,31 @@ const contagens: ContagemDoc[] = [
  * assim que a rede de um cliente real fica.
  * ------------------------------------------------------------------------ */
 
-const escalar = (v: number, f: number) => Math.round(v * f * 100) / 100
+
+/**
+ * Tira do tenant de demonstração o que não faz parte do exemplo. Sem isso a
+ * demo derrapa a cada lançamento de teste, e comparar julho com junho passa a
+ * medir o lixo acumulado em vez do negócio.
+ */
+async function limparAvulsos(tenant: string, idsDoSeed: Set<string>): Promise<void> {
+  const [desp, rec] = await Promise.all([repo.despesas.listar(tenant), repo.receitaDia.listar(tenant)])
+  await Promise.all([
+    ...desp.filter((d) => !idsDoSeed.has(d.id)).map((d) => repo.despesas.remover(tenant, d.id)),
+    ...rec
+      .filter((r) => !idsDoSeed.has(r.id))
+      .map((r) => deleteDoc(doc(db, 'restaurants', tenant, 'receita_dia', r.id))),
+  ])
+}
+
+/** Ids que o exemplo cria — julho e junho, despesas e receita. */
+function idsDoSeed(junho: { receita: ReceitaDiaDoc[]; despesas: DespesaDoc[] }): Set<string> {
+  return new Set([
+    ...despesas.map((d) => d.id),
+    ...receita.map((r) => r.id),
+    ...junho.despesas.map((d) => d.id),
+    ...junho.receita.map((r) => r.id),
+  ])
+}
 
 /** Copia os dados da matriz numa loja da rede, com o movimento escalado. */
 async function seedLojaDaRede(l: (typeof LOJAS_DEMO)[number]): Promise<void> {
@@ -223,6 +284,10 @@ async function seedLojaDaRede(l: (typeof LOJAS_DEMO)[number]): Promise<void> {
     taxasFranquia: { royalties: 5, fundoPromocao: 2 },
   } as never)
 
+  // Julho da loja = julho da matriz escalado; junho = julho dela × o fator
+  // de crescimento próprio, pra cada loja ter uma história diferente.
+  const junho = mesAnteriorDe(l.fator * l.junho)
+
   await Promise.all([
     ...receita.map((r) =>
       repo.receitaDia.salvar(l.id, r.id, {
@@ -233,18 +298,24 @@ async function seedLojaDaRede(l: (typeof LOJAS_DEMO)[number]): Promise<void> {
     ),
     // O imposto acompanha o faturamento; o resto escala junto.
     ...despesas.map((d) => repo.despesas.salvar(l.id, d.id, { ...d, valorTotal: escalar(d.valorTotal, l.fator) })),
+    ...junho.receita.map((r) => repo.receitaDia.salvar(l.id, r.id, r)),
+    ...junho.despesas.map((d) => repo.despesas.salvar(l.id, d.id, d)),
     ...contagens.map((c) =>
       repo.contagens.salvar(l.id, c.id, { ...c, valorEstoque: escalar(c.valorEstoque ?? 0, l.fator) }),
     ),
   ])
+  await limparAvulsos(l.id, idsDoSeed(junho))
 }
 
-/** Idempotente e independente do tenant matriz: se a rede não existe, cria. */
+/** Idempotente e independente do tenant matriz, mas versionada: quando os
+ *  dados da demo mudam de forma, a rede é reescrita junto. */
 async function seedRedeDemo(): Promise<void> {
-  if (await getRede(REDE_DEMO)) return
+  const atual = await getRede(REDE_DEMO)
+  if ((atual as { seedVersao?: number } | null)?.seedVersao === SEED_VERSAO) return
   await Promise.all(LOJAS_DEMO.map(seedLojaDaRede))
   await salvarRede(REDE_DEMO, {
     id: REDE_DEMO,
+    seedVersao: SEED_VERSAO,
     nome: 'Zaatar',
     tipo: 'franquia',
     donoUid: 'halim',
@@ -311,8 +382,13 @@ export async function seedDemoSeVazio(tenant: string): Promise<void> {
     ...produtos.map((p) => repo.produtos.salvar(tenant, p.id, p)),
     ...receita.map((r) => repo.receitaDia.salvar(tenant, r.id, r)),
     ...despesas.map((d) => repo.despesas.salvar(tenant, d.id, d)),
+    // Junho da matriz — base de comparação dos cartões de Franquias.
+    ...junhoMatriz.receita.map((r) => repo.receitaDia.salvar(tenant, r.id, r)),
+    ...junhoMatriz.despesas.map((d) => repo.despesas.salvar(tenant, d.id, d)),
     ...atividades.map((a) => repo.atividades.salvar(tenant, a.id, a)),
     ...insights.map((i) => repo.insights.salvar(tenant, i.id, i)),
     ...contagens.map((c) => repo.contagens.salvar(tenant, c.id, c)),
   ])
+
+  await limparAvulsos(tenant, idsDoSeed(junhoMatriz))
 }

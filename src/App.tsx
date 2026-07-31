@@ -21,6 +21,7 @@ import { Estoque } from '@/pages/painel/Estoque'
 import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
 import { DRE } from '@/pages/painel/DRE'
 import { Rede } from '@/pages/painel/Rede'
+import { Franquias } from '@/pages/painel/Franquias'
 import { Numeros } from '@/pages/painel/Numeros'
 import { Ajustes } from '@/pages/painel/Ajustes'
 import { Perfil } from '@/pages/painel/Perfil'
@@ -56,6 +57,7 @@ export default function App() {
                 <Route path="plano" element={<ExigePermissao chave="vePlano"><PlanoDoMes /></ExigePermissao>} />
                 <Route path="dre" element={<ExigePermissao chave="veDRE"><DRE /></ExigePermissao>} />
                 <Route path="rede" element={<ExigePermissao chave="veRede"><Rede /></ExigePermissao>} />
+                <Route path="franquias" element={<ExigePermissao chave="veRede"><Franquias /></ExigePermissao>} />
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Numeros /></ExigePermissao>} />
                 <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
                 <Route path="assinatura" element={<Plano />} />

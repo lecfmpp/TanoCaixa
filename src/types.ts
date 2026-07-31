@@ -114,6 +114,8 @@ export interface Sessao {
   /** Id do tenant no Firestore (uid do dono, ou o tenant demo). */
   tenantId: string
   demo: boolean
+  /** Dono que ainda não passou pelo onboarding — cai nele ao entrar. */
+  precisaOnboarding?: boolean
 }
 
 /** O que cada papel enxerga (seções) e pode fazer (capacidades). */

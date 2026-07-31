@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Lock } from 'lucide-react'
+import { Inbox, Lock } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
@@ -8,7 +8,7 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import type { Periodo } from '@/types'
-import { useContexto, useAtividades, useInsights, useRestaurante } from '@/data/hooks'
+import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao } from '@/data/hooks'
 import { resumoInicio, HOJE } from '@/data/derive'
 
 const COR_MAR = '#2E5F73'
@@ -61,6 +61,8 @@ export function Inicio() {
         <CartaoValor rotulo="Ponto de equilíbrio" valor={r.pontoEquilibrio} delta={d.ponto} visivel />
       </div>
 
+      <PedidosDaFranqueadora />
+
       <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie px-6 py-5 cel:flex-row cel:items-center">
         <div>
           <p className="text-[15px] font-bold text-tinta">Fechou o dia?</p>
@@ -80,6 +82,45 @@ export function Inicio() {
           <QuemMexeu feed={feed} />
         </div>
       </div>
+    </div>
+  )
+}
+
+/** O que a franqueadora pediu pra esta loja. Só aparece quando há pedido aberto. */
+function PedidosDaFranqueadora() {
+  const pedidos = useSolicitacoes().data ?? []
+  const responder = useResponderSolicitacao()
+  const abertos = pedidos.filter((p) => p.status === 'aberta')
+  if (!abertos.length) return null
+
+  return (
+    <div className="flex flex-col gap-3 rounded-cartao border border-[rgba(123,106,140,0.35)] bg-[rgba(123,106,140,0.08)] px-6 py-5">
+      <div className="flex items-center gap-2">
+        <Inbox size={16} className="text-[#7B6A8C]" />
+        <span className="rotulo text-[#6A5B7A]">
+          {abertos.length === 1 ? 'A franqueadora pediu uma informação' : `A franqueadora pediu ${abertos.length} informações`}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2.5">
+        {abertos.map((p) => (
+          <li key={p.id} className="flex flex-col gap-2 border-t border-[rgba(123,106,140,0.2)] pt-2.5 first:border-0 first:pt-0 cel:flex-row cel:items-center cel:justify-between">
+            <div className="min-w-0">
+              <p className="text-[15px] font-bold text-tinta">{p.titulo}</p>
+              {p.detalhe && <p className="pretty text-sm text-tinta-3">{p.detalhe}</p>}
+              <p className="mt-0.5 text-xs text-tinta-4">
+                {p.rede} · pedido por {p.pedidoPorNome} · {quando(new Date(p.criadoEm), HOJE)}
+              </p>
+            </div>
+            <button
+              onClick={() => responder.mutate(p)}
+              disabled={responder.isPending}
+              className="shrink-0 rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
+            >
+              Marcar como enviado
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

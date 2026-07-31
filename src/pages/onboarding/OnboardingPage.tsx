@@ -69,6 +69,10 @@ function respostasIniciais(sessao: ReturnType<typeof useAuth>['sessao']): Respos
     lojas: '1',
     tipoNegocio: 'loja_unica',
     nomeRede: '',
+    // Nada de escolha marcada por padrão: canal e tipo de operação são do
+    // negócio da pessoa, não nosso palpite.
+    operacao: '',
+    canais: [],
     cozinha: '',
     ticket: '',
     pedidos: '',
@@ -219,7 +223,7 @@ export function OnboardingPage() {
               />
             )}
             {passo === 4 && <Passo4Integracoes />}
-            {passo === 5 && <Passo5Equipe />}
+            {passo === 5 && <Passo5Equipe nomeDono={sessao?.usuario.nome.split(' ')[0]} />}
             {passo === 6 && (
               <Passo6Metas
                 meta={r.meta}

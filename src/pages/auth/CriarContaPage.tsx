@@ -76,11 +76,11 @@ export function CriarContaPage() {
       </div>
 
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
-        <Campo rotulo="Seu nome" name="nome" placeholder="Halim Nassar" required />
+        <Campo rotulo="Seu nome" name="nome" placeholder="Como podemos te chamar" required />
 
         <div className="grid grid-cols-2 gap-3">
-          <Campo rotulo="Restaurante" name="restaurante" placeholder="Zaatar" required />
-          <Campo rotulo="Bairro" name="bairro" placeholder="Botafogo" required />
+          <Campo rotulo="Nome do restaurante" name="restaurante" placeholder="Como o cliente conhece" required />
+          <Campo rotulo="Bairro" name="bairro" placeholder="Onde fica a loja" required />
         </div>
 
         <Campo
@@ -88,7 +88,7 @@ export function CriarContaPage() {
           name="whatsapp"
           type="tel"
           inputMode="tel"
-          placeholder="(21) 99814-2207"
+          placeholder="(00) 00000-0000"
           value={whatsapp}
           onChange={(e) => setWhatsapp(mascararTelefone(e.target.value))}
           destaque
@@ -102,7 +102,7 @@ export function CriarContaPage() {
           rotulo="E-mail"
           name="email"
           type="email"
-          placeholder="voce@seurestaurante.com.br"
+          placeholder="Seu melhor e-mail"
           required
         />
 
@@ -111,7 +111,7 @@ export function CriarContaPage() {
             rotulo="Senha"
             name="senha"
             type="password"
-            placeholder="crie uma senha"
+            placeholder="Crie uma senha de 8 caracteres ou mais"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required

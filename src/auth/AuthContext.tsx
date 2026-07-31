@@ -155,6 +155,9 @@ async function construirSessao(user: User): Promise<Sessao> {
     },
     tenantId: rid,
     demo: false,
+    // Só o dono faz onboarding — quem entrou por convite cai direto no painel.
+    // `tipoCozinha` preenchido cobre as contas criadas antes desta flag existir.
+    precisaOnboarding: papel === 'dono' && !r.onboardingConcluido && !r.tipoCozinha,
   }
 }
 

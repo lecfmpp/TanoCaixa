@@ -25,6 +25,8 @@ export interface RestauranteDoc {
   aberturaMes: string // 'julho de 2026'
   /** Natureza do negócio — decide se o DRE tem linha de franqueadora. */
   tipoNegocio?: TipoNegocio
+  /** Onboarding finalizado. Enquanto for falso, o dono cai nele ao entrar. */
+  onboardingConcluido?: boolean
   /** Rede/franquia a que a loja pertence. */
   redeId?: string
   /** Nome da bandeira, quando faz parte de uma rede. */

@@ -23,8 +23,12 @@ export function EntrarPage() {
   // volta pro /entrar achando que ninguém tá logado. Comparamos o uid (não só
   // "sessao existe") porque o navegador pode já ter uma sessão antiga
   // persistida (outra conta) quando esta página monta.
+  // Conta nova pelo Google não passa pelo formulário de cadastro, então é aqui
+  // que ela é mandada pro onboarding — senão o painel abre vazio e sem config.
   useEffect(() => {
-    if (uidEsperado && sessao?.usuario.id === uidEsperado) navegar('/painel')
+    if (uidEsperado && sessao?.usuario.id === uidEsperado) {
+      navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel')
+    }
   }, [uidEsperado, sessao, navegar])
 
   async function aoEnviar(e: FormEvent) {

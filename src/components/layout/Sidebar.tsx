@@ -21,7 +21,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const lojaAtiva = useLojaAtiva()
   const tenantDoLogin = useTenantDoLogin()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
-  const itens = itensNav.filter((i) => permissoes?.[i.chave] && (i.para !== '/painel/rede' || mostraRede))
+  const itens = itensNav.filter((i) => permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
   const { feitos, total, mes } = contagemProgresso
   const pctContagem = Math.round((feitos / total) * 100)
 
