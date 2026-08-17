@@ -107,6 +107,22 @@ export interface ContagemDoc extends Autoria {
   valorEstoque?: number
 }
 
+export interface MovimentoDoc extends Autoria {
+  id: string
+  /** 'Entrou mercadoria' (vem de nota), 'Perda ou quebra', 'Contagem do mês', 'Transferência'. */
+  tipo: string
+  /** Dia do fato (a nota manda a data dela). ISO 'YYYY-MM-DD'. */
+  data?: string
+  produtoId: string
+  produto: string
+  quantidade: number
+  custoUnitario: number
+  valor: number
+  /** Preenchido quando o movimento nasceu de uma nota fiscal. */
+  notaId?: string
+  observacao?: string
+}
+
 export interface AtividadeDoc extends Autoria {
   id: string
   quem: string

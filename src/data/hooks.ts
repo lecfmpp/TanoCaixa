@@ -69,6 +69,10 @@ export function useReceitaDia() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'receita_dia'], queryFn: () => repo.receitaDia.listar(t) })
 }
+export function useMovimentos() {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'movimentos_estoque'], queryFn: () => repo.movimentos.listar(t) })
+}
 export function useContagens() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'contagens'], queryFn: () => repo.contagens.listar(t) })
@@ -658,6 +662,7 @@ export function useCriarNota() {
           id: movimentoId,
           tipo: 'Entrou mercadoria',
           notaId,
+          data: e.data,
           produtoId: produto.id,
           produto: produto.nome,
           quantidade: item.quantidade,
@@ -676,7 +681,11 @@ export function useCriarNota() {
       // Financeiro: um lançamento por conta de CMV envolvida na nota.
       const porConta = new Map<CategoriaDespesa, ItemNota[]>()
       for (const { item, produto } of linhas) {
-        const conta = contaDeCmvDoProduto(produto.entraNoCmv ? produto.categoria : 'limpeza')
+        // A conta sai da CATEGORIA do produto (embalagem → descartáveis,
+        // limpeza → limpeza). O `entraNoCmv` não decide aqui: marmita marcada
+        // como fora do CMV ia parar na conta de Limpeza, o que ninguém entende
+        // lendo o DRE.
+        const conta = contaDeCmvDoProduto(produto.categoria)
         const variacao =
           produto.custoAtual > 0 ? ((item.precoUnitario - produto.custoAtual) / produto.custoAtual) * 100 : undefined
         porConta.set(conta, [
@@ -734,6 +743,7 @@ export function useCriarNota() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [t, 'despesas'] })
       qc.invalidateQueries({ queryKey: [t, 'produtos'] })
+      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
   })
@@ -765,6 +775,7 @@ export function useCriarMovimento() {
       await repo.movimentos.salvar(t, movimentoId, {
         id: movimentoId,
         tipo: e.tipo,
+        data: diaDeHoje(),
         produtoId: produto.id,
         produto: produto.nome,
         quantidade: e.quantidade,
@@ -781,6 +792,7 @@ export function useCriarMovimento() {
       return { movimentoId, produto: produto.nome, valor }
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
   })

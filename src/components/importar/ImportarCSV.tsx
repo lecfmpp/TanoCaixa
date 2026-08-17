@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { mensagemDeErro } from '@/lib/erros'
 import { Download, Upload, FileSpreadsheet, Check } from 'lucide-react'
 import { CONFIGS_IMPORT, modeloCSV, type TipoImport } from '@/data/importar'
 import { gerarCSV, baixarCSV, lerArquivo, parseCSVObjetos } from '@/lib/csv'
@@ -33,7 +34,14 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
   }
 
   async function confirmarImport() {
-    const { count } = await importar.mutateAsync({ tipo, registros })
+    let count: number
+    try {
+      ;({ count } = await importar.mutateAsync({ tipo, registros }))
+    } catch (e) {
+      console.error('importação:', e)
+      adicionarToast({ tipo: 'erro', titulo: 'Não deu pra importar', texto: mensagemDeErro(e, 'Nada foi gravado. Tente de novo.') })
+      return
+    }
     adicionarToast({
       tipo: 'sucesso',
       titulo: 'Planilha importada',

@@ -13,6 +13,7 @@ import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
+import { mensagemDeErro } from '@/lib/erros'
 import { diaDeHoje } from '@/data/derive'
 import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
@@ -133,6 +134,7 @@ export function GavetaHost() {
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
   const [cameraAberta, setCameraAberta] = useState(false)
+  const [salvando, setSalvando] = useState(false)
 
   // Estado dos formulários
   const [despesa, setDespesa] = useState(DESPESA_VAZIA)
@@ -292,6 +294,26 @@ export function GavetaHost() {
   }
 
   async function salvar() {
+    if (salvando) return
+    setSalvando(true)
+    try {
+      await gravar()
+      setEtapa(2)
+    } catch (e) {
+      // Sem isso o erro morria numa promise não tratada: a gaveta ficava parada
+      // no "Confirmar" e o lançamento simplesmente não existia.
+      console.error('lançamento:', e)
+      adicionarToast({
+        tipo: 'erro',
+        titulo: 'Não deu pra salvar',
+        texto: mensagemDeErro(e, 'O lançamento não entrou no banco. Tente de novo.'),
+      })
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function gravar() {
     if (gaveta === 'despesa') {
       const st = despesa.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago'
       const d = await criarDespesa.mutateAsync({
@@ -303,6 +325,7 @@ export function GavetaHost() {
         status: st as never,
         observacao: despesa.obs,
         recorrente: despesa.repete,
+        tipoLancamento: 'conta',
       })
       toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'compra') {
@@ -356,7 +379,6 @@ export function GavetaHost() {
         [{ colecao: 'movimentos_estoque', id: m.movimentoId }],
       )
     }
-    setEtapa(2)
   }
 
   return (
@@ -743,10 +765,10 @@ export function GavetaHost() {
               {!(etapa === 0 && modo === 'importar') && (
                 <Button
                   variante="primario"
-                  disabled={etapa === 0 && !podeAvancar}
+                  disabled={(etapa === 0 && !podeAvancar) || salvando}
                   onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}
                 >
-                  {etapa === 0 ? 'Continuar' : 'Confirmar'}
+                  {etapa === 0 ? 'Continuar' : salvando ? 'Salvando…' : 'Confirmar'}
                 </Button>
               )}
             </>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mensagemDeErro } from '@/lib/erros'
 import { X } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Campo } from '@/components/ui/Campo'
@@ -173,7 +174,13 @@ function MontarPlano({
   const sobra = 100 - somaTetos
 
   async function confirmar() {
-    await salvar.mutateAsync({ mes, metaFaturamento: metaNum, tetos })
+    try {
+      await salvar.mutateAsync({ mes, metaFaturamento: metaNum, tetos })
+    } catch (e) {
+      console.error('plano do mês:', e)
+      adicionarToast({ tipo: 'erro', titulo: 'Não deu pra salvar', texto: mensagemDeErro(e, 'O plano não foi gravado.') })
+      return
+    }
     adicionarToast({
       tipo: 'sucesso',
       titulo: `Plano de ${nomeDoMes(mes).split(' de ')[0]} salvo`,

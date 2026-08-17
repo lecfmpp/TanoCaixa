@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { mensagemDeErro } from '@/lib/erros'
 import { useLocation } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
@@ -222,12 +223,18 @@ function SeuNegocio() {
   }
 
   async function salvarTaxas() {
-    await salvar.mutateAsync({
-      taxasFranquia: {
-        royalties: Number(royalties.replace(',', '.')) || taxas?.royalties || 0,
-        fundoPromocao: Number(fundo.replace(',', '.')) || taxas?.fundoPromocao || 0,
-      },
-    })
+    try {
+      await salvar.mutateAsync({
+        taxasFranquia: {
+          royalties: Number(royalties.replace(',', '.')) || taxas?.royalties || 0,
+          fundoPromocao: Number(fundo.replace(',', '.')) || taxas?.fundoPromocao || 0,
+        },
+      })
+    } catch (e) {
+      console.error('taxas:', e)
+      adicionarToast({ tipo: 'erro', titulo: 'Não deu pra salvar', texto: mensagemDeErro(e, 'As taxas não foram gravadas.') })
+      return
+    }
     adicionarToast({ tipo: 'sucesso', titulo: 'Taxas salvas', texto: 'O DRE já usa esses percentuais.' })
   }
 
