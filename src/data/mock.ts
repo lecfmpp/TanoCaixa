@@ -143,4 +143,3 @@ export const feedAtividades: Atividade[] = [
 ]
 
 /** Progresso da contagem de estoque (rodapé da barra lateral). */
-export const contagemProgresso = { feitos: 10, total: 10, mes: 'julho' }
