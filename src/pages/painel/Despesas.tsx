@@ -4,13 +4,15 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Chip } from '@/components/ui/Chip'
-import { brl, brlInteiro, quando, dataCurta } from '@/lib/format'
+import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, HOJE, MES_REF } from '@/data/derive'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { nomeDoMes } from '@/data/planoMes'
+import { ehCompra } from '@/data/compras'
+import { useUI } from '@/ui/UIProvider'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -24,14 +26,21 @@ function corNome(nome: string): string {
   return '#AEB9B8'
 }
 
+/** As duas naturezas de saída: conta da casa e mercadoria comprada. */
+type Aba = 'casa' | 'compras'
+
 export function Despesas() {
   // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
   /** 'agosto' — o mês que a tela inteira está mostrando. */
   const MES_NOME = nomeDoMes(MES_REF).split(' de ')[0]
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
+  const { abrirGaveta } = useUI()
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
+  // Aluguel e compra de carne saem os dois do caixa, mas não se leem juntos:
+  // um é conta fixa da casa, o outro é estoque virando prato.
+  const [aba, setAba] = useState<Aba>('casa')
 
   // A tela toda fala do mês corrente ("Saiu em agosto"), então os lançamentos
   // dos meses anteriores ficam de fora — senão os cartões somam o histórico.
@@ -40,26 +49,32 @@ export function Despesas() {
     [ctx.despesas],
   )
 
-  const resumo = despesasResumo(doMes)
+  const compras = useMemo(() => doMes.filter(ehCompra), [doMes])
+  const contas = useMemo(() => doMes.filter((d) => !ehCompra(d)), [doMes])
+  const daAba = aba === 'compras' ? compras : contas
+
+  const resumo = despesasResumo(daAba)
+  const totalCompras = compras.reduce((s, d) => s + d.valorTotal, 0)
+  const totalContas = contas.reduce((s, d) => s + d.valorTotal, 0)
   const fat = resumoInicio(ctx, 'mes').entrou
-  const cats = categoriasResumo(doMes, fat)
+  const cats = categoriasResumo(daAba, fat)
   const cfg = restaurante.data
 
   // Só os grupos do DRE que já têm lançamento — chip vazio só atrapalha.
   const gruposUsados = useMemo(() => {
-    const ids = new Set(doMes.map((d) => CONTA[d.categoria]?.grupo).filter(Boolean))
+    const ids = new Set(daAba.map((d) => CONTA[d.categoria]?.grupo).filter(Boolean))
     return GRUPOS.filter((g) => ids.has(g.id))
-  }, [doMes])
+  }, [daAba])
 
   const lista = useMemo(() => {
-    return doMes
+    return daAba
       .filter((d) => (filtro === 'todas' ? true : CONTA[d.categoria]?.grupo === filtro))
       .filter((d) => (busca ? (d.fornecedor + (d.descricao ?? '')).toLowerCase().includes(busca.toLowerCase()) : true))
       .sort((a, b) => (a.dataCompetencia < b.dataCompetencia ? 1 : -1))
-  }, [doMes, filtro, busca])
+  }, [daAba, filtro, busca])
   const totalLista = lista.reduce((s, d) => s + d.valorTotal, 0)
 
-  const vence3 = doMes.find((d) => d.status === 'vence')
+  const vence3 = daAba.find((d) => d.status === 'vence')
 
   /** Lançamentos que estão na tela (filtro e busca incluídos), em CSV. */
   function exportar() {
@@ -75,7 +90,7 @@ export function Despesas() {
       d.valorTotal.toFixed(2).replace('.', ','),
     ])
     baixarCSV(
-      `despesas-${MES_REF}-${arquivoDe(cfg?.nome)}`,
+      `${aba === 'compras' ? 'compras' : 'despesas'}-${MES_REF}-${arquivoDe(cfg?.nome)}`,
       gerarCSV(['Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)'], linhas),
     )
   }
@@ -84,10 +99,24 @@ export function Despesas() {
     <div className="flex flex-col gap-4">
       <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''} aoExportar={lista.length ? exportar : undefined} />
 
+      {/* Duas naturezas, duas abas — o DRE e o caixa continuam somando as duas. */}
+      <div className="flex flex-col gap-3 cel:flex-row cel:items-center cel:justify-between">
+        <div className="flex rounded-botao bg-preenchimento p-1">
+          <AbaBotao rotulo="Contas da casa" valor={totalContas} ativa={aba === 'casa'} aoClicar={() => { setAba('casa'); setFiltro('todas') }} />
+          <AbaBotao rotulo="Compras de mercadoria" valor={totalCompras} ativa={aba === 'compras'} aoClicar={() => { setAba('compras'); setFiltro('todas') }} />
+        </div>
+        <button
+          onClick={() => abrirGaveta(aba === 'compras' ? 'compra' : 'despesa')}
+          className="shrink-0 text-sm font-bold text-mar underline underline-offset-2 hover:text-mar-escuro"
+        >
+          {aba === 'compras' ? 'Lançar nota fiscal' : 'Lançar conta da casa'}
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo={`Saiu em ${MES_NOME}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
         <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do mês`} tom="mata" />
-        <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${doMes.filter((d) => d.status !== 'pago').length} contas em aberto`} />
+        <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${daAba.filter((d) => d.status !== 'pago').length} em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>
 
@@ -117,7 +146,7 @@ export function Despesas() {
 
       {/* Busca + filtros */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center">
-        <div className="flex flex-1 items-center gap-2 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3.5 py-2.5">
+        <div className="flex flex-1 items-center gap-2 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3.5 py-2.5 cel:min-w-[240px]">
           <Search size={16} className="text-tinta-4" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar fornecedor…" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta-5" />
         </div>
@@ -145,7 +174,7 @@ export function Despesas() {
                   </td>
                   <td className="px-4 py-3"><EtiquetaConta categoria={d.categoria} /></td>
                   <td className="hidden px-4 py-3 capitalize text-tinta-2 tab:table-cell">{d.formaPagamento}</td>
-                  <td className="mono px-4 py-3 text-tinta-2">{dataCurta(new Date(d.dataCompetencia))}</td>
+                  <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(d.dataCompetencia))}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={26} />
@@ -159,6 +188,13 @@ export function Despesas() {
             </tbody>
           </table>
         </div>
+        {lista.length === 0 && (
+          <p className="px-4 py-8 text-center text-sm text-tinta-4">
+            {aba === 'compras'
+              ? 'Nenhuma nota fiscal lançada neste mês. A compra de mercadoria entra item a item, ligada aos seus produtos.'
+              : 'Nenhuma conta da casa lançada neste mês.'}
+          </p>
+        )}
         <div className="flex items-center justify-between border-t border-divisoria bg-preenchimento/40 px-4 py-3 text-sm">
           <span className="text-tinta-3">{lista.length} lançamentos</span>
           <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
@@ -192,6 +228,20 @@ function CartaoMini({ rotulo, valor, apoio, tom }: { rotulo: string; valor: numb
       <span className={cn('mono', tom === 'telha' ? 'text-telha-alerta' : tom === 'mata' ? 'text-mata' : 'text-tinta')} style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{brlInteiro(valor)}</span>
       <span className="text-xs text-tinta-4">{apoio}</span>
     </Cartao>
+  )
+}
+
+function AbaBotao({ rotulo, valor, ativa, aoClicar }: { rotulo: string; valor: number; ativa: boolean; aoClicar: () => void }) {
+  return (
+    <button
+      onClick={aoClicar}
+      className={cn(
+        'rounded-[10px] px-4 py-2 text-sm font-bold transition',
+        ativa ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta',
+      )}
+    >
+      {rotulo} <span className="mono font-bold text-tinta-4">· {brlInteiro(valor)}</span>
+    </button>
   )
 }
 

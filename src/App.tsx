@@ -16,6 +16,7 @@ import { LandingPage } from '@/pages/LandingPage'
 import { Inicio } from '@/pages/painel/Inicio'
 import { Caixa } from '@/pages/painel/Caixa'
 import { Despesas } from '@/pages/painel/Despesas'
+import { Compras } from '@/pages/painel/Compras'
 import { Produtos } from '@/pages/painel/Produtos'
 import { Estoque } from '@/pages/painel/Estoque'
 import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
@@ -52,6 +53,7 @@ export default function App() {
                 <Route index element={<ExigePermissao chave="veInicio"><Inicio /></ExigePermissao>} />
                 <Route path="caixa" element={<ExigePermissao chave="veFechamento"><Caixa /></ExigePermissao>} />
                 <Route path="despesas" element={<ExigePermissao chave="veDespesas"><Despesas /></ExigePermissao>} />
+                <Route path="compras" element={<ExigePermissao chave="veDespesas"><Compras /></ExigePermissao>} />
                 <Route path="produtos" element={<ExigePermissao chave="veProdutos"><Produtos /></ExigePermissao>} />
                 <Route path="estoque" element={<ExigePermissao chave="veEstoque"><Estoque /></ExigePermissao>} />
                 <Route path="plano" element={<ExigePermissao chave="vePlano"><PlanoDoMes /></ExigePermissao>} />

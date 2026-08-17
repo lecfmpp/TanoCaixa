@@ -46,6 +46,11 @@ const MC_PADRAO = 0.415
 /** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
 export let MES_REF = mesDe(HOJE)
 
+/** Hoje em 'YYYY-MM-DD', pelo calendário local e pela data de referência. */
+export function diaDeHoje(): string {
+  return `${mesDe(HOJE)}-${String(HOJE.getDate()).padStart(2, '0')}`
+}
+
 function mesDe(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }

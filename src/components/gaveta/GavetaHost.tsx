@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X, Camera, Sparkles } from 'lucide-react'
+import { X, Camera, Sparkles, Plus, Trash2 } from 'lucide-react'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { useAuth } from '@/auth/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Switch } from '@/components/ui/Switch'
+import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useDesfazer, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useDesfazer, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
+import { ALTA_RELEVANTE } from '@/data/compras'
+import { diaDeHoje } from '@/data/derive'
 import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
 import {
@@ -35,13 +38,18 @@ const TIPO_IMPORT: Partial<Record<TipoGaveta, TipoImport>> = {
 }
 
 const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[] }> = {
-  despesa: { titulo: 'Lançar despesa', sub: 'Nota, conta ou boleto', etapas: ['Dados', 'Confere', 'Pronto'] },
+  despesa: { titulo: 'Lançar despesa', sub: 'Conta da casa', etapas: ['Dados', 'Confere', 'Pronto'] },
+  compra: { titulo: 'Nota fiscal', sub: 'Compra de mercadoria', etapas: ['Itens', 'Confere', 'Pronto'] },
   produto: { titulo: 'Novo produto', sub: 'Item do estoque', etapas: ['Dados', 'Confere', 'Pronto'] },
-  estoque: { titulo: 'Movimento de estoque', sub: 'Entrada, perda, contagem', etapas: ['Dados', 'Confere', 'Pronto'] },
+  estoque: { titulo: 'Movimento de estoque', sub: 'Perda, contagem, transferência', etapas: ['Dados', 'Confere', 'Pronto'] },
   fechamento: { titulo: 'Fechar o dia', sub: 'Vendas do dia', etapas: ['Dados', 'Confere', 'Pronto'] },
 }
 
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Ainda vou pagar']
+
+/** Custo do cadastro no formato do campo ('9,80'). */
+const custoFormatado = (v: number | undefined) =>
+  v && v > 0 ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
 
@@ -72,13 +80,32 @@ function AvisoIA({ campos }: { campos: string[] }) {
     </div>
   )
 }
-const hojeISO = () => new Date().toISOString().slice(0, 10)
+/**
+ * Data de hoje no campo. Sai da data de referência do painel, não de
+ * `new Date().toISOString()`: na demonstração o painel vive em julho, e o
+ * toISOString convertia pra UTC — de madrugada o lançamento caía no dia anterior.
+ */
+const hojeISO = diaDeHoje
+
+/** Movimento que não mexe em dinheiro. Entrada de mercadoria tem nota. */
+const MOVIMENTOS = ['Perda ou quebra', 'Contagem do mês', 'Transferência'] as const
+
+interface ItemForm { produtoId: string; quantidade: string; preco: string }
+const ITEM_VAZIO: ItemForm = { produtoId: '', quantidade: '', preco: '' }
+
+const NOTA_VAZIA = {
+  fornecedor: '',
+  data: hojeISO(),
+  pagamento: 'Pix',
+  obs: '',
+  itens: [ITEM_VAZIO],
+}
 
 const DESPESA_VAZIA = {
   fornecedor: '',
   valor: '',
-  grupo: 'cmv' as GrupoDRE,
-  conta: 'cmv_alimentos' as CategoriaDespesa,
+  grupo: 'ocupacao' as GrupoDRE,
+  conta: 'aluguel' as CategoriaDespesa,
   data: hojeISO(),
   pagamento: 'Pix',
   obs: '',
@@ -86,18 +113,22 @@ const DESPESA_VAZIA = {
 }
 
 export function GavetaHost() {
-  const { gaveta, fecharGaveta, adicionarToast } = useUI()
+  const { gaveta, abrirGaveta, fecharGaveta, adicionarToast } = useUI()
   const { sessao } = useAuth()
   const criarDespesa = useCriarDespesa()
   const criarProduto = useCriarProduto()
   const criarFechamento = useCriarFechamento()
   const criarMovimento = useCriarMovimento()
+  const criarNota = useCriarNota()
+  const produtos = useProdutos().data ?? []
   const desfazer = useDesfazer()
   const cfg = useRestaurante().data
   // Quem não é franqueado não tem royalties nem fundo — o grupo some da lista
   // pra ninguém lançar despesa numa linha que o DRE dele nem mostra.
+  // O CMV sai da lista: compra de mercadoria entra pela nota fiscal, item a
+  // item, senão o estoque fica sem a entrada e o produto sem custo novo.
   const gruposDisponiveis = GRUPOS.filter(
-    (g) => g.id !== 'franqueadora' || pagaFranqueadora(cfg?.tipoNegocio),
+    (g) => g.id !== 'cmv' && (g.id !== 'franqueadora' || pagaFranqueadora(cfg?.tipoNegocio)),
   )
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
@@ -105,9 +136,10 @@ export function GavetaHost() {
 
   // Estado dos formulários
   const [despesa, setDespesa] = useState(DESPESA_VAZIA)
+  const [nota, setNota] = useState(NOTA_VAZIA)
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
   const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', delivery: '', outras: '' })
-  const [estoque, setEstoque] = useState({ tipo: 'Entrou mercadoria', produto: '', quantidade: '', custo: '', geraDespesa: true })
+  const [estoque, setEstoque] = useState({ tipo: MOVIMENTOS[0] as string, produtoId: '', quantidade: '', obs: '' })
   /** Campos que vieram da leitura da foto — ficam destacados pra conferência. */
   const [iaPreencheu, setIaPreencheu] = useState<string[]>([])
   const daIA = (campo: string) => iaPreencheu.includes(campo)
@@ -123,7 +155,8 @@ export function GavetaHost() {
     setIaPreencheu([])
     setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-    setEstoque({ tipo: 'Entrou mercadoria', produto: 'Grão de bico seco', quantidade: '25', custo: '9,80', geraDespesa: true })
+    setNota({ ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] })
+    setEstoque({ tipo: MOVIMENTOS[0], produtoId: '', quantidade: '', obs: '' })
   }, [gaveta])
 
   useEffect(() => {
@@ -142,6 +175,19 @@ export function GavetaHost() {
   if (!gaveta) return null
   const meta = TITULOS[gaveta]
 
+  const porId = new Map(produtos.map((p) => [p.id, p]))
+  /** Linhas da nota que já dá pra salvar: produto escolhido e quantidade. */
+  const itensValidos = nota.itens
+    .map((i) => ({ ...i, produto: porId.get(i.produtoId) }))
+    .filter((i) => i.produto && soNum(i.quantidade) > 0)
+  const totalNota = itensValidos.reduce((s2, i) => s2 + soNum(i.quantidade) * soNum(i.preco), 0)
+
+  /** Trava o "Continuar": nota sem item e movimento sem produto não existem. */
+  const podeAvancar =
+    gaveta === 'compra' ? itensValidos.length > 0 && totalNota > 0
+    : gaveta === 'estoque' ? !!estoque.produtoId && soNum(estoque.quantidade) > 0
+    : true
+
   const resumo = montarResumo()
   function montarResumo(): { rot: string; val: string }[] {
     if (gaveta === 'despesa')
@@ -152,6 +198,14 @@ export function GavetaHost() {
         { rot: 'Conta', val: CONTA[despesa.conta]?.nome ?? '' },
         { rot: 'Competência', val: despesa.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: despesa.pagamento },
+      ]
+    if (gaveta === 'compra')
+      return [
+        { rot: 'Fornecedor', val: nota.fornecedor || '—' },
+        { rot: 'Itens', val: `${itensValidos.length}` },
+        { rot: 'Data', val: nota.data.split('-').reverse().join('/') },
+        { rot: 'Pagamento', val: nota.pagamento },
+        { rot: 'Total da nota', val: brl(totalNota) },
       ]
     if (gaveta === 'produto')
       return [
@@ -170,11 +224,12 @@ export function GavetaHost() {
         { rot: 'Total do dia', val: brl(apps + loja + soNum(fecha.delivery) + soNum(fecha.outras)) },
       ]
     }
+    const doEstoque = porId.get(estoque.produtoId)
     return [
       { rot: 'Movimento', val: estoque.tipo },
-      { rot: 'Produto', val: estoque.produto || '—' },
-      { rot: 'Quantidade', val: estoque.quantidade || '0' },
-      { rot: 'Valor', val: brl(soNum(estoque.quantidade) * soNum(estoque.custo)) },
+      { rot: 'Produto', val: doEstoque?.nome ?? '—' },
+      { rot: 'Quantidade', val: `${estoque.quantidade || '0'} ${doEstoque?.unidade ?? ''}`.trim() },
+      { rot: 'Valor no estoque', val: brl(soNum(estoque.quantidade) * (doEstoque?.custoAtual ?? 0)) },
     ]
   }
 
@@ -192,6 +247,9 @@ export function GavetaHost() {
         vindos.push('conta')
       }
       if (dados.obs) { setDespesa((d) => ({ ...d, obs: dados.obs! })); vindos.push('obs') }
+    } else if (gaveta === 'compra') {
+      if (dados.fornecedor) { setNota((n) => ({ ...n, fornecedor: dados.fornecedor! })); vindos.push('fornecedor') }
+      if (dados.obs) { setNota((n) => ({ ...n, obs: dados.obs! })); vindos.push('obs') }
     } else if (gaveta === 'produto') {
       if (dados.produto) { setProduto((p) => ({ ...p, nome: dados.produto! })); vindos.push('nome') }
       // Normaliza: a IA pode devolver "hortifruti" ou "quilo" e o chip não casaria.
@@ -201,9 +259,12 @@ export function GavetaHost() {
       if (dados.fornecedor) { setProduto((p) => ({ ...p, fornecedor: dados.fornecedor! })); vindos.push('fornecedorProduto') }
       if (typeof dados.entraNoCmv === 'boolean') { setProduto((p) => ({ ...p, cmv: dados.entraNoCmv! })); vindos.push('cmv') }
     } else if (gaveta === 'estoque') {
-      if (dados.produto) { setEstoque((e) => ({ ...e, produto: dados.produto! })); vindos.push('produto') }
+      // A IA devolve o nome lido; só vale se casar com um produto cadastrado.
+      if (dados.produto) {
+        const achado = produtos.find((p) => p.nome.toLowerCase().trim() === dados.produto!.toLowerCase().trim())
+        if (achado) { setEstoque((e) => ({ ...e, produtoId: achado.id })); vindos.push('produto') }
+      }
       if (dados.quantidade) { setEstoque((e) => ({ ...e, quantidade: String(dados.quantidade) })); vindos.push('quantidade') }
-      if (dados.custo) { setEstoque((e) => ({ ...e, custo: (dados.custo! / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) })); vindos.push('custo') }
     }
     setIaPreencheu(vindos)
     setCameraAberta(false)
@@ -244,6 +305,24 @@ export function GavetaHost() {
         recorrente: despesa.repete,
       })
       toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
+    } else if (gaveta === 'compra') {
+      const n = await criarNota.mutateAsync({
+        fornecedor: nota.fornecedor,
+        data: nota.data,
+        formaPagamento: (nota.pagamento === 'Ainda vou pagar' ? 'boleto' : nota.pagamento.toLowerCase()) as never,
+        status: (nota.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago') as never,
+        observacao: nota.obs,
+        itens: itensValidos.map((i) => ({
+          produtoId: i.produtoId,
+          quantidade: soNum(i.quantidade),
+          precoUnitario: soNum(i.preco),
+        })),
+      })
+      toastComDesfazer(
+        'Nota lançada',
+        `${brl(n.valorTotal)} em ${n.itens} ${n.itens === 1 ? 'item' : 'itens'} — estoque e CMV atualizados.`,
+        n.criados,
+      )
     } else if (gaveta === 'produto') {
       const p = await criarProduto.mutateAsync({
         nome: produto.nome || 'Produto',
@@ -267,14 +346,15 @@ export function GavetaHost() {
     } else {
       const m = await criarMovimento.mutateAsync({
         tipo: estoque.tipo,
-        produto: estoque.produto,
+        produtoId: estoque.produtoId,
         quantidade: soNum(estoque.quantidade),
-        custo: soNum(estoque.custo),
-        geraDespesa: estoque.geraDespesa,
+        observacao: estoque.obs,
       })
-      const itens = [{ colecao: 'movimentos_estoque', id: m.movimentoId }]
-      if (m.despesaId) itens.push({ colecao: 'despesas', id: m.despesaId })
-      toastComDesfazer('Estoque atualizado', `${estoque.produto} · ${estoque.quantidade} un.`, itens)
+      toastComDesfazer(
+        'Estoque atualizado',
+        `${m.produto} · ${estoque.quantidade} ${porId.get(estoque.produtoId)?.unidade ?? ''}`.trim(),
+        [{ colecao: 'movimentos_estoque', id: m.movimentoId }],
+      )
     }
     setEtapa(2)
   }
@@ -343,6 +423,14 @@ export function GavetaHost() {
                 <Campo rotulo="Quanto foi" destaque={daIA('valor')} placeholder="R$ 0,00" inputMode="decimal" value={despesa.valor} onChange={(e) => setDespesa({ ...despesa, valor: e.target.value })} />
                 <Campo rotulo="Data da despesa" type="date" value={despesa.data} onChange={(e) => setDespesa({ ...despesa, data: e.target.value })} />
               </div>
+              <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
+                Aqui entra conta da casa: aluguel, luz, folha, marketing.{' '}
+                <strong className="font-bold text-tinta">Comprou mercadoria?</strong> Lance pela{' '}
+                <button onClick={() => abrirGaveta('compra')} className="font-bold text-mar underline underline-offset-2">
+                  nota fiscal
+                </button>{' '}
+                — assim o item entra no estoque e o custo do produto fica em dia.
+              </div>
               <div>
                 <span className="rotulo mb-1.5 block text-tinta-4">Onde entra no DRE</span>
                 <div className="flex flex-wrap gap-2">
@@ -374,6 +462,120 @@ export function GavetaHost() {
             </div>
           )}
 
+          {etapa === 0 && modo === 'form' && gaveta === 'compra' && (
+            <div className="flex flex-col gap-4">
+              <BotaoFoto
+                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
+                apoio="A IA lê o cabeçalho da nota. Os itens você confirma pelo cadastro."
+                aoClicar={() => setCameraAberta(true)}
+              />
+              <AvisoIA campos={iaPreencheu} />
+              <Campo rotulo="Fornecedor" destaque={daIA('fornecedor')} placeholder="Ex: Hortifrúti Zona Sul" value={nota.fornecedor} onChange={(e) => setNota({ ...nota, fornecedor: e.target.value })} />
+              <Campo rotulo="Data da nota" type="date" value={nota.data} onChange={(e) => setNota({ ...nota, data: e.target.value })} />
+
+              {produtos.length === 0 ? (
+                <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4">
+                  <p className="text-sm text-insight-texto">
+                    <strong className="font-bold">Nenhum produto cadastrado ainda.</strong> A nota é lançada item a
+                    item, e cada item precisa ser um produto seu — é isso que liga a compra ao estoque e ao CMV.
+                  </p>
+                  <Button variante="secundario" onClick={() => abrirGaveta('produto')} className="mt-3">
+                    Cadastrar o primeiro produto
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <span className="rotulo text-tinta-4">Itens da nota</span>
+                  {nota.itens.map((item, i) => {
+                    const p = porId.get(item.produtoId)
+                    const anterior = p?.custoAtual ?? 0
+                    const agora = soNum(item.preco)
+                    const variacao = anterior > 0 && agora > 0 ? ((agora - anterior) / anterior) * 100 : null
+                    return (
+                      <div key={i} className="flex flex-col gap-3 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-3.5">
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <SeletorProduto
+                              rotulo={`Item ${i + 1}`}
+                              produtos={produtos}
+                              valor={item.produtoId}
+                              aoTrocar={(id) =>
+                                setNota((n) => ({
+                                  ...n,
+                                  // Traz o último custo do cadastro: na maioria das
+                                  // compras o preço repete, e o que muda a gente destaca.
+                                  itens: n.itens.map((x, j) =>
+                                    j === i
+                                      ? { ...x, produtoId: id, preco: x.preco || custoFormatado(porId.get(id)?.custoAtual) }
+                                      : x,
+                                  ),
+                                }))
+                              }
+                            />
+                          </div>
+                          {nota.itens.length > 1 && (
+                            <button
+                              onClick={() => setNota((n) => ({ ...n, itens: n.itens.filter((_, j) => j !== i) }))}
+                              className="mb-1 grid h-10 w-10 shrink-0 place-items-center rounded-botao text-tinta-4 transition hover:bg-preenchimento hover:text-telha-alerta"
+                              aria-label={`Tirar item ${i + 1}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Campo
+                            rotulo={`Quantidade${p ? ` · ${p.unidade}` : ''}`}
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={item.quantidade}
+                            onChange={(e) => setNota((n) => ({ ...n, itens: n.itens.map((x, j) => (j === i ? { ...x, quantidade: e.target.value } : x)) }))}
+                          />
+                          <Campo
+                            rotulo="Preço unitário"
+                            inputMode="decimal"
+                            placeholder="R$ 0,00"
+                            value={item.preco}
+                            onChange={(e) => setNota((n) => ({ ...n, itens: n.itens.map((x, j) => (j === i ? { ...x, preco: e.target.value } : x)) }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={cn('font-semibold', (variacao ?? 0) >= ALTA_RELEVANTE ? 'text-telha-alerta' : 'text-tinta-4')}>
+                            {variacao === null || Math.abs(variacao) < 0.5
+                              ? p ? `último custo ${brl(anterior)}` : 'escolha o produto'
+                              : `${variacao > 0 ? 'subiu' : 'caiu'} ${Math.abs(variacao).toFixed(0)}% vs. ${brl(anterior)}`}
+                          </span>
+                          <span className="mono font-bold text-tinta">{brl(soNum(item.quantidade) * agora)}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <button
+                    onClick={() => setNota((n) => ({ ...n, itens: [...n.itens, ITEM_VAZIO] }))}
+                    className="flex items-center justify-center gap-1.5 rounded-campo border border-dashed border-[rgba(46,95,115,0.3)] py-2.5 text-sm font-bold text-mar transition hover:bg-preenchimento"
+                  >
+                    <Plus size={16} /> Adicionar item
+                  </button>
+                  <div className="flex items-center justify-between rounded-cartao bg-preenchimento/60 px-4 py-3">
+                    <span className="text-sm font-bold text-tinta">Total da nota</span>
+                    <span className="mono text-[17px] font-bold text-tinta">{brl(totalNota)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <span className="rotulo mb-1.5 block text-tinta-4">Como pagou</span>
+                <div className="flex flex-wrap gap-2">
+                  {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={nota.pagamento === p} aoClicar={() => setNota({ ...nota, pagamento: p })} />)}
+                </div>
+              </div>
+              <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: entrega da semana" value={nota.obs} onChange={(e) => setNota({ ...nota, obs: e.target.value })} />
+              <p className="text-xs text-tinta-4">
+                A nota dá entrada no estoque, atualiza o custo de cada produto e entra no CMV do DRE — tudo de uma vez.
+              </p>
+            </div>
+          )}
+
           {etapa === 0 && modo === 'form' && gaveta === 'produto' && (
             <div className="flex flex-col gap-4">
               <BotaoFoto
@@ -397,7 +599,7 @@ export function GavetaHost() {
               </div>
               <Campo rotulo="Fornecedor padrão" destaque={daIA('fornecedorProduto')} placeholder="Casa Líbano" value={produto.fornecedor} onChange={(e) => setProduto({ ...produto, fornecedor: e.target.value })} />
               <label className={cn('flex items-center justify-between rounded-campo border bg-superficie px-4 py-3', daIA('cmv') ? 'border-telhado/40 bg-insight-fundo/40' : 'border-[rgba(46,95,115,0.14)]')}>
-                <span><span className="block text-sm font-bold text-tinta">Entra no CMV</span><span className="block text-xs text-tinta-4">desliga pra material de limpeza e descartável</span></span>
+                <span className="block text-sm font-bold text-tinta">Entra no CMV</span>
                 <Switch ligado={produto.cmv} aoTrocar={(v) => setProduto({ ...produto, cmv: v })} />
               </label>
             </div>
@@ -430,23 +632,61 @@ export function GavetaHost() {
             <div className="flex flex-col gap-4">
               <BotaoFoto
                 rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da mercadoria'}
-                apoio="A IA lê a mercadoria e preenche os campos abaixo. Você só confere."
+                apoio="A IA lê a mercadoria e acha o produto no seu cadastro."
                 aoClicar={() => setCameraAberta(true)}
               />
               <AvisoIA campos={iaPreencheu} />
-              <div>
-                <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
-                <div className="flex flex-wrap gap-2">{['Entrou mercadoria', 'Contagem do mês', 'Perda ou quebra', 'Transferência'].map((o) => <Chip key={o} rotulo={o} selecionado={estoque.tipo === o} aoClicar={() => setEstoque({ ...estoque, tipo: o })} />)}</div>
-              </div>
-              <Campo rotulo="Produto" destaque={daIA('produto')} value={estoque.produto} onChange={(e) => setEstoque({ ...estoque, produto: e.target.value })} />
-              <div className="grid grid-cols-2 gap-3">
-                <Campo rotulo="Quantidade" destaque={daIA('quantidade')} value={estoque.quantidade} onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })} inputMode="numeric" />
-                <Campo rotulo="Custo unitário" destaque={daIA('custo')} placeholder="R$ 9,80" value={estoque.custo} onChange={(e) => setEstoque({ ...estoque, custo: e.target.value })} inputMode="decimal" />
-              </div>
-              <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
-                <span><span className="block text-sm font-bold text-tinta">Gerar a despesa junto</span><span className="block text-xs text-tinta-4">cria o lançamento de {brl(soNum(estoque.quantidade) * soNum(estoque.custo))} no CMV, na conta do produto</span></span>
-                <Switch ligado={estoque.geraDespesa} aoTrocar={(v) => setEstoque({ ...estoque, geraDespesa: v })} />
-              </label>
+
+              {produtos.length === 0 ? (
+                <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4">
+                  <p className="text-sm text-insight-texto">
+                    <strong className="font-bold">Cadastre um produto primeiro.</strong> Todo movimento de estoque é
+                    sobre um produto seu — sem isso o mesmo item vira dois nomes diferentes e a contagem para de fechar.
+                  </p>
+                  <Button variante="secundario" onClick={() => abrirGaveta('produto')} className="mt-3">
+                    Cadastrar o primeiro produto
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <span className="rotulo mb-1.5 block text-tinta-4">O que aconteceu</span>
+                    <div className="flex flex-wrap gap-2">{MOVIMENTOS.map((o) => <Chip key={o} rotulo={o} selecionado={estoque.tipo === o} aoClicar={() => setEstoque({ ...estoque, tipo: o })} />)}</div>
+                  </div>
+                  <SeletorProduto
+                    rotulo="Produto"
+                    produtos={produtos}
+                    valor={estoque.produtoId}
+                    destaque={daIA('produto')}
+                    aoTrocar={(id) => setEstoque({ ...estoque, produtoId: id })}
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Campo
+                      rotulo={`Quantidade${porId.get(estoque.produtoId) ? ` · ${porId.get(estoque.produtoId)!.unidade}` : ''}`}
+                      destaque={daIA('quantidade')}
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={estoque.quantidade}
+                      onChange={(e) => setEstoque({ ...estoque, quantidade: e.target.value })}
+                    />
+                    <div className="flex flex-col gap-1.5">
+                      <span className="rotulo text-tinta-4">Custo do cadastro</span>
+                      <span className="flex items-center rounded-campo border border-[rgba(46,95,115,0.14)] bg-preenchimento/50 px-3.5 py-2.5 text-[15px] text-tinta-3">
+                        {porId.get(estoque.produtoId) ? brl(porId.get(estoque.produtoId)!.custoAtual) : '—'}
+                      </span>
+                    </div>
+                  </div>
+                  <Campo rotulo="Observação · opcional" placeholder="Ex: caixa quebrou na entrega" value={estoque.obs} onChange={(e) => setEstoque({ ...estoque, obs: e.target.value })} />
+                  <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
+                    Isso não mexe no caixa. <strong className="font-bold text-tinta">Entrou mercadoria?</strong> Lance
+                    pela{' '}
+                    <button onClick={() => abrirGaveta('compra')} className="font-bold text-mar underline underline-offset-2">
+                      nota fiscal
+                    </button>{' '}
+                    — é ela que tem fornecedor, preço e vira despesa.
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -467,6 +707,13 @@ export function GavetaHost() {
               {gaveta === 'despesa' && (
                 <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
                   No DRE isso entra em <strong className="font-bold text-tinta">{GRUPOS.find((g) => g.id === despesa.grupo)?.nome}</strong>, na conta <strong className="font-bold text-tinta">{CONTA[despesa.conta]?.nome}</strong>.
+                </div>
+              )}
+              {gaveta === 'compra' && (
+                <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
+                  Cada item entra no estoque e atualiza o custo do produto. No DRE o valor cai no{' '}
+                  <strong className="font-bold text-tinta">CMV</strong>, na conta de cada produto — e aparece em
+                  Compras, separado das contas da casa.
                 </div>
               )}
             </div>
@@ -494,7 +741,11 @@ export function GavetaHost() {
                 {etapa === 0 ? 'Cancelar' : '← Corrigir'}
               </button>
               {!(etapa === 0 && modo === 'importar') && (
-                <Button variante="primario" onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}>
+                <Button
+                  variante="primario"
+                  disabled={etapa === 0 && !podeAvancar}
+                  onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}
+                >
                   {etapa === 0 ? 'Continuar' : 'Confirmar'}
                 </Button>
               )}
@@ -509,7 +760,7 @@ export function GavetaHost() {
        * derrubava a gaveta inteira no meio da escolha da foto. */}
       {cameraAberta && gaveta && (
         <CapturaFoto
-          tipo={gaveta === 'despesa' ? 'despesa' : gaveta === 'produto' ? 'produto' : 'estoque'}
+          tipo={gaveta === 'despesa' || gaveta === 'compra' ? 'despesa' : gaveta === 'produto' ? 'produto' : 'estoque'}
           onExtrair={preencherComDadosDaFoto}
           onCancelar={() => setCameraAberta(false)}
         />

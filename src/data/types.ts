@@ -56,7 +56,10 @@ export interface ProdutoDoc extends Autoria {
 }
 
 export interface ItemNota {
+  /** Liga ao cadastro de produtos — item de nota sem produto não existe. */
+  produtoId: string
   produto: string
+  unidade?: string
   quantidade: number
   precoUnitario: number
   variacao?: number // % vs último preço
@@ -76,6 +79,15 @@ export interface DespesaDoc extends Autoria {
   observacao?: string
   itens?: ItemNota[]
   origemNota?: boolean // veio de foto/IA
+  /**
+   * Natureza do lançamento. 'compra' é mercadoria que entrou no estoque (vem
+   * de nota fiscal); 'conta' é despesa da casa (aluguel, luz, folha). Os dois
+   * somam no caixa e no DRE — só não se misturam na tela.
+   * Lançamento antigo não tem o campo: classifica pela conta do DRE.
+   */
+  tipoLancamento?: 'conta' | 'compra'
+  /** Agrupa os lançamentos gerados pela mesma nota fiscal. */
+  notaId?: string
 }
 
 export interface ReceitaDiaDoc extends Autoria {

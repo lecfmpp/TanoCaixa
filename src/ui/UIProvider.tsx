@@ -28,7 +28,7 @@ export interface ModalConfig {
   onConfirmar: () => void
 }
 
-export type TipoGaveta = 'despesa' | 'produto' | 'estoque' | 'fechamento'
+export type TipoGaveta = 'despesa' | 'compra' | 'produto' | 'estoque' | 'fechamento'
 
 interface UIContexto {
   toasts: Toast[]
