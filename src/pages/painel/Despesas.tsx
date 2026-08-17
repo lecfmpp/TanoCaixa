@@ -10,6 +10,7 @@ import { useContexto, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, HOJE, MES_REF } from '@/data/derive'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
+import { nomeDoMes } from '@/data/planoMes'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -24,12 +25,15 @@ function corNome(nome: string): string {
 }
 
 export function Despesas() {
+  // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
+  /** 'agosto' — o mês que a tela inteira está mostrando. */
+  const MES_NOME = nomeDoMes(MES_REF).split(' de ')[0]
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
 
-  // A tela toda fala do mês corrente ("Saiu em julho"), então os lançamentos
+  // A tela toda fala do mês corrente ("Saiu em agosto"), então os lançamentos
   // dos meses anteriores ficam de fora — senão os cartões somam o histórico.
   const doMes = useMemo(
     () => ctx.despesas.filter((d) => d.dataCompetencia.slice(0, 7) === MES_REF),
@@ -78,10 +82,10 @@ export function Despesas() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''} aoExportar={lista.length ? exportar : undefined} />
+      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''} aoExportar={lista.length ? exportar : undefined} />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
-        <CartaoMini rotulo="Saiu em julho" valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
+        <CartaoMini rotulo={`Saiu em ${MES_NOME}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
         <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do mês`} tom="mata" />
         <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${doMes.filter((d) => d.status !== 'pago').length} contas em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />

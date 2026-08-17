@@ -11,8 +11,27 @@ import {
 } from './planoContas'
 import type { ContagemDoc, DespesaDoc, ReceitaDiaDoc, RestauranteDoc } from './types'
 
-/** "Hoje" de referência da demonstração. */
-export const HOJE = new Date(2026, 6, 28)
+/** "Hoje" da demonstração — os dados de exemplo são todos de julho de 2026. */
+const HOJE_DEMO = new Date(2026, 6, 28)
+
+/** Chave de sessão que marca a demonstração (espelha o AuthContext). */
+const CHAVE_DEMO = 'tanocaixa:demo'
+
+function ehDemo(): boolean {
+  try {
+    return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(CHAVE_DEMO) === '1'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * "Hoje" de referência do painel. Na conta real é o dia de verdade — era uma
+ * data fixa de julho, e por isso o que o dono lançava em outro mês sumia das
+ * telas (Despesas, DRE, Início). Só a demonstração continua parada em julho,
+ * que é quando estão os dados de exemplo.
+ */
+export let HOJE = ehDemo() ? HOJE_DEMO : new Date()
 
 export interface Contexto {
   despesas: DespesaDoc[]
@@ -25,7 +44,20 @@ export interface Contexto {
 const MC_PADRAO = 0.415
 
 /** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
-export const MES_REF = `${HOJE.getFullYear()}-${String(HOJE.getMonth() + 1).padStart(2, '0')}`
+export let MES_REF = mesDe(HOJE)
+
+function mesDe(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Fixa a data de referência quando a sessão é resolvida: demonstração fica em
+ * julho de 2026, conta real anda com o relógio.
+ */
+export function ajustarDataDeReferencia(demo: boolean): void {
+  HOJE = demo ? HOJE_DEMO : new Date()
+  MES_REF = mesDe(HOJE)
+}
 
 /** '2026-07' → '2026-06'. */
 export function mesAnterior(mes: string): string {

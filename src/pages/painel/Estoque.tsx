@@ -6,6 +6,8 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContagens, useRestaurante, useSalvarContagem } from '@/data/hooks'
+import { MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 
 export function Estoque() {
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
@@ -14,7 +16,9 @@ export function Estoque() {
   const salvarContagem = useSalvarContagem()
 
   const cfg = restaurante.data
-  const contagem = contagens.data?.find((c) => c.mesReferencia === '2026-07') ?? contagens.data?.[0]
+  const contagem = contagens.data?.find((c) => c.mesReferencia === MES_REF) ?? contagens.data?.[0]
+  /** 'agosto' — o mês da contagem que está aberta na tela. */
+  const mesNome = nomeDoMes(contagem?.mesReferencia ?? MES_REF).split(' de ')[0]
   const itens = contagem?.itens ?? []
 
   const [quantidades, setQuantidades] = useState<Record<string, number>>(() =>
@@ -60,7 +64,7 @@ export function Estoque() {
         <div className="tab:col-span-8">
           <Cartao className="flex flex-col">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-tinta">Contagem de julho</h2>
+              <h2 className="text-[15px] font-bold text-tinta">Contagem de {mesNome}</h2>
               <span className="text-xs text-tinta-4">{itens.length} itens</span>
             </div>
             <ul className="flex flex-col">
@@ -151,7 +155,7 @@ export function Estoque() {
             onClick={() =>
               confirmar({
                 gravidade: 'destrutivo',
-                titulo: 'Fechar a contagem de julho?',
+                titulo: `Fechar a contagem de ${mesNome}?`,
                 texto: 'Depois de fechar, esse valor vira o estoque do mês e entra no CMV. Só o dono consegue reabrir.',
                 resumo: [
                   { rot: 'Itens contados', val: `${itens.length} de ${itens.length}` },
