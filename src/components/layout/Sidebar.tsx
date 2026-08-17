@@ -7,7 +7,6 @@ import { useAuth } from '@/auth/AuthContext'
 import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
-import { contagemProgresso } from '@/data/mock'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
@@ -22,8 +21,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const tenantDoLogin = useTenantDoLogin()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
   const itens = itensNav.filter((i) => permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
-  const { feitos, total, mes } = contagemProgresso
-  const pctContagem = Math.round((feitos / total) * 100)
 
   return (
     <nav className="flex h-full w-[236px] shrink-0 flex-col bg-mar text-creme">
@@ -51,7 +48,10 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
         </div>
       )}
 
-      <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4">
+      {/* O menu ocupa o meio inteiro: o card de progresso da contagem que ficava
+       * ancorado aqui embaixo comia a altura da lista e escondia os últimos
+       * itens — e ainda mostrava "10 de 10" fixo, vindo do mock. */}
+      <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-4">
         {itens.map((item) => (
           <li key={item.para}>
             <NavLink
@@ -72,17 +72,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
           </li>
         ))}
       </ul>
-
-      {/* Progresso da contagem de estoque */}
-      <div className="mx-4 mb-4 rounded-cartao bg-white/6 px-4 py-3.5">
-        <div className="text-xs text-creme/60">Contagem de {mes}</div>
-        <div className="mt-0.5 text-sm font-bold text-creme">
-          {feitos} de {total} itens contados
-        </div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
-          <div className="h-full rounded-full bg-sol" style={{ width: `${pctContagem}%` }} />
-        </div>
-      </div>
 
       <div className="border-t border-white/10">
         {usuario && (
