@@ -1,6 +1,8 @@
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { useAuth } from '@/auth/AuthContext'
+import { MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 
 /** Seção ainda não construída — mantém o shell navegável nas próximas fases. */
 export function Placeholder({
@@ -18,7 +20,7 @@ export function Placeholder({
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo={titulo}
-        subtitulo={r ? `${r.nome} · ${r.bairro} · julho de 2026` : ''}
+        subtitulo={r ? `${r.nome} · ${r.bairro} · ${nomeDoMes(MES_REF)}` : ''}
         foto={foto}
         lancar
       />

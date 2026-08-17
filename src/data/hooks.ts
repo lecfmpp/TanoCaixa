@@ -11,7 +11,7 @@ import {
   type SolicitacaoDoc,
   type TipoSolicitacao,
 } from './solicitacoes'
-import type { Contexto } from './derive'
+import { MES_REF, type Contexto } from './derive'
 import type { DiaHorario } from '@/components/ui/HorarioSemana'
 import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
 import { useLojaAtiva } from './lojaAtiva'
@@ -512,7 +512,7 @@ export function useImportar() {
           repo.produtos.listar(t),
           repo.contagens.listar(t),
         ])
-        const contagem = contagens.find((c) => c.mesReferencia === '2026-07') ?? contagens[0]
+        const contagem = contagens.find((c) => c.mesReferencia === MES_REF) ?? contagens[0]
         if (contagem) {
           const porNome = new Map(produtos.map((p) => [p.nome.toLowerCase(), p]))
           const itens = [...contagem.itens]

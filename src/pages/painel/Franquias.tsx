@@ -7,10 +7,10 @@ import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
 import { useRede, useContextosDaRede, useCriarSolicitacao, useSolicitacoesDaRede, type LojaComContexto } from '@/data/hooks'
-import { dreDoMes, mesAnterior, type DRE } from '@/data/derive'
+import { dreDoMes, mesAnterior, MES_REF, type DRE } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { OPCOES_SOLICITACAO, type TipoSolicitacao, type SolicitacaoDoc } from '@/data/solicitacoes'
 
-const MES = '2026-07'
 
 interface LojaMedida {
   loja: LojaComContexto['loja']
@@ -20,6 +20,11 @@ interface LojaMedida {
   /** Variação do lucro líquido contra o mês passado, em %. */
   variacao: number | null
   pedidosAbertos: number
+}
+
+/** 'julho' — só o nome do mês passado, pra comparação nos textos. */
+function mesPassado(): string {
+  return nomeDoMes(mesAnterior(MES_REF)).split(' de ')[0]
 }
 
 export function Franquias() {
@@ -32,8 +37,8 @@ export function Franquias() {
     () =>
       lojas
         .map(({ loja, ctx }) => {
-          const dre = dreDoMes(ctx, MES)
-          const anterior = dreDoMes(ctx, mesAnterior(MES))
+          const dre = dreDoMes(ctx, MES_REF)
+          const anterior = dreDoMes(ctx, mesAnterior(MES_REF))
           const base = Math.abs(anterior.lucroLiquido)
           return {
             loja,
@@ -70,10 +75,10 @@ export function Franquias() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Franquias"
-        subtitulo={`${rede.data.nome} · ${medidas.length} loja${medidas.length === 1 ? '' : 's'} · julho de 2026`}
+        subtitulo={`${rede.data.nome} · ${medidas.length} loja${medidas.length === 1 ? '' : 's'} · ${nomeDoMes(MES_REF)}`}
       />
       <p className="-mt-2 text-sm text-tinta-4">
-        Cada cartão é uma loja da rede, com o número do mês e a variação contra junho.
+        Cada cartão é uma loja da rede, com o número do mês e a variação contra {mesPassado()}.
         {totalPedidos > 0 && ` ${totalPedidos} pedido${totalPedidos === 1 ? '' : 's'} aguardando resposta.`}
       </p>
 
@@ -158,7 +163,7 @@ function Linha({ rotulo, valor, alerta }: { rotulo: string; valor: string; alert
 
 function Variacao({ valor }: { valor: number | null }) {
   if (valor === null) {
-    return <span className="text-xs text-tinta-4">sem base em junho</span>
+    return <span className="text-xs text-tinta-4">sem base em {mesPassado()}</span>
   }
   const subiu = valor >= 0
   const Icone = Math.abs(valor) < 0.5 ? Minus : subiu ? ArrowUpRight : ArrowDownRight

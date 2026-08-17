@@ -23,6 +23,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { auth, db, functions } from '@/lib/firebase'
 import { DEMO_TENANT } from '@/data/tenant'
+import { ajustarDataDeReferencia } from '@/data/derive'
 import { TETOS_PADRAO } from '@/data/planoContas'
 import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
@@ -184,8 +185,17 @@ function construirSessaoCacheada(user: User): Promise<Sessao> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [sessao, setSessao] = useState<Sessao | null>(null)
+  const [sessao, setSessaoState] = useState<Sessao | null>(null)
   const [carregando, setCarregando] = useState(true)
+
+  // A data de referência dos cálculos acompanha a sessão: a demonstração fica
+  // parada em julho de 2026 (onde estão os dados de exemplo) e a conta real usa
+  // o dia de hoje. Ajusta ANTES de renderizar, senão o painel calcula o mês
+  // errado no primeiro render.
+  const setSessao = useCallback((s: Sessao | null) => {
+    ajustarDataDeReferencia(s?.demo ?? false)
+    setSessaoState(s)
+  }, [])
 
   useEffect(() => {
     // Rede de segurança: se o Auth não inicializar (ex.: persistência do
@@ -218,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCarregando(false)
     })
     return cancelar
-  }, [])
+  }, [setSessao])
 
   const entrarDemo = useCallback(() => {
     sessionStorage.setItem(CHAVE_DEMO, '1')
@@ -229,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // exigem (a análise de foto por IA, por exemplo). Se o provedor anônimo
     // estiver desabilitado no projeto, a demo segue normal e só a foto avisa.
     signInAnonymously(auth).catch((e) => console.warn('demo anônima:', e))
-  }, [])
+  }, [setSessao])
 
   const entrarComEmail = useCallback(async (email: string, senha: string) => {
     const cred = await signInWithEmailAndPassword(auth, email, senha)
@@ -315,7 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessaoCache.set(sessao.usuario.id, Promise.resolve(novaSessao))
       setSessao(novaSessao)
     },
-    [sessao],
+    [sessao, setSessao],
   )
 
   const sair = useCallback(async () => {
@@ -331,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await signOut(auth)
     setSessao(null)
-  }, [sessao])
+  }, [sessao, setSessao])
 
   const valor = useMemo<AuthContextValor>(
     () => ({

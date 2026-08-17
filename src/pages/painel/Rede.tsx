@@ -14,6 +14,8 @@ import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { dreDoMes } from '@/data/derive'
 import { GRUPO } from '@/data/planoContas'
 import type { LojaComContexto } from '@/data/hooks'
+import { MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 
 export function Rede() {
   const rede = useRede()
@@ -102,7 +104,7 @@ function PainelDaRede({
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Rede" subtitulo={`${nomeRede} · ${lojas.length} loja${lojas.length === 1 ? '' : 's'} · julho de 2026`} />
+      <SectionHeader titulo="Rede" subtitulo={`${nomeRede} · ${lojas.length} loja${lojas.length === 1 ? '' : 's'} · ${nomeDoMes(MES_REF)}`} />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo="Lojas" valor={String(lojas.length)} apoio={tipo === 'franquia' ? 'na franquia' : 'na rede'} />
