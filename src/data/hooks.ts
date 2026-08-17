@@ -11,7 +11,7 @@ import {
   type SolicitacaoDoc,
   type TipoSolicitacao,
 } from './solicitacoes'
-import { MES_REF, type Contexto } from './derive'
+import { MES_REF, diaDeHoje, type Contexto } from './derive'
 import type { DiaHorario } from '@/components/ui/HorarioSemana'
 import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
 import { useLojaAtiva } from './lojaAtiva'
@@ -19,9 +19,10 @@ import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
 import { temRede, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
-import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO, type Tetos } from './planoContas'
+import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO, type Tetos, type CategoriaDespesa } from './planoContas'
 import type {
   DespesaDoc,
+  ItemNota,
   ProdutoDoc,
   ReceitaDiaDoc,
   RestauranteDoc,
@@ -67,6 +68,10 @@ export function useDespesas() {
 export function useReceitaDia() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'receita_dia'], queryFn: () => repo.receitaDia.listar(t) })
+}
+export function useMovimentos() {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'movimentos_estoque'], queryFn: () => repo.movimentos.listar(t) })
 }
 export function useContagens() {
   const t = useTenant()
@@ -348,7 +353,7 @@ export function useCriarDespesa() {
       const doc: DespesaDoc = {
         fornecedor: entrada.fornecedor ?? 'Fornecedor',
         valorTotal: entrada.valorTotal ?? 0,
-        dataCompetencia: entrada.dataCompetencia ?? new Date().toISOString().slice(0, 10),
+        dataCompetencia: entrada.dataCompetencia ?? diaDeHoje(),
         formaPagamento: entrada.formaPagamento ?? 'pix',
         status: entrada.status ?? 'pago',
         recorrente: entrada.recorrente ?? false,
@@ -497,7 +502,7 @@ export function useImportar() {
             fornecedor: r.fornecedor || 'Fornecedor',
             categoria: normalizarCategoria(r.categoria),
             valorTotal: numeroBR(r.valor),
-            dataCompetencia: r.data ? dataBRparaISO(r.data) : new Date().toISOString().slice(0, 10),
+            dataCompetencia: r.data ? dataBRparaISO(r.data) : diaDeHoje(),
             formaPagamento: (r.forma_pagamento || 'pix') as DespesaDoc['formaPagamento'],
             status: (r.status || 'pago') as DespesaDoc['status'],
             descricao: r.descricao || '',
@@ -565,7 +570,7 @@ export function useCriarFechamento() {
       const { pix, cartao, dinheiro } = e
       const autor = getAutor()
       const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
-      const hoje = new Date().toISOString().slice(0, 10)
+      const hoje = diaDeHoje()
       const loja = pix + cartao + dinheiro
       const delivery = e.delivery ?? 0
       const outras = e.outras ?? 0
@@ -607,41 +612,187 @@ export function useCriarFechamento() {
   })
 }
 
+export interface ItemDaNota {
+  produtoId: string
+  quantidade: number
+  precoUnitario: number
+}
+
+/**
+ * Lança uma nota fiscal de mercadoria: dá entrada no estoque item a item,
+ * atualiza o custo de cada produto e gera o lançamento financeiro.
+ *
+ * O financeiro sai separado por conta do DRE (alimento, bebida, descartável),
+ * senão uma nota mista jogaria bebida na linha de alimentos. Os lançamentos
+ * carregam o mesmo `notaId`, então a tela remonta a nota inteira.
+ */
+export function useCriarNota() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (e: {
+      fornecedor: string
+      data: string
+      formaPagamento: DespesaDoc['formaPagamento']
+      status: DespesaDoc['status']
+      observacao?: string
+      itens: ItemDaNota[]
+    }) => {
+      const autor = getAutor()
+      const autoria = {
+        criadoEm: autor.criadoEm,
+        criadoPorId: autor.criadoPorId,
+        criadoPorNome: autor.criadoPorNome,
+        origem: autor.origem,
+      }
+      const produtos = await repo.produtos.listar(t)
+      const porId = new Map(produtos.map((p) => [p.id, p]))
+      const notaId = novoId('nf')
+      const criados: { colecao: string; id: string }[] = []
+
+      // Item a item: entrada no estoque + custo do produto em dia.
+      const linhas = e.itens
+        .map((i) => ({ item: i, produto: porId.get(i.produtoId) }))
+        .filter((l): l is { item: ItemDaNota; produto: ProdutoDoc } => !!l.produto && l.item.quantidade > 0)
+
+      for (const { item, produto } of linhas) {
+        const movimentoId = novoId('mov')
+        await repo.movimentos.salvar(t, movimentoId, {
+          id: movimentoId,
+          tipo: 'Entrou mercadoria',
+          notaId,
+          data: e.data,
+          produtoId: produto.id,
+          produto: produto.nome,
+          quantidade: item.quantidade,
+          custoUnitario: item.precoUnitario,
+          valor: item.quantidade * item.precoUnitario,
+          ...autoria,
+        })
+        criados.push({ colecao: 'movimentos_estoque', id: movimentoId })
+        // O custo do produto passa a ser o da última compra — é ele que valoriza
+        // a contagem de estoque e, por tabela, o CMV do DRE.
+        if (item.precoUnitario > 0 && item.precoUnitario !== produto.custoAtual) {
+          await repo.produtos.atualizar(t, produto.id, { custoAtual: item.precoUnitario })
+        }
+      }
+
+      // Financeiro: um lançamento por conta de CMV envolvida na nota.
+      const porConta = new Map<CategoriaDespesa, ItemNota[]>()
+      for (const { item, produto } of linhas) {
+        // A conta sai da CATEGORIA do produto (embalagem → descartáveis,
+        // limpeza → limpeza). O `entraNoCmv` não decide aqui: marmita marcada
+        // como fora do CMV ia parar na conta de Limpeza, o que ninguém entende
+        // lendo o DRE.
+        const conta = contaDeCmvDoProduto(produto.categoria)
+        const variacao =
+          produto.custoAtual > 0 ? ((item.precoUnitario - produto.custoAtual) / produto.custoAtual) * 100 : undefined
+        porConta.set(conta, [
+          ...(porConta.get(conta) ?? []),
+          {
+            produtoId: produto.id,
+            produto: produto.nome,
+            unidade: produto.unidade,
+            quantidade: item.quantidade,
+            precoUnitario: item.precoUnitario,
+            ...(variacao === undefined ? {} : { variacao }),
+          },
+        ])
+      }
+
+      let valorTotal = 0
+      for (const [categoria, itens] of porConta) {
+        const valor = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+        valorTotal += valor
+        const despesaId = novoId('d')
+        await repo.despesas.salvar(t, despesaId, {
+          id: despesaId,
+          fornecedor: e.fornecedor || 'Fornecedor',
+          descricao: itens.map((i) => i.produto).join(', '),
+          categoria,
+          valorTotal: valor,
+          dataCompetencia: e.data,
+          formaPagamento: e.formaPagamento,
+          status: e.status,
+          recorrente: false,
+          tipoLancamento: 'compra',
+          notaId,
+          itens,
+          ...(e.observacao ? { observacao: e.observacao } : {}),
+          ...autoria,
+        })
+        criados.push({ colecao: 'despesas', id: despesaId })
+      }
+
+      await registrarAtividade(
+        t,
+        {
+          acao: 'lançou a nota do',
+          entidade: e.fornecedor || 'fornecedor',
+          tipo: 'Compra',
+          valor: valorTotal,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return { notaId, valorTotal, itens: linhas.length, criados }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'produtos'] })
+      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/**
+ * Movimento de estoque que NÃO mexe em dinheiro: perda, contagem,
+ * transferência. Entrada de mercadoria não passa por aqui — ela tem nota
+ * fiscal, fornecedor e valor, e entra por `useCriarNota`.
+ */
 export function useCriarMovimento() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (e: { tipo: string; produto: string; quantidade: number; custo: number; geraDespesa: boolean }) => {
+    mutationFn: async (e: { tipo: string; produtoId: string; quantidade: number; observacao?: string }) => {
       const autor = getAutor()
-      const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
-      const valor = e.quantidade * e.custo
+      const autoria = {
+        criadoEm: autor.criadoEm,
+        criadoPorId: autor.criadoPorId,
+        criadoPorNome: autor.criadoPorNome,
+        origem: autor.origem,
+      }
+      const produtos = await repo.produtos.listar(t)
+      const produto = produtos.find((p) => p.id === e.produtoId)
+      if (!produto) throw new Error('Escolha um produto cadastrado.')
+      const valor = e.quantidade * produto.custoAtual
       const movimentoId = novoId('mov')
       await repo.movimentos.salvar(t, movimentoId, {
-        id: movimentoId, tipo: e.tipo, produto: e.produto, quantidade: e.quantidade, custoUnitario: e.custo, valor, geraDespesa: e.geraDespesa, ...autoria,
+        id: movimentoId,
+        tipo: e.tipo,
+        data: diaDeHoje(),
+        produtoId: produto.id,
+        produto: produto.nome,
+        quantidade: e.quantidade,
+        custoUnitario: produto.custoAtual,
+        valor,
+        ...(e.observacao ? { observacao: e.observacao } : {}),
+        ...autoria,
       })
-      let despesaId: string | undefined
-      if (e.geraDespesa && valor > 0) {
-        // A conta de CMV sai da categoria do produto (alimento, bebida,
-        // descartável) — assim a entrada de estoque cai na linha certa do DRE.
-        const produtos = await repo.produtos.listar(t)
-        const cadastrado = produtos.find((p) => p.nome.toLowerCase().trim() === e.produto.toLowerCase().trim())
-        despesaId = novoId('d')
-        await repo.despesas.salvar(t, despesaId, {
-          id: despesaId, fornecedor: 'Entrada de estoque', descricao: e.produto,
-          categoria: contaDeCmvDoProduto(cadastrado?.categoria), valorTotal: valor,
-          dataCompetencia: new Date().toISOString().slice(0, 10), formaPagamento: 'automatico', status: 'pago', recorrente: false, ...autoria,
-        })
-      }
       await registrarAtividade(
         t,
-        { acao: 'movimentou estoque', entidade: e.produto, tipo: 'Estoque', valor, quem: '', quemInicial: '', quemCor: '' },
+        { acao: 'movimentou estoque', entidade: produto.nome, tipo: 'Estoque', valor, quem: '', quemInicial: '', quemCor: '' },
         autor,
       )
-      return { movimentoId, despesaId }
+      return { movimentoId, produto: produto.nome, valor }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
   })

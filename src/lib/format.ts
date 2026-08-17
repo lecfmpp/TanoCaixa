@@ -96,6 +96,15 @@ export function mascararCNPJ(v: string): string {
   return out
 }
 
+/**
+ * Data ISO ('2026-07-28') como Date do dia certo. `new Date('2026-07-28')` é
+ * lido como meia-noite UTC e, no fuso do Brasil, volta pro dia anterior — era
+ * o que fazia a nota de 28/07 aparecer como 27/07.
+ */
+export function dataDoDia(iso: string): Date {
+  return new Date(iso.slice(0, 10) + 'T12:00:00')
+}
+
 /** "22/07" */
 export function dataCurta(data: Date): string {
   const dia = String(data.getDate()).padStart(2, '0')

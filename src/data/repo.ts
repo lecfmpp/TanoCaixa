@@ -20,6 +20,7 @@ import type {
   ContagemDoc,
   AtividadeDoc,
   InsightDoc,
+  MovimentoDoc,
 } from './types'
 
 /* Caminhos: restaurants/{tenant}/{colecao}/{id} */
@@ -90,6 +91,7 @@ export const repo = {
     remover: (t: string, id: string) => remover(t, 'receita_dia', id),
   },
   movimentos: {
+    listar: (t: string) => listar<MovimentoDoc>(t, 'movimentos_estoque'),
     salvar: (t: string, id: string, d: Record<string, unknown>) => salvar(t, 'movimentos_estoque', id, d),
     remover: (t: string, id: string) => remover(t, 'movimentos_estoque', id),
   },

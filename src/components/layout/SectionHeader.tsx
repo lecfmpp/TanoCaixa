@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Receipt, Package, Boxes, CalendarCheck } from 'lucide-react'
+import { Plus, Receipt, ScrollText, Package, Boxes, CalendarCheck } from 'lucide-react'
 import type { Periodo } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
@@ -19,9 +19,10 @@ interface SectionHeaderProps {
 }
 
 const OPCOES_LANCAR: { id: TipoGaveta; rotulo: string; icone: typeof Receipt; dica: string }[] = [
-  { id: 'despesa', rotulo: 'Lançar despesa', icone: Receipt, dica: 'nota, conta, boleto' },
+  { id: 'compra', rotulo: 'Nota fiscal de mercadoria', icone: ScrollText, dica: 'compra que entra no estoque' },
+  { id: 'despesa', rotulo: 'Lançar despesa', icone: Receipt, dica: 'aluguel, luz, folha' },
   { id: 'produto', rotulo: 'Novo produto', icone: Package, dica: 'item do estoque' },
-  { id: 'estoque', rotulo: 'Movimento de estoque', icone: Boxes, dica: 'entrada, perda' },
+  { id: 'estoque', rotulo: 'Movimento de estoque', icone: Boxes, dica: 'perda, contagem' },
   { id: 'fechamento', rotulo: 'Fechar o dia', icone: CalendarCheck, dica: 'vendas do dia' },
 ]
 
