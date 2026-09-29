@@ -88,6 +88,12 @@ export interface DespesaDoc extends Autoria {
   tipoLancamento?: 'conta' | 'compra'
   /** Agrupa os lançamentos gerados pela mesma nota fiscal. */
   notaId?: string
+  /** Última correção do lançamento — quem lançou continua sendo o autor. */
+  editadoEm?: string
+  editadoPorId?: string
+  editadoPorNome?: string
+  /** Marca a cópia e aponta pro lançamento de origem. */
+  duplicadoDe?: string
 }
 
 export interface ReceitaDiaDoc extends Autoria {

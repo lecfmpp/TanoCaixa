@@ -12,6 +12,7 @@ import { MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE } from '@/data/compras'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
+import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
 
@@ -126,9 +127,10 @@ export function Compras() {
               const aberto = aberta === n.id
               return (
                 <div key={n.id} className="border-b border-divisoria last:border-0">
+                  <div className="flex items-center pr-2 transition hover:bg-preenchimento/30">
                   <button
                     onClick={() => setAberta(aberto ? null : n.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-preenchimento/30"
+                    className="flex flex-1 items-center gap-3 px-4 py-3 text-left"
                   >
                     {n.itens.length > 0
                       ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
@@ -144,6 +146,18 @@ export function Compras() {
                     </span>
                     <span className="mono w-28 text-right font-bold text-tinta">{brl(n.valorTotal)}</span>
                   </button>
+                  {/* Corrigir/duplicar/apagar a nota inteira: os lançamentos do
+                   * DRE, as entradas de estoque e o custo dos produtos andam
+                   * juntos. Compra antiga sem itens não tem estoque atrás — ela
+                   * é corrigida como lançamento avulso, na gaveta de despesa. */}
+                  <AcoesLancamento
+                    alvo={
+                      n.itens.length || n.lancamentos.length > 1
+                        ? { tipo: 'nota', nota: n }
+                        : { tipo: 'conta', despesa: n.lancamentos[0] }
+                    }
+                  />
+                  </div>
                   {aberto && n.itens.length > 0 && (
                     <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
                       {n.itens.map((i, idx) => (

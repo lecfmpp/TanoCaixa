@@ -5,6 +5,7 @@ import { Download } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
@@ -114,6 +115,9 @@ export function Ajustes() {
 
       {/* Quem usa / gestão de permissões */}
       <Equipe />
+
+      {/* Plano de contas — as linhas da DRE que a loja lança */}
+      <PlanoDeContas />
 
       {/* Onde te avisar */}
       <Cartao className="flex flex-col">

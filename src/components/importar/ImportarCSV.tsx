@@ -6,7 +6,7 @@ import { gerarCSV, baixarCSV, lerArquivo, parseCSVObjetos } from '@/lib/csv'
 import { useImportar } from '@/data/hooks'
 import { useUI } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
-import { CONTA, GRUPO, GRUPOS, contasDoGrupo, normalizarCategoria } from '@/data/planoContas'
+import { CONTA, GRUPO, GRUPOS, contasParaLancar, normalizarCategoria } from '@/data/planoContas'
 
 interface Props {
   tipo: TipoImport
@@ -91,7 +91,7 @@ export function ImportarCSV({ tipo, aoConcluir }: Props) {
                   {g.nome}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                  {contasDoGrupo(g.id).map((c) => (
+                  {contasParaLancar(g.id).map((c) => (
                     <span key={c.id} className="text-xs text-tinta-4">
                       <code className="text-tinta-3">{c.id}</code> · {c.nome}
                     </span>

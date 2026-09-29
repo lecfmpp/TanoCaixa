@@ -10,7 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { normalizarCategoria } from './planoContas'
+import { normalizarCategoria, type ContaPersonalizada } from './planoContas'
 import type {
   RestauranteDoc,
   MembroDoc,
@@ -106,6 +106,12 @@ export const repo = {
   insights: {
     listar: (t: string) => listar<InsightDoc>(t, 'insights'),
     salvar: (t: string, id: string, d: Partial<InsightDoc>) => salvar(t, 'insights', id, d),
+  },
+  // Plano de contas da loja: edições das contas padrão e as contas próprias.
+  contas: {
+    listar: (t: string) => listar<ContaPersonalizada>(t, 'contas'),
+    salvar: (t: string, id: string, d: Partial<ContaPersonalizada>) => salvar(t, 'contas', id, d),
+    remover: (t: string, id: string) => remover(t, 'contas', id),
   },
   integracoes: {
     listar: (t: string) => listar<IntegracaoDoc>(t, 'integracoes'),
