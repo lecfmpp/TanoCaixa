@@ -9,7 +9,7 @@ import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useDesfazer, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
@@ -22,7 +22,7 @@ import {
   GRUPOS,
   CATEGORIAS_PRODUTO,
   UNIDADES_PRODUTO,
-  contasDoGrupo,
+  contasParaLancar,
   normalizarCategoria,
   normalizarCategoriaProduto,
   normalizarUnidade,
@@ -30,6 +30,7 @@ import {
   type GrupoDRE,
 } from '@/data/planoContas'
 import type { DadosExtraidosFoto } from '@/lib/gemini'
+import type { DespesaDoc } from '@/data/types'
 
 /** Gavetas que aceitam importação por planilha e para qual entidade. */
 const TIPO_IMPORT: Partial<Record<TipoGaveta, TipoImport>> = {
@@ -46,11 +47,53 @@ const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[
   fechamento: { titulo: 'Fechar o dia', sub: 'Vendas do dia', etapas: ['Dados', 'Confere', 'Pronto'] },
 }
 
-const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Ainda vou pagar']
+const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência', 'Ainda vou pagar']
+
+/** Chip da tela → forma de pagamento do banco. 'Cartão'.toLowerCase() virava
+ * 'cartão' com acento e não batia com nada do plano de contas. */
+const FORMA_DO_CHIP: Record<string, DespesaDoc['formaPagamento']> = {
+  Pix: 'pix',
+  Dinheiro: 'dinheiro',
+  'Cartão': 'cartao',
+  Boleto: 'boleto',
+  'Transferência': 'transferencia',
+  'Ainda vou pagar': 'boleto',
+}
+
+/** O caminho de volta, pra gaveta de correção abrir no chip certo. */
+function chipDoPagamento(forma: DespesaDoc['formaPagamento'], status: DespesaDoc['status']): string {
+  if (status !== 'pago') return 'Ainda vou pagar'
+  const rotulo = Object.entries(FORMA_DO_CHIP).find(([r, f]) => f === forma && r !== 'Ainda vou pagar')
+  return rotulo?.[0] ?? 'Pix'
+}
+
+/**
+ * Chip escolhido → como isso é gravado (forma + situação andam juntas).
+ *
+ * Numa correção, o chip que não foi mexido devolve a forma ORIGINAL: sem isso
+ * o lançamento que o iFood mandou como 'automatico' virava 'pix' só por passar
+ * pela gaveta, porque a tela não tem chip pra 'automatico'.
+ */
+function pagamentoParaDoc(chip: string, original?: { formaPagamento: DespesaDoc['formaPagamento']; status: DespesaDoc['status'] }) {
+  if (original && chipDoPagamento(original.formaPagamento, original.status) === chip) {
+    return { formaPagamento: original.formaPagamento, status: original.status }
+  }
+  return {
+    formaPagamento: FORMA_DO_CHIP[chip] ?? 'pix',
+    status: (chip === 'Ainda vou pagar' ? 'a_pagar' : 'pago') as DespesaDoc['status'],
+  }
+}
 
 /** Custo do cadastro no formato do campo ('9,80'). */
 const custoFormatado = (v: number | undefined) =>
   v && v > 0 ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''
+
+/** ISO 'YYYY-MM-DD' no formato que o dono lê. */
+const dataBR = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
+
+/** Valor gravado de volta no formato do campo — o caminho de volta do `soNum`. */
+const valorFormatado = (v: number | undefined) =>
+  v ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''
 
 const soNum = (s: string) => Number(s.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0)
 
@@ -114,13 +157,18 @@ const DESPESA_VAZIA = {
 }
 
 export function GavetaHost() {
-  const { gaveta, abrirGaveta, fecharGaveta, adicionarToast } = useUI()
+  const { gaveta, gavetaEdicao, abrirGaveta, fecharGaveta, adicionarToast, confirmar } = useUI()
   const { sessao } = useAuth()
+  // A gaveta vive fora do AppShell: assina o plano de contas por conta própria
+  // pra que uma conta criada agora já apareça nos chips.
+  usePlanoContas()
   const criarDespesa = useCriarDespesa()
   const criarProduto = useCriarProduto()
   const criarFechamento = useCriarFechamento()
   const criarMovimento = useCriarMovimento()
   const criarNota = useCriarNota()
+  const atualizarDespesa = useAtualizarDespesa()
+  const atualizarNota = useAtualizarNota()
   const produtos = useProdutos().data ?? []
   const desfazer = useDesfazer()
   const cfg = useRestaurante().data
@@ -128,8 +176,11 @@ export function GavetaHost() {
   // pra ninguém lançar despesa numa linha que o DRE dele nem mostra.
   // O CMV sai da lista: compra de mercadoria entra pela nota fiscal, item a
   // item, senão o estoque fica sem a entrada e o produto sem custo novo.
+  // Exceção: lançamento que JÁ está no CMV (compra antiga, sem itens) precisa
+  // do grupo na lista pra poder ser corrigido sem trocar de linha do DRE.
+  const cmvNaLista = gavetaEdicao?.alvo === 'despesa' && CONTA[normalizarCategoria(gavetaEdicao.despesa.categoria)]?.grupo === 'cmv'
   const gruposDisponiveis = GRUPOS.filter(
-    (g) => g.id !== 'cmv' && (g.id !== 'franqueadora' || pagaFranqueadora(cfg?.tipoNegocio)),
+    (g) => (g.id !== 'cmv' || cmvNaLista) && (g.id !== 'franqueadora' || pagaFranqueadora(cfg?.tipoNegocio)),
   )
   const [etapa, setEtapa] = useState(0)
   const [modo, setModo] = useState<'form' | 'importar'>('form')
@@ -148,18 +199,60 @@ export function GavetaHost() {
 
   /** Trocar de grupo leva a conta pra primeira do grupo novo. */
   function trocarGrupo(g: GrupoDRE) {
-    setDespesa((d) => ({ ...d, grupo: g, conta: contasDoGrupo(g)[0].id }))
+    setDespesa((d) => ({ ...d, grupo: g, conta: contasParaLancar(g)[0]?.id ?? 'variavel_outros' }))
   }
 
+  /**
+   * Abrir a gaveta zera os formulários. Quando ela abriu para corrigir um
+   * lançamento, o formulário já nasce com o que está gravado — é o mesmo
+   * caminho de sempre, só que a confirmação grava por cima.
+   */
   useEffect(() => {
     setEtapa(0)
     setModo('form')
     setIaPreencheu([])
-    setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
     setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-    setNota({ ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] })
     setEstoque({ tipo: MOVIMENTOS[0], produtoId: '', quantidade: '', obs: '' })
-  }, [gaveta])
+
+    if (gavetaEdicao?.alvo === 'despesa') {
+      const d = gavetaEdicao.despesa
+      const conta = normalizarCategoria(d.categoria)
+      setDespesa({
+        fornecedor: d.fornecedor,
+        valor: valorFormatado(d.valorTotal),
+        grupo: CONTA[conta]?.grupo ?? 'ocupacao',
+        conta,
+        data: d.dataCompetencia.slice(0, 10),
+        pagamento: chipDoPagamento(d.formaPagamento, d.status),
+        obs: d.observacao ?? '',
+        repete: d.recorrente,
+      })
+      setNota({ ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] })
+      return
+    }
+
+    if (gavetaEdicao?.alvo === 'nota') {
+      const n = gavetaEdicao.nota
+      setNota({
+        fornecedor: n.fornecedor,
+        data: n.data.slice(0, 10),
+        pagamento: chipDoPagamento(n.formaPagamento, n.status),
+        obs: n.lancamentos[0]?.observacao ?? '',
+        itens: n.itens.length
+          ? n.itens.map((i) => ({
+              produtoId: i.produtoId,
+              quantidade: String(i.quantidade).replace('.', ','),
+              preco: valorFormatado(i.precoUnitario),
+            }))
+          : [ITEM_VAZIO],
+      })
+      setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
+      return
+    }
+
+    setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
+    setNota({ ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] })
+  }, [gaveta, gavetaEdicao])
 
   useEffect(() => {
     if (!gaveta) return
@@ -175,7 +268,19 @@ export function GavetaHost() {
   )
 
   if (!gaveta) return null
-  const meta = TITULOS[gaveta]
+  /** Corrigindo? A gaveta é a mesma, o rótulo é que não pode mentir. */
+  const corrigindo =
+    (gaveta === 'despesa' && gavetaEdicao?.alvo === 'despesa') ||
+    (gaveta === 'compra' && gavetaEdicao?.alvo === 'nota')
+  const base = TITULOS[gaveta]
+  const meta = corrigindo
+    ? {
+        ...base,
+        titulo: gaveta === 'compra' ? 'Corrigir nota fiscal' : 'Corrigir despesa',
+        sub: gaveta === 'compra' ? 'A nota inteira é regravada' : 'Conta da casa já lançada',
+        etapas: [base.etapas[0], 'Confere', 'Pronto'],
+      }
+    : base
 
   const porId = new Map(produtos.map((p) => [p.id, p]))
   /** Linhas da nota que já dá pra salvar: produto escolhido e quantidade. */
@@ -293,6 +398,53 @@ export function GavetaHost() {
     })
   }
 
+  /**
+   * Correção nunca grava direto: o modal mostra o que muda antes de o valor
+   * antigo deixar de existir. Lançamento novo continua sendo só "Confirmar" —
+   * a etapa "Confere" já é a conferência dele.
+   */
+  function pedirConfirmacao() {
+    if (!corrigindo) return salvar()
+    confirmar({
+      gravidade: 'atencao',
+      titulo: gaveta === 'compra' ? 'Salvar a nota corrigida?' : 'Salvar a correção?',
+      texto:
+        gaveta === 'compra'
+          ? 'A nota é regravada inteira: as entradas de estoque desta nota são refeitas e o custo dos produtos volta a sair da compra mais recente. O caixa e o DRE passam a ler os valores novos.'
+          : 'O lançamento antigo deixa de existir com os valores de antes. O caixa, o DRE e o Plano do mês passam a ler os valores novos.',
+      resumo: resumoDaCorrecao(),
+      rotuloCancelar: 'Voltar e revisar',
+      rotuloConfirmar: 'Salvar alterações',
+      onConfirmar: () => void salvar(),
+    })
+  }
+
+  /** O que muda: valor de antes → valor de agora, só nas linhas que mudaram. */
+  function resumoDaCorrecao(): { rot: string; val: string }[] {
+    if (gavetaEdicao?.alvo === 'despesa') {
+      const d = gavetaEdicao.despesa
+      const linhas: { rot: string; val: string }[] = []
+      if (d.fornecedor !== despesa.fornecedor) linhas.push({ rot: 'Fornecedor', val: `${d.fornecedor} → ${despesa.fornecedor || '—'}` })
+      if (d.valorTotal !== soNum(despesa.valor)) linhas.push({ rot: 'Valor', val: `${brl(d.valorTotal)} → ${brl(soNum(despesa.valor))}` })
+      if (normalizarCategoria(d.categoria) !== despesa.conta)
+        linhas.push({ rot: 'Conta', val: `${CONTA[normalizarCategoria(d.categoria)]?.nome} → ${CONTA[despesa.conta]?.nome}` })
+      if (d.dataCompetencia.slice(0, 10) !== despesa.data)
+        linhas.push({ rot: 'Competência', val: `${dataBR(d.dataCompetencia)} → ${dataBR(despesa.data)}` })
+      const pg = chipDoPagamento(d.formaPagamento, d.status)
+      if (pg !== despesa.pagamento) linhas.push({ rot: 'Pagamento', val: `${pg} → ${despesa.pagamento}` })
+      return linhas.length ? linhas : [{ rot: 'Nada mudou', val: brl(d.valorTotal) }]
+    }
+    if (gavetaEdicao?.alvo === 'nota') {
+      const n = gavetaEdicao.nota
+      return [
+        { rot: 'Fornecedor', val: n.fornecedor === nota.fornecedor ? nota.fornecedor || '—' : `${n.fornecedor} → ${nota.fornecedor || '—'}` },
+        { rot: 'Itens', val: n.itens.length === itensValidos.length ? `${itensValidos.length}` : `${n.itens.length} → ${itensValidos.length}` },
+        { rot: 'Total da nota', val: n.valorTotal === totalNota ? brl(totalNota) : `${brl(n.valorTotal)} → ${brl(totalNota)}` },
+      ]
+    }
+    return resumo
+  }
+
   async function salvar() {
     if (salvando) return
     setSalvando(true)
@@ -315,32 +467,54 @@ export function GavetaHost() {
 
   async function gravar() {
     if (gaveta === 'despesa') {
-      const st = despesa.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago'
-      const d = await criarDespesa.mutateAsync({
+      const campos = {
         fornecedor: despesa.fornecedor || 'Fornecedor',
         valorTotal: soNum(despesa.valor),
         categoria: despesa.conta,
         dataCompetencia: despesa.data,
-        formaPagamento: (despesa.pagamento === 'Ainda vou pagar' ? 'boleto' : despesa.pagamento.toLowerCase()) as never,
-        status: st as never,
+        ...pagamentoParaDoc(despesa.pagamento, gavetaEdicao?.alvo === 'despesa' ? gavetaEdicao.despesa : undefined),
         observacao: despesa.obs,
         recorrente: despesa.repete,
-        tipoLancamento: 'conta',
-      })
+        // Corrigir não muda a natureza do lançamento: uma compra antiga sem
+        // itens continua sendo compra, senão ela pulava de aba sozinha.
+        tipoLancamento:
+          gavetaEdicao?.alvo === 'despesa'
+            ? gavetaEdicao.despesa.tipoLancamento ?? (CONTA[despesa.conta]?.grupo === 'cmv' ? 'compra' : 'conta')
+            : ('conta' as const),
+      }
+      if (gavetaEdicao?.alvo === 'despesa') {
+        await atualizarDespesa.mutateAsync({ id: gavetaEdicao.despesa.id, dados: campos })
+        adicionarToast({
+          tipo: 'sucesso',
+          titulo: 'Lançamento corrigido',
+          texto: `${brl(campos.valorTotal)} em ${CONTA[despesa.conta]?.nome}. Caixa e DRE já leem o valor novo.`,
+        })
+        return
+      }
+      const d = await criarDespesa.mutateAsync(campos)
       toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'compra') {
-      const n = await criarNota.mutateAsync({
+      const entrada = {
         fornecedor: nota.fornecedor,
         data: nota.data,
-        formaPagamento: (nota.pagamento === 'Ainda vou pagar' ? 'boleto' : nota.pagamento.toLowerCase()) as never,
-        status: (nota.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago') as never,
+        ...pagamentoParaDoc(nota.pagamento, gavetaEdicao?.alvo === 'nota' ? gavetaEdicao.nota : undefined),
         observacao: nota.obs,
         itens: itensValidos.map((i) => ({
           produtoId: i.produtoId,
           quantidade: soNum(i.quantidade),
           precoUnitario: soNum(i.preco),
         })),
-      })
+      }
+      if (gavetaEdicao?.alvo === 'nota') {
+        const n = await atualizarNota.mutateAsync({ notaId: gavetaEdicao.nota.id, entrada })
+        adicionarToast({
+          tipo: 'sucesso',
+          titulo: 'Nota corrigida',
+          texto: `${brl(n.valorTotal)} em ${n.itens} ${n.itens === 1 ? 'item' : 'itens'} — estoque, custo dos produtos e CMV refeitos.`,
+        })
+        return
+      }
+      const n = await criarNota.mutateAsync(entrada)
       toastComDesfazer(
         'Nota lançada',
         `${brl(n.valorTotal)} em ${n.itens} ${n.itens === 1 ? 'item' : 'itens'} — estoque e CMV atualizados.`,
@@ -411,7 +585,7 @@ export function GavetaHost() {
 
         {/* Conteúdo */}
         <div className="scroll-fina flex-1 overflow-y-auto px-6 py-5">
-          {etapa === 0 && TIPO_IMPORT[gaveta] && (
+          {etapa === 0 && TIPO_IMPORT[gaveta] && !corrigindo && (
             <div className="mb-4 flex rounded-botao bg-preenchimento p-1">
               <button
                 onClick={() => setModo('form')}
@@ -462,7 +636,7 @@ export function GavetaHost() {
               <div className={cn(daIA('conta') && 'rounded-campo border border-telhado/40 bg-insight-fundo/40 p-3')}>
                 <span className="rotulo mb-1.5 block text-tinta-4">Qual conta</span>
                 <div className="flex flex-wrap gap-2">
-                  {contasDoGrupo(despesa.grupo).map((c) => (
+                  {contasParaLancar(despesa.grupo).map((c) => (
                     <Chip key={c.id} rotulo={c.nome} selecionado={despesa.conta === c.id} aoClicar={() => setDespesa({ ...despesa, conta: c.id })} />
                   ))}
                 </div>
@@ -724,7 +898,21 @@ export function GavetaHost() {
                 ))}
               </div>
               <p className="text-xs text-tinta-4">
-                Vai ficar registrado como <strong className="font-semibold text-tinta-2">{nome}</strong>, hoje às {hora}, pelo computador da loja.
+                {corrigindo ? (
+                  <>
+                    A correção fica registrada como{' '}
+                    <strong className="font-semibold text-tinta-2">{nome}</strong>, hoje às {hora}. Quem lançou
+                    continua sendo{' '}
+                    <strong className="font-semibold text-tinta-2">
+                      {gavetaEdicao?.alvo === 'despesa' ? gavetaEdicao.despesa.criadoPorNome : gavetaEdicao?.alvo === 'nota' ? gavetaEdicao.nota.quem : ''}
+                    </strong>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Vai ficar registrado como <strong className="font-semibold text-tinta-2">{nome}</strong>, hoje às {hora}, pelo computador da loja.
+                  </>
+                )}
               </p>
               {gaveta === 'despesa' && (
                 <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
@@ -745,7 +933,11 @@ export function GavetaHost() {
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-mata/15 text-mata">✓</div>
               <h3 className="text-tinta" style={{ fontSize: 18, fontWeight: 800 }}>Pronto!</h3>
-              <p className="max-w-xs text-sm text-tinta-3">O lançamento já entrou no painel e aparece no “Quem mexeu no quê”.</p>
+              <p className="max-w-xs text-sm text-tinta-3">
+                {corrigindo
+                  ? 'A correção já valeu no painel inteiro e ficou registrada no “Quem mexeu no quê”.'
+                  : 'O lançamento já entrou no painel e aparece no “Quem mexeu no quê”.'}
+              </p>
             </div>
           )}
         </div>
@@ -766,9 +958,9 @@ export function GavetaHost() {
                 <Button
                   variante="primario"
                   disabled={(etapa === 0 && !podeAvancar) || salvando}
-                  onClick={() => (etapa === 0 ? setEtapa(1) : salvar())}
+                  onClick={() => (etapa === 0 ? setEtapa(1) : pedirConfirmacao())}
                 >
-                  {etapa === 0 ? 'Continuar' : salvando ? 'Salvando…' : 'Confirmar'}
+                  {etapa === 0 ? 'Continuar' : salvando ? 'Salvando…' : corrigindo ? 'Salvar alterações' : 'Confirmar'}
                 </Button>
               )}
             </>

@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
+import { usePlanoContas } from '@/data/hooks'
 
 /**
  * Estrutura do painel: barra lateral fixa (>1100px) + conteúdo com scroll.
@@ -11,6 +12,9 @@ import { cn } from '@/lib/cn'
  * (O modo "só ícones" 700–1100 fica pra Fase 8 — acabamento responsivo.)
  */
 export function AppShell() {
+  // Carrega o plano de contas da loja antes de qualquer tela renderizar: é ele
+  // que diz quais contas existem no DRE, nos filtros e nas gavetas.
+  usePlanoContas()
   const [gaveta, setGaveta] = useState(false)
 
   return (

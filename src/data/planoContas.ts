@@ -19,8 +19,8 @@ export type GrupoDRE =
   | 'franqueadora'
   | 'nao_operacional'
 
-/** Subconta — o que o usuário escolhe ao lançar. */
-export type CategoriaDespesa =
+/** As contas que já vêm no modelo padrão do DRE. */
+export type CategoriaPadrao =
   // (−) Impostos, taxas e comissões sobre vendas
   | 'comissao_marketplace'
   | 'taxa_cartao'
@@ -66,6 +66,15 @@ export type CategoriaDespesa =
   | 'retiradas'
   | 'multas'
 
+/**
+ * Subconta — o que o usuário escolhe ao lançar.
+ *
+ * Aberto a string porque a loja pode criar conta própria (id `c-…`). As contas
+ * do modelo continuam sugeridas no autocompletar; o que garante que ninguém
+ * lance numa conta inexistente é o `normalizarCategoria`, não o tipo.
+ */
+export type CategoriaDespesa = CategoriaPadrao | (string & {})
+
 export interface GrupoInfo {
   id: GrupoDRE
   /** Nome contábil, como sai no DRE. */
@@ -101,9 +110,17 @@ export interface ContaInfo {
   ajuda?: string
   /** Sinônimos aceitos na importação por planilha e na leitura de nota por IA. */
   aliases?: string[]
+  /** Conta criada pela loja — só ela pode ser apagada de vez. */
+  propria?: boolean
+  /**
+   * Conta do modelo que a loja escondeu. Some das listas de lançamento, mas
+   * continua existindo: o que já foi lançado nela segue somando no DRE.
+   */
+  arquivada?: boolean
 }
 
-export const CONTAS: ContaInfo[] = [
+/** O modelo padrão. Nunca muda — a loja personaliza por cima dele. */
+export const CONTAS_PADRAO: ContaInfo[] = [
   // (−) Impostos, taxas e comissões sobre vendas
   { id: 'comissao_marketplace', nome: 'Comissão de app', grupo: 'deducao', ajuda: 'iFood, Rappi, 99Food', aliases: ['ifood', 'rappi', 'comissao', 'taxa de app', 'taxas_app', 'marketplace', '99food', 'uber eats'] },
   { id: 'taxa_cartao', nome: 'Taxa de cartão', grupo: 'deducao', ajuda: 'maquininha, Pix taxado', aliases: ['cartao', 'maquininha', 'stone', 'cielo', 'getnet', 'pagseguro', 'adquirente'] },
@@ -158,12 +175,84 @@ export const CONTAS: ContaInfo[] = [
   { id: 'multas', nome: 'Multas e juros', grupo: 'nao_operacional', ajuda: 'atraso de conta, multa de contrato', aliases: ['multa', 'juros', 'atraso', 'mora'] },
 ]
 
-export const CONTA: Record<CategoriaDespesa, ContaInfo> = Object.fromEntries(
-  CONTAS.map((c) => [c.id, c]),
-) as Record<CategoriaDespesa, ContaInfo>
+/* ------------------- Plano de contas em vigor ------------------------- *
+ * O modelo padrão mais o que a loja personalizou. É `let` de propósito: o
+ * painel carrega as contas da loja no boot e reescreve o registro aqui, e
+ * como o ES Module tem ligação viva, quem importou `CONTA`/`CONTAS` passa a
+ * ler a versão nova sem precisar receber nada por prop.
+ * --------------------------------------------------------------------- */
 
+export let CONTAS: ContaInfo[] = [...CONTAS_PADRAO]
+
+export let CONTA: Record<string, ContaInfo> = Object.fromEntries(CONTAS.map((c) => [c.id, c]))
+
+/** Personalização gravada pela loja, em `restaurants/{t}/contas`. */
+export interface ContaPersonalizada {
+  id: string
+  nome?: string
+  grupo?: GrupoDRE
+  ajuda?: string
+  aliases?: string[]
+  propria?: boolean
+  arquivada?: boolean
+}
+
+/**
+ * Aplica a personalização da loja sobre o modelo padrão. Conta com id de
+ * conta padrão vira edição dela (nome, grupo, ajuda); id novo vira conta
+ * própria, no fim do grupo dela.
+ */
+export function aplicarPlanoDeContas(personalizadas: ContaPersonalizada[]) {
+  const porId = new Map(personalizadas.map((c) => [c.id, c]))
+  const editadas = CONTAS_PADRAO.map((c) => {
+    const p = porId.get(c.id)
+    if (!p) return c
+    porId.delete(c.id)
+    return {
+      ...c,
+      ...(p.nome ? { nome: p.nome } : {}),
+      ...(p.grupo ? { grupo: p.grupo } : {}),
+      ...(p.ajuda === undefined ? {} : { ajuda: p.ajuda }),
+      ...(p.aliases ? { aliases: [...(c.aliases ?? []), ...p.aliases] } : {}),
+      arquivada: p.arquivada ?? false,
+    }
+  })
+  const proprias: ContaInfo[] = [...porId.values()].map((p) => ({
+    id: p.id,
+    nome: p.nome || 'Conta sem nome',
+    grupo: p.grupo ?? 'nao_operacional',
+    ajuda: p.ajuda,
+    aliases: p.aliases,
+    propria: true,
+    arquivada: p.arquivada ?? false,
+  }))
+  // Ordem do DRE: as contas próprias entram no fim do grupo delas.
+  CONTAS = GRUPOS.flatMap((g) => [
+    ...editadas.filter((c) => c.grupo === g.id),
+    ...proprias.filter((c) => c.grupo === g.id),
+  ])
+  CONTA = Object.fromEntries(CONTAS.map((c) => [c.id, c]))
+  INDICE = montarIndice()
+}
+
+/**
+ * Todas as contas do grupo, arquivadas incluídas — é o que o DRE precisa,
+ * porque conta escondida hoje pode ter lançamento de meses atrás.
+ */
 export function contasDoGrupo(g: GrupoDRE): ContaInfo[] {
   return CONTAS.filter((c) => c.grupo === g)
+}
+
+/** Só as contas que ainda aceitam lançamento novo — a lista dos chips. */
+export function contasParaLancar(g: GrupoDRE): ContaInfo[] {
+  return CONTAS.filter((c) => c.grupo === g && !c.arquivada)
+}
+
+/** Prefixo dos ids de conta criada pela loja. */
+export const PREFIXO_CONTA_PROPRIA = 'c-'
+
+export function novaContaId(): string {
+  return `${PREFIXO_CONTA_PROPRIA}${Math.random().toString(36).slice(2, 9)}`
 }
 
 export function grupoDaConta(c: CategoriaDespesa): GrupoDRE {
@@ -195,20 +284,28 @@ function chave(v: string): string {
 }
 
 /** Aliases achatados, do mais específico pro mais genérico. */
-const INDICE: { termo: string; id: CategoriaDespesa }[] = CONTAS.flatMap((c) => [
-  { termo: chave(c.id), id: c.id },
-  { termo: chave(c.nome), id: c.id },
-  ...(c.aliases ?? []).map((a) => ({ termo: chave(a), id: c.id })),
-]).sort((a, b) => b.termo.length - a.termo.length)
+function montarIndice(): { termo: string; id: CategoriaDespesa }[] {
+  return CONTAS.flatMap((c) => [
+    { termo: chave(c.id), id: c.id },
+    { termo: chave(c.nome), id: c.id },
+    ...(c.aliases ?? []).map((a) => ({ termo: chave(a), id: c.id })),
+  ]).sort((a, b) => b.termo.length - a.termo.length)
+}
+
+let INDICE = montarIndice()
 
 /**
  * Texto livre (planilha importada, retorno da IA, dado legado) → conta válida.
  * Nunca devolve categoria fora do plano de contas.
  */
 export function normalizarCategoria(v: string | undefined): CategoriaDespesa {
+  // Conta própria da loja passa direto: o registro pode ainda não ter
+  // carregado, e transformar 'c-xyz' em Alimentos jogaria o lançamento numa
+  // linha errada do DRE só por causa de uma corrida de boot.
+  if (v?.startsWith(PREFIXO_CONTA_PROPRIA)) return v
   const k = chave(v ?? '')
   if (!k) return 'cmv_alimentos'
-  if (k.replace(/ /g, '_') in CONTA) return k.replace(/ /g, '_') as CategoriaDespesa
+  if (k.replace(/ /g, '_') in CONTA) return k.replace(/ /g, '_')
   const legado = LEGADO[k.replace(/ /g, '_')]
   if (legado) return legado
   const achou = INDICE.find((i) => i.termo && (k === i.termo || k.includes(i.termo) || i.termo.includes(k)))

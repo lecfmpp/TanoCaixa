@@ -8,7 +8,8 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "homologacao": "tsc && node lib/ifood/homologacao.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
