@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, Pencil, CheckCircle2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
+import { TagVencimento } from '@/components/ui/TagVencimento'
 import { brl, brlInteiro, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
-import { useDespesas, useRestaurante } from '@/data/hooks'
-import { MES_REF } from '@/data/derive'
+import { useDespesas, useMarcarPago, useRestaurante } from '@/data/hooks'
+import { MES_REF, diaDeHoje } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
-import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE } from '@/data/compras'
+import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra, type Nota } from '@/data/compras'
+import { diasAte, lembretes } from '@/data/vencimentos'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
+import { mensagemDeErro } from '@/lib/erros'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
 
@@ -24,7 +27,8 @@ type Aba = 'notas' | 'precos' | 'fornecedores'
 export function Compras() {
   const despesas = useDespesas()
   const cfg = useRestaurante().data
-  const { abrirGaveta } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const marcarPago = useMarcarPago()
   const [aba, setAba] = useState<Aba>('notas')
   const [aberta, setAberta] = useState<string | null>(null)
 
@@ -37,6 +41,41 @@ export function Compras() {
   const precos = useMemo(() => precosPorItem(todas), [todas])
   const altas = useMemo(() => altasDePreco(todas), [todas])
   const fornecedores = useMemo(() => resumoPorFornecedor(doMes), [doMes])
+
+  const hoje = diaDeHoje()
+  // Aviso de boleto olha TODAS as notas: a que venceu mês passado continua devendo.
+  const avisos = useMemo(() => lembretes(todas.filter(ehCompra), hoje), [todas, hoje])
+  const vencidas = avisos.filter((v) => v.situacao === 'vencido')
+
+  /** Marca a nota inteira como paga, com confirmação e "Desfazer". */
+  function pedirPagamento(n: Nota) {
+    const ids = n.lancamentos.map((l) => l.id)
+    confirmar({
+      gravidade: 'neutro',
+      titulo: 'Marcar a nota como paga?',
+      texto: `A nota de ${n.fornecedor} sai de “a pagar” e fica registrada como paga por você, agora.`,
+      resumo: [
+        { rot: 'Fornecedor', val: n.fornecedor },
+        { rot: 'Valor', val: brl(n.valorTotal) },
+        ...(n.vencimento ? [{ rot: 'Vencimento', val: n.vencimento.split('-').reverse().join('/') }] : []),
+      ],
+      rotuloConfirmar: 'Marcar como paga',
+      onConfirmar: async () => {
+        try {
+          await marcarPago.mutateAsync({ ids, pago: true, fornecedor: n.fornecedor, valor: n.valorTotal })
+          adicionarToast({
+            tipo: 'sucesso',
+            titulo: 'Nota paga',
+            texto: `${n.fornecedor} · ${brl(n.valorTotal)}`,
+            rotuloAcao: 'Desfazer',
+            onAcao: () => marcarPago.mutate({ ids, pago: false, fornecedor: n.fornecedor, valor: n.valorTotal }),
+          })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como paga', texto: mensagemDeErro(e, 'Tente de novo.') })
+        }
+      },
+    })
+  }
 
   const compradoNoMes = notasDoMes.reduce((s, n) => s + n.valorTotal, 0)
   const aPagar = notasDoMes.filter((n) => n.status !== 'pago').reduce((s, n) => s + n.valorTotal, 0)
@@ -82,6 +121,25 @@ export function Compras() {
         />
       </div>
 
+      {avisos.length > 0 && (
+        <div
+          className={cn(
+            'flex flex-col gap-1 rounded-cartao border px-5 py-4',
+            vencidas.length ? 'border-telha-alerta/40 bg-telha-alerta/8' : 'border-[rgba(192,84,55,0.3)] bg-insight-fundo',
+          )}
+        >
+          <p className={cn('text-[15px] font-bold', vencidas.length ? 'text-telha-alerta' : 'text-insight-texto')}>
+            {vencidas.length
+              ? `${vencidas.length} ${vencidas.length === 1 ? 'nota vencida' : 'notas vencidas'}`
+              : `${avisos.length} ${avisos.length === 1 ? 'nota vence' : 'notas vencem'} nos próximos dias`}
+          </p>
+          <p className="text-sm text-tinta-2">
+            {avisos.slice(0, 3).map((v) => `${v.fornecedor} (${brl(v.valor)})`).join(' · ')}
+            {avisos.length > 3 ? ` e mais ${avisos.length - 3}` : ''}. Marque como paga aqui embaixo quando quitar.
+          </p>
+        </div>
+      )}
+
       {/* Alerta de preço — o que o dono precisa ver antes de comprar de novo */}
       {altas.length > 0 && (
         <Cartao>
@@ -124,6 +182,8 @@ export function Compras() {
           ) : (
             notasDoMes.map((n) => {
               const aberto = aberta === n.id
+              const pago = n.status === 'pago'
+              const dias = n.vencimento ? diasAte(n.vencimento, hoje) : null
               return (
                 <div key={n.id} className="border-b border-divisoria last:border-0">
                   <button
@@ -133,17 +193,47 @@ export function Compras() {
                     {n.itens.length > 0
                       ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
                       : <span className="w-4 shrink-0" />}
-                    <span className="flex-1">
-                      <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-tinta">{n.fornecedor}</span>
                       <span className="block text-xs text-tinta-4">
                         {dataCurta(dataDoDia(n.data))} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                       </span>
                     </span>
-                    <span className={cn('text-xs font-bold', n.status === 'pago' ? 'text-mata' : 'text-telha-alerta')}>
-                      {n.status === 'pago' ? 'pago' : 'a pagar'}
-                    </span>
-                    <span className="mono w-28 text-right font-bold text-tinta">{brl(n.valorTotal)}</span>
+                    <span className="mono shrink-0 text-right font-bold text-tinta cel:w-28">{brl(n.valorTotal)}</span>
                   </button>
+
+                  {/* Situação + ações, sempre à vista: editar e pagar são o que se faz com a nota. */}
+                  <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-11">
+                    {pago ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-mata">
+                        <CheckCircle2 size={13} /> paga{n.pagoPorNome ? ` por ${n.pagoPorNome}` : ''}
+                      </span>
+                    ) : dias !== null ? (
+                      <TagVencimento dias={dias} />
+                    ) : (
+                      <span className="rounded-chip bg-preenchimento px-2 py-0.5 text-xs font-bold text-tinta-3">a pagar · sem vencimento</span>
+                    )}
+                    {!pago && n.vencimento && (
+                      <span className="text-xs text-tinta-4">vence {dataCurta(dataDoDia(n.vencimento))}</span>
+                    )}
+                    <span className="ml-auto flex items-center gap-2">
+                      {!pago && (
+                        <button
+                          onClick={() => pedirPagamento(n)}
+                          className="inline-flex items-center gap-1.5 rounded-botao bg-mar px-3 py-1.5 text-xs font-bold text-creme transition hover:bg-mar-escuro"
+                        >
+                          <CheckCircle2 size={14} /> Marcar como paga
+                        </button>
+                      )}
+                      <button
+                        onClick={() => abrirGaveta('compra', { nota: n })}
+                        className="inline-flex items-center gap-1.5 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-3 py-1.5 text-xs font-bold text-tinta-2 transition hover:border-mar/50"
+                      >
+                        <Pencil size={13} /> Editar
+                      </button>
+                    </span>
+                  </div>
+
                   {aberto && n.itens.length > 0 && (
                     <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
                       {n.itens.map((i, idx) => (

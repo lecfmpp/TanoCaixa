@@ -134,7 +134,7 @@ export const feedAtividades: Atividade[] = [
     quem: 'Halim',
     quemInicial: 'H',
     quemCor: '#2E5F73',
-    acao: 'fechou o caixa de',
+    acao: 'lançou as vendas de',
     entidade: 'sábado',
     valor: 1412.3,
     origem: 'computador',

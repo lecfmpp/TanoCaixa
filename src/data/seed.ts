@@ -159,8 +159,8 @@ const despesas: DespesaDoc[] = [
 const atividades: AtividadeDoc[] = [
   { id: 'at1', quem: 'Jamile', quemInicial: 'J', quemCor: '#C05437', acao: 'lançou a nota do', entidade: 'Frigorífico Salomão', tipo: 'Despesa', valor: 1284, ...autor('Jamile', 'jamile', 'ia_foto', 28) },
   { id: 'at2', quem: 'Wesley', quemInicial: 'W', quemCor: '#2F6B4A', acao: 'contou', entidade: '12 itens do estoque', tipo: 'Estoque', valor: 4180.6, ...autor('Wesley', 'wesley', 'celular', 28) },
-  { id: 'at3', quem: 'Automático', quemInicial: '', quemCor: '#AEB9B8', acao: 'puxou as vendas do', entidade: 'iFood e da Rappi', tipo: 'Fechamento', valor: 928.9, ...autor('Automático', 'sistema', 'integracao', 28) },
-  { id: 'at4', quem: 'Halim', quemInicial: 'H', quemCor: '#2E5F73', acao: 'fechou o caixa de', entidade: 'sábado', tipo: 'Fechamento', valor: 1412.3, ...autor('Halim', 'halim', 'computador', 27) },
+  { id: 'at3', quem: 'Automático', quemInicial: '', quemCor: '#AEB9B8', acao: 'puxou as vendas do', entidade: 'iFood e da Rappi', tipo: 'Vendas', valor: 928.9, ...autor('Automático', 'sistema', 'integracao', 28) },
+  { id: 'at4', quem: 'Halim', quemInicial: 'H', quemCor: '#2E5F73', acao: 'lançou as vendas de', entidade: 'sábado', tipo: 'Vendas', valor: 1412.3, ...autor('Halim', 'halim', 'computador', 27) },
 ]
 
 const insights: InsightDoc[] = [

@@ -22,8 +22,8 @@ const OPCOES_LANCAR: { id: TipoGaveta; rotulo: string; icone: typeof Receipt; di
   { id: 'compra', rotulo: 'Nota fiscal de mercadoria', icone: ScrollText, dica: 'compra que entra no estoque' },
   { id: 'despesa', rotulo: 'Lançar despesa', icone: Receipt, dica: 'aluguel, luz, folha' },
   { id: 'produto', rotulo: 'Novo produto', icone: Package, dica: 'item do estoque' },
-  { id: 'estoque', rotulo: 'Movimento de estoque', icone: Boxes, dica: 'perda, contagem' },
-  { id: 'fechamento', rotulo: 'Fechar o dia', icone: CalendarCheck, dica: 'vendas do dia' },
+  { id: 'estoque', rotulo: 'Perda ou transferência', icone: Boxes, dica: 'saída de estoque que não é venda' },
+  { id: 'fechamento', rotulo: 'Lançar vendas', icone: CalendarCheck, dica: 'vendas do dia' },
 ]
 
 /**

@@ -6,8 +6,11 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useContexto, useRestaurante } from '@/data/hooks'
-import { despesasResumo, categoriasResumo, resumoInicio, HOJE, MES_REF } from '@/data/derive'
+import { useContexto, useMarcarPago, useRestaurante } from '@/data/hooks'
+import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, HOJE, MES_REF } from '@/data/derive'
+import { diasAte } from '@/data/vencimentos'
+import { TagVencimento } from '@/components/ui/TagVencimento'
+import { mensagemDeErro } from '@/lib/erros'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { nomeDoMes } from '@/data/planoMes'
@@ -35,7 +38,8 @@ export function Despesas() {
   const MES_NOME = nomeDoMes(MES_REF).split(' de ')[0]
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
-  const { abrirGaveta } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const marcarPago = useMarcarPago()
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
   // Aluguel e compra de carne saem os dois do caixa, mas não se leem juntos:
@@ -75,6 +79,35 @@ export function Despesas() {
   const totalLista = lista.reduce((s, d) => s + d.valorTotal, 0)
 
   const vence3 = daAba.find((d) => d.status === 'vence')
+  const hoje = diaDeHoje()
+
+  /** Marca o lançamento como pago (o mesmo fluxo do aviso no Início). */
+  function pedirPagamento(d: DespesaDoc) {
+    confirmar({
+      gravidade: 'neutro',
+      titulo: 'Marcar como pago?',
+      texto: `${d.fornecedor} fica registrado como pago por você, agora.`,
+      resumo: [
+        { rot: 'Fornecedor', val: d.fornecedor },
+        { rot: 'Valor', val: brl(d.valorTotal) },
+      ],
+      rotuloConfirmar: 'Marcar como pago',
+      onConfirmar: async () => {
+        try {
+          await marcarPago.mutateAsync({ ids: [d.id], pago: true, fornecedor: d.fornecedor, valor: d.valorTotal })
+          adicionarToast({
+            tipo: 'sucesso',
+            titulo: 'Pago',
+            texto: `${d.fornecedor} · ${brl(d.valorTotal)}`,
+            rotuloAcao: 'Desfazer',
+            onAcao: () => marcarPago.mutate({ ids: [d.id], pago: false, fornecedor: d.fornecedor, valor: d.valorTotal }),
+          })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como pago', texto: mensagemDeErro(e, 'Tente de novo.') })
+        }
+      },
+    })
+  }
 
   /** Lançamentos que estão na tela (filtro e busca incluídos), em CSV. */
   function exportar() {
@@ -181,7 +214,22 @@ export function Despesas() {
                       <div className="leading-tight"><div className="text-xs font-semibold text-tinta">{d.criadoPorNome}</div><div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), HOJE)}</div></div>
                     </div>
                   </td>
-                  <td className={cn('px-4 py-3 text-xs font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</td>
+                  <td className="px-4 py-3">
+                    {d.status === 'pago' ? (
+                      <span className="text-xs font-bold text-mata">pago</span>
+                    ) : (
+                      <div className="flex flex-col items-start gap-1.5">
+                        {d.dataVencimento ? (
+                          <TagVencimento dias={diasAte(d.dataVencimento, hoje)} />
+                        ) : (
+                          <span className={cn('text-xs font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</span>
+                        )}
+                        <button onClick={() => pedirPagamento(d)} className="text-xs font-bold text-mar underline underline-offset-2 hover:text-mar-escuro">
+                          Marcar como pago
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(d.valorTotal)}</td>
                 </tr>
               ))}

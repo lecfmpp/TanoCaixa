@@ -31,7 +31,7 @@ const COTA_DIA = 60
 const COTA_DIA_ANONIMO = 10
 
 /** Consome uma chamada da cota do dia. Estoura → resource-exhausted. */
-async function consumirCota(uid: string, anonimo: boolean): Promise<void> {
+async function consumirCota(uid: string, anonimo: boolean, oQue = 'fotos'): Promise<void> {
   const db = getFirestore()
   const hoje = new Date().toISOString().slice(0, 10)
   const ref = db.collection('cotas_foto').doc(`${uid}_${hoje}`)
@@ -49,8 +49,8 @@ async function consumirCota(uid: string, anonimo: boolean): Promise<void> {
     throw new HttpsError(
       'resource-exhausted',
       anonimo
-        ? 'A demonstração permite algumas fotos por dia. Crie sua conta pra usar sem limite.'
-        : 'Você bateu o limite de fotos de hoje. Tente de novo amanhã.',
+        ? `A demonstração permite algumas ${oQue} por dia. Crie sua conta pra usar sem limite.`
+        : `Você bateu o limite de ${oQue} de hoje. Tente de novo amanhã.`,
     )
   }
 }
@@ -121,17 +121,17 @@ Responda com um JSON contendo:
 - fornecedor: string — nome da empresa/loja emissora
 - valor: number — total da nota em CENTAVOS, inteiro (ex: 5900 para R$ 59,00)
 - categoria: string — a conta do plano de contas do DRE. Exatamente um destes códigos:
-  Taxas e impostos sobre venda: "comissao_marketplace" (iFood/Rappi), "taxa_cartao" (maquininha),
+  Impostos, taxas e comissões sobre vendas: "comissao_marketplace" (iFood/99/Rappi), "taxa_cartao" (maquininha),
     "antecipacao", "tarifa_bancaria", "imposto_vendas" (Simples Nacional/DAS/ISS)
-  CMV: "cmv_alimentos" (hortifrúti, carnes, secos), "cmv_bebidas", "cmv_descartaveis" (embalagem, marmita)
+  CMV - Matéria Prima: "cmv_alimentos" (hortifrúti, carnes, secos), "cmv_bebidas", "cmv_descartaveis" (embalagem, marmita)
   Ocupação: "aluguel", "condominio", "agua", "luz", "gas", "iptu", "seguro"
-  Pessoal: "folha", "encargos" (FGTS/INSS), "vale_transporte", "vale_alimentacao", "bonus",
+  Despesas com pessoal: "folha", "encargos" (FGTS/INSS), "vale_transporte", "vale_alimentacao", "bonus",
     "prolabore", "rescisoes", "pessoal_outros"
-  Administrativas: "sistemas" (software, internet, PDV), "contador"
-  Operacionais: "limpeza", "detetizacao", "coleta_lixo"
-  Variáveis: "cupons_app", "marketing", "variavel_outros"
-  Franqueadora: "fundo_promocao", "royalties"
-  Fora da operação: "retiradas", "multas" (juros e atraso)
+  Despesas Administrativas: "sistemas" (software, internet, PDV), "contador"
+  Despesas Operacionais: "limpeza", "detetizacao", "coleta_lixo"
+  Despesas Variáveis: "cupons_app" (cupons iFood), "marketing" (marketing / redes sociais), "variavel_outros"
+  Despesas Franqueadora: "fundo_promocao", "royalties"
+  Depois do lucro operacional: "retiradas" (outras despesas / provisões / retiradas), "multas" (multas e atrasos)
 - obs: string — descrição curta do que foi comprado
 
 Omita qualquer campo que você não conseguir ler com confiança. Se estiver em dúvida
@@ -244,6 +244,83 @@ export const analisarFoto = onCall(
     } catch {
       console.error('Resposta não-JSON do Gemini:', texto.slice(0, 500))
       throw new HttpsError('internal', 'A foto não estava legível. Tente uma foto mais nítida.')
+    }
+  },
+)
+
+
+/* ------------------------------------------------------------------ *
+ * Insights do estoque — a IA lê as contagens, as entradas e o que saiu
+ * entre uma contagem e a seguinte, e responde à pergunta do dono.
+ *
+ * O cliente monta o resumo (src/data/estoque.ts → contextoParaIA) e manda
+ * junto com a pergunta; aqui só entram a cota, o prompt e a chamada.
+ * ------------------------------------------------------------------ */
+
+const MAX_PERGUNTA = 600
+const MAX_CONTEXTO = 80_000
+
+const PROMPT_ESTOQUE = `Você é o analista de estoque do "Tá no Caixa", app de gestão financeira para restaurantes brasileiros.
+Fale em português do Brasil, direto e simples, como quem explica pro dono do restaurante — sem jargão contábil.
+
+Você recebe um JSON com os dados REAIS do estoque dele:
+- contagensFeitas: as contagens manuais (dia, quem contou, quantos produtos, valor do estoque)
+- saidaPorProduto: pra cada produto contado em 2 ou mais datas, o que SAIU entre as contagens.
+  saiu = contagemInicial + entrou − contagemFinal. "saiu" negativo significa que sobrou mais do que
+  devia (entrada sem nota, contagem errada ou produto contado em unidade diferente).
+  perdaRegistrada é a parte da saída que o dono já registrou como perda ou quebra.
+- entradasRecentes: mercadoria que entrou por nota fiscal
+- perdasRegistradas: perdas e quebras já registradas
+
+REGRAS:
+- Use SÓ os números do JSON. Nunca invente produto, quantidade, preço ou data.
+- Se não houver dados pra responder (por exemplo, só uma contagem feita), diga isso claramente e explique o
+  que o dono precisa fazer (contar de novo em outra data). Não chute.
+- Cite os números com a unidade (kg, un…) e valores em reais (R$ 1.234,50).
+- Saída negativa é sinal de dado a conferir — não trate como economia.
+- Seja curto: no máximo ~180 palavras, salvo se pedirem um relatório. Relatório: até ~350 palavras.
+- Formato: frases curtas e listas com "- ". Pode usar **negrito** pros números-chave. Sem tabelas, sem títulos com #.
+- Termine, quando fizer sentido, com UMA ação prática (o que fazer amanhã).`
+
+export const perguntarEstoque = onCall(
+  { secrets: [GEMINI_API_KEY], memory: '512MiB', timeoutSeconds: 120 },
+  async (req): Promise<{ resposta: string }> => {
+    if (!req.auth) {
+      throw new HttpsError('unauthenticated', 'Faça login para usar a análise do estoque.')
+    }
+
+    const { pergunta, contexto } = (req.data ?? {}) as { pergunta?: string; contexto?: string }
+    if (!pergunta?.trim() || !contexto) {
+      throw new HttpsError('invalid-argument', 'pergunta e contexto são obrigatórios.')
+    }
+    if (pergunta.length > MAX_PERGUNTA) {
+      throw new HttpsError('invalid-argument', 'Pergunta muito longa. Resuma em uma frase.')
+    }
+    if (contexto.length > MAX_CONTEXTO) {
+      throw new HttpsError('invalid-argument', 'Dados de estoque grandes demais para analisar de uma vez.')
+    }
+    try {
+      JSON.parse(contexto)
+    } catch {
+      throw new HttpsError('invalid-argument', 'Dados de estoque inválidos.')
+    }
+
+    const anonimo = req.auth.token.firebase?.sign_in_provider === 'anonymous'
+    await consumirCota(req.auth.uid, anonimo, 'análises')
+
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value())
+    const model = genAI.getGenerativeModel({ model: MODELO, systemInstruction: PROMPT_ESTOQUE })
+
+    try {
+      const r = await model.generateContent([
+        { text: `DADOS DO ESTOQUE (JSON):\n${contexto}\n\nPERGUNTA DO DONO: ${pergunta.trim()}` },
+      ])
+      const resposta = r.response.text().trim()
+      if (!resposta) throw new Error('resposta vazia')
+      return { resposta }
+    } catch (e) {
+      console.error(`Gemini falhou nos insights de estoque (modelo ${MODELO})`, e)
+      throw new HttpsError('internal', 'Não consegui analisar o estoque agora. Tente de novo em instantes.')
     }
   },
 )

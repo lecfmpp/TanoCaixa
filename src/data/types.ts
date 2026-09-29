@@ -88,11 +88,27 @@ export interface DespesaDoc extends Autoria {
   tipoLancamento?: 'conta' | 'compra'
   /** Agrupa os lançamentos gerados pela mesma nota fiscal. */
   notaId?: string
+  /** Quando e por quem foi marcado como pago (o lançamento nasce 'a pagar'). */
+  pagoEm?: string
+  pagoPorNome?: string
+  /** Última edição do lançamento (a autoria original não muda). */
+  editadoEm?: string
+  editadoPorNome?: string
+}
+
+/** Uma vez que alguém lançou (ou relançou) as vendas do dia. */
+export interface LancamentoDeVendas {
+  em: string // ISO
+  porId: string
+  porNome: string
+  total: number
 }
 
 export interface ReceitaDiaDoc extends Autoria {
   id: string
   data: string // ISO dia
+  /** Trilha de quem lançou as vendas do dia e quando — do primeiro ao último. */
+  historico?: LancamentoDeVendas[]
   canais: { canal: CanalVenda; valorBruto: number; taxa: number; pedidos: number }[]
   recebimentos: { forma: string; valor: number }[]
   sangria: number
@@ -102,6 +118,11 @@ export interface ReceitaDiaDoc extends Autoria {
 export interface ContagemDoc extends Autoria {
   id: string
   mesReferencia: string // '2026-07'
+  /**
+   * Dia em que o estoque foi contado ('YYYY-MM-DD'). Contagem antiga, do
+   * tempo em que havia uma por mês, não tem o campo.
+   */
+  data?: string
   status: 'aberta' | 'fechada'
   itens: { produtoId: string; nome: string; unidade: string; custoUnitario: number; quantidade: number; contadoPor: string }[]
   valorEstoque?: number
@@ -120,6 +141,8 @@ export interface MovimentoDoc extends Autoria {
   valor: number
   /** Preenchido quando o movimento nasceu de uma nota fiscal. */
   notaId?: string
+  /** Quem entregou — só nos movimentos que vieram de nota. */
+  fornecedor?: string
   observacao?: string
 }
 

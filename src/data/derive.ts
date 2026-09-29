@@ -99,21 +99,72 @@ function semanaDoMes(iso: string): number {
 }
 
 /**
- * Valor do estoque contado num mês. Só conta contagem FECHADA — contagem
- * aberta ainda muda, e um CMV que muda sozinho não serve pro contador.
+ * Ordena contagens no tempo. Contagem antiga (sem dia) fica no COMEÇO do mês
+ * dela: qualquer contagem com dia, feita depois, passa por cima.
  */
-function estoqueDoMes(contagens: ContagemDoc[] | undefined, mes: string): number | null {
-  const c = contagens?.find((x) => x.mesReferencia === mes && x.status === 'fechada')
-  if (!c) return null
-  if (typeof c.valorEstoque === 'number') return c.valorEstoque
-  return c.itens.reduce((s, it) => s + it.quantidade * it.custoUnitario, 0)
+function chaveDaContagem(c: ContagemDoc): string {
+  return c.data ?? `${c.mesReferencia}-00`
 }
 
-/** Estoque somado de várias lojas. Só vale se TODAS fecharam a contagem. */
-function estoqueConsolidado(ctxs: Contexto[], mes: string): number | null {
-  const valores = ctxs.map((c) => estoqueDoMes(c.contagens, mes))
-  if (valores.some((v) => v === null)) return null
-  return valores.reduce((s: number, v) => s + (v ?? 0), 0)
+/**
+ * Valor do estoque num dia, somando o que cada produto tinha na ÚLTIMA vez que
+ * foi contado até ali. Assim uma contagem parcial (só a câmara fria) não zera o
+ * resto do estoque no CMV.
+ */
+export function inventarioAte(contagens: ContagemDoc[], ateChave: string): number {
+  const ultimo = new Map<string, { quantidade: number; custoUnitario: number }>()
+  const ordenadas = contagens
+    .filter((c) => c.status === 'fechada' && chaveDaContagem(c) <= ateChave)
+    .sort((a, b) => (chaveDaContagem(a) < chaveDaContagem(b) ? -1 : 1))
+  for (const c of ordenadas) {
+    for (const i of c.itens) ultimo.set(i.produtoId, { quantidade: i.quantidade, custoUnitario: i.custoUnitario })
+  }
+  let total = 0
+  for (const v of ultimo.values()) total += v.quantidade * v.custoUnitario
+  return total
+}
+
+export interface Inventario {
+  valor: number
+  /** Dia da contagem que fechou o mês. Vazio na contagem antiga, mensal. */
+  data?: string
+}
+
+/**
+ * Inventário de um mês: o estoque da última contagem feita nele. Só conta
+ * contagem FECHADA — contagem aberta ainda muda, e um CMV que muda sozinho
+ * não serve pro contador.
+ */
+export function inventarioDoMes(contagens: ContagemDoc[] | undefined, mes: string): Inventario | null {
+  const doMes = (contagens ?? [])
+    .filter((c) => c.mesReferencia === mes && c.status === 'fechada')
+    .sort((a, b) => (chaveDaContagem(a) < chaveDaContagem(b) ? 1 : -1))
+  const ultima = doMes[0]
+  if (!ultima) return null
+  if (ultima.data) return { valor: inventarioAte(contagens ?? [], ultima.data), data: ultima.data }
+  // Contagem mensal antiga: o valor gravado nela é o que vale.
+  return {
+    valor: typeof ultima.valorEstoque === 'number'
+      ? ultima.valorEstoque
+      : ultima.itens.reduce((s, it) => s + it.quantidade * it.custoUnitario, 0),
+  }
+}
+
+/** Estoque somado de várias lojas. Só vale se TODAS contaram no mês. */
+function inventarioConsolidado(ctxs: Contexto[], mes: string): Inventario | null {
+  const invs = ctxs.map((c) => inventarioDoMes(c.contagens, mes))
+  if (invs.some((v) => v === null)) return null
+  return {
+    valor: invs.reduce((s, v) => s + (v?.valor ?? 0), 0),
+    // Com uma loja só dá pra dizer o dia; numa rede as datas divergem.
+    data: invs.length === 1 ? invs[0]?.data : undefined,
+  }
+}
+
+/** "16/05" quando há o dia da contagem, "05/2026" quando só há o mês. */
+function rotuloInventario(inv: Inventario | null, mes: string): string {
+  if (inv?.data) return `${inv.data.slice(8, 10)}/${inv.data.slice(5, 7)}`
+  return `${mes.slice(5, 7)}/${mes.slice(0, 4)}`
 }
 
 interface Provisao {
@@ -231,7 +282,7 @@ export function dreDoMes(entrada: Contexto | Contexto[], mes: string = MES_REF):
   const porCanal = (canais: string[]) =>
     rec.reduce((s, r) => s + r.canais.filter((c) => canais.includes(c.canal)).reduce((a, c) => a + c.valorBruto, 0), 0)
 
-  L({ id: 'receita_bruta', label: 'Receita bruta', valor: receitaBruta, tipo: 'subtotal', nivel: 0 })
+  L({ id: 'receita_bruta', label: '(+) Receita Bruta', valor: receitaBruta, tipo: 'subtotal', nivel: 0 })
   for (const lr of LINHAS_RECEITA) {
     const valor = porCanal(lr.canais)
     if (valor > 0 || receitaBruta === 0) L({ id: `rec_${lr.id}`, label: lr.nome, valor, tipo: 'receita', nivel: 1 })
@@ -264,34 +315,46 @@ export function dreDoMes(entrada: Contexto | Contexto[], mes: string = MES_REF):
   }
 
   const receitaLiquida = receitaBruta - deducoes
-  L({ id: 'receita_liquida', label: '= Receita líquida', valor: receitaLiquida, tipo: 'subtotal', nivel: 0 })
+  L({ id: 'receita_liquida', label: '(=) Receita Líquida', valor: receitaLiquida, tipo: 'subtotal', nivel: 0 })
 
   /* ---------------------------- CMV com inventário ---------------------- */
+  // Na ordem do modelo: matéria-prima por conta, subtotal, os dois inventários
+  // (com o dia da contagem) e o total do CMV.
   const compras = somaGrupo(desp, 'cmv')
-  const estoqueFinal = estoqueConsolidado(ctxs, mes)
-  const estoqueInicial = estoqueConsolidado(ctxs, mesAnterior(mes))
-  const temInventario = estoqueFinal !== null
+  const invFinal = inventarioConsolidado(ctxs, mes)
+  const invInicial = inventarioConsolidado(ctxs, mesAnterior(mes))
+  const estoqueFinal = invFinal?.valor ?? null
+  const estoqueInicial = invInicial?.valor ?? null
+  const temInventario = invFinal !== null
   const cmvTotal = temInventario ? compras + (estoqueInicial ?? 0) - (estoqueFinal ?? 0) : compras
   if (!temInventario && compras > 0) {
-    pendencias.push('Sem contagem de estoque fechada neste mês, o CMV é só o que você comprou — feche a contagem pro número ficar exato.')
+    pendencias.push('Sem contagem de estoque neste mês, o CMV é só o que você comprou — faça a contagem pro número ficar exato.')
   }
 
-  L({ id: 'g_cmv', label: '(−) CMV — custo da mercadoria vendida', valor: cmvTotal, tipo: 'grupo', nivel: 0, grupo: 'cmv' })
   for (const conta of contasDoGrupo('cmv')) {
     const valor = somaConta(desp, conta.id)
     if (valor === 0) continue
     L({ id: `c_${conta.id}`, label: conta.nome, valor, tipo: 'conta', nivel: 1, grupo: 'cmv' })
   }
-  L({ id: 'cmv_compras', label: 'Subtotal — compras do mês', valor: compras, tipo: 'conta', nivel: 1, grupo: 'cmv' })
+  L({ id: 'cmv_compras', label: 'Sub Total (CMV)', valor: compras, tipo: 'conta', nivel: 1, grupo: 'cmv' })
   if (temInventario) {
-    L({ id: 'cmv_est_ini', label: '(+) Estoque no início do mês', valor: estoqueInicial ?? 0, tipo: 'conta', nivel: 1, grupo: 'cmv', nota: estoqueInicial === null ? 'sem contagem do mês anterior' : undefined })
-    L({ id: 'cmv_est_fim', label: '(−) Estoque no fim do mês', valor: estoqueFinal ?? 0, tipo: 'conta', nivel: 1, grupo: 'cmv' })
+    L({
+      id: 'cmv_est_ini',
+      label: `(+) Inventário (${rotuloInventario(invInicial, mesAnterior(mes))})`,
+      valor: estoqueInicial ?? 0,
+      tipo: 'conta',
+      nivel: 1,
+      grupo: 'cmv',
+      nota: estoqueInicial === null ? 'sem contagem do mês anterior' : undefined,
+    })
+    L({ id: 'cmv_est_fim', label: `(−) Inventário (${rotuloInventario(invFinal, mes)})`, valor: estoqueFinal ?? 0, tipo: 'conta', nivel: 1, grupo: 'cmv' })
   } else {
     L({ id: 'cmv_sem_inv', label: 'Estoque ainda não contado neste mês', valor: 0, tipo: 'info', nivel: 1, grupo: 'cmv' })
   }
+  L({ id: 'g_cmv', label: '(−) Total (CMV)', valor: cmvTotal, tipo: 'grupo', nivel: 0, grupo: 'cmv' })
 
   const lucroBruto = receitaLiquida - cmvTotal
-  L({ id: 'lucro_bruto', label: '= Lucro bruto', valor: lucroBruto, tipo: 'subtotal', nivel: 0 })
+  L({ id: 'lucro_bruto', label: '(=) Lucro Bruto', valor: lucroBruto, tipo: 'subtotal', nivel: 0 })
 
   /* ------------------------ Despesas operacionais ----------------------- */
   // Royalties e fundo de promoção: se a franqueada não lançou, o app
@@ -334,21 +397,22 @@ export function dreDoMes(entrada: Contexto | Contexto[], mes: string = MES_REF):
   }
 
   const lucroOperacional = lucroBruto - despesasOperacionais
-  L({ id: 'lucro_operacional', label: '= Lucro operacional', valor: lucroOperacional, tipo: 'subtotal', nivel: 0 })
+  L({ id: 'lucro_operacional', label: '(=) Lucro Operacional', valor: lucroOperacional, tipo: 'subtotal', nivel: 0 })
 
   /* --------------------------- Não operacional -------------------------- */
   const naoOperacional = somaGrupo(desp, 'nao_operacional')
+  // No modelo, "Outras despesas / provisões / retiradas" e "Multas, atrasos"
+  // vêm soltas entre o lucro operacional e o líquido — sem linha de grupo.
   if (naoOperacional > 0) {
-    L({ id: 'g_nao_operacional', label: `(−) ${GRUPO.nao_operacional.nome}`, valor: naoOperacional, tipo: 'grupo', nivel: 0, grupo: 'nao_operacional' })
     for (const conta of contasDoGrupo('nao_operacional')) {
       const valor = somaConta(desp, conta.id)
       if (valor === 0) continue
-      L({ id: `c_${conta.id}`, label: conta.nome, valor, tipo: 'conta', nivel: 1, grupo: 'nao_operacional' })
+      L({ id: `c_${conta.id}`, label: `(−) ${conta.nome}`, valor, tipo: 'conta', nivel: 0, grupo: 'nao_operacional' })
     }
   }
 
   const lucroLiquido = lucroOperacional - naoOperacional
-  L({ id: 'lucro_liquido', label: '= Lucro líquido', valor: lucroLiquido, tipo: 'total', nivel: 0 })
+  L({ id: 'lucro_liquido', label: '(=) Lucro Líquido', valor: lucroLiquido, tipo: 'total', nivel: 0 })
 
   /* ------------------------- Resumo por grupo --------------------------- */
   const grupos: GrupoResumo[] = GRUPOS.map((g) => {

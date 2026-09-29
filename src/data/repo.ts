@@ -98,6 +98,7 @@ export const repo = {
   contagens: {
     listar: (t: string) => listar<ContagemDoc>(t, 'contagens'),
     salvar: (t: string, id: string, d: Partial<ContagemDoc>) => salvar(t, 'contagens', id, d),
+    remover: (t: string, id: string) => remover(t, 'contagens', id),
   },
   atividades: {
     listar: (t: string) => listar<AtividadeDoc>(t, 'atividades'),

@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Inbox, Lock } from 'lucide-react'
+import { Inbox, Lock, CheckCircle2, ArrowRight } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
+import { TagVencimento } from '@/components/ui/TagVencimento'
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import type { Periodo } from '@/types'
-import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao } from '@/data/hooks'
-import { resumoInicio, HOJE } from '@/data/derive'
+import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
+import { resumoInicio, diaDeHoje, HOJE } from '@/data/derive'
+import { lembretes, type Vencimento } from '@/data/vencimentos'
+import { mensagemDeErro } from '@/lib/erros'
 
 const COR_MAR = '#2E5F73'
 const COR_TELHADO = '#C05437'
@@ -23,7 +26,8 @@ const DELTAS: Record<Periodo, { entrou: [string, Tom]; saiu: [string, Tom]; pont
 
 export function Inicio() {
   const { permissoes, sessao } = useAuth()
-  const { abrirGaveta } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const marcarPago = useMarcarPago()
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
@@ -41,6 +45,36 @@ export function Inicio() {
     .sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1))
     .slice(0, 5)
   const insight = insights.data?.[0]
+  const avisos = lembretes(ctx.despesas, diaDeHoje())
+
+  /** Pagar direto do aviso: confirma, marca e deixa o "Desfazer" à mão. */
+  function pedirPagamento(v: Vencimento) {
+    confirmar({
+      gravidade: 'neutro',
+      titulo: `Marcar ${v.natureza === 'nota' ? 'a nota' : 'a conta'} como paga?`,
+      texto: `${v.fornecedor} sai da lista de vencimentos e fica registrado como pago por você, agora.`,
+      resumo: [
+        { rot: 'Fornecedor', val: v.fornecedor },
+        { rot: 'Valor', val: brl(v.valor) },
+        { rot: 'Vencimento', val: v.vencimento.split('-').reverse().join('/') },
+      ],
+      rotuloConfirmar: 'Marcar como paga',
+      onConfirmar: async () => {
+        try {
+          await marcarPago.mutateAsync({ ids: v.lancamentoIds, pago: true, fornecedor: v.fornecedor, valor: v.valor })
+          adicionarToast({
+            tipo: 'sucesso',
+            titulo: 'Pago',
+            texto: `${v.fornecedor} · ${brl(v.valor)}`,
+            rotuloAcao: 'Desfazer',
+            onAcao: () => marcarPago.mutate({ ids: v.lancamentoIds, pago: false, fornecedor: v.fornecedor, valor: v.valor }),
+          })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como pago', texto: mensagemDeErro(e, 'Tente de novo.') })
+        }
+      },
+    })
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -64,13 +98,15 @@ export function Inicio() {
 
       <PedidosDaFranqueadora />
 
+      <Vencimentos avisos={avisos} aoPagar={pedirPagamento} />
+
       <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie px-6 py-5 cel:flex-row cel:items-center">
         <div>
-          <p className="text-[15px] font-bold text-tinta">Fechou o dia?</p>
-          <p className="text-sm text-tinta-3">iFood e Rappi já entraram. Falta confirmar o que veio de Pix, cartão e dinheiro no balcão.</p>
+          <p className="text-[15px] font-bold text-tinta">Lançou as vendas de hoje?</p>
+          <p className="text-sm text-tinta-3">iFood e Rappi já entraram. Falta lançar o que veio de Pix, cartão e dinheiro no balcão.</p>
         </div>
         <button onClick={() => abrirGaveta('fechamento')} className="shrink-0 rounded-botao bg-mar px-5 py-2.5 text-sm font-bold text-creme transition hover:bg-mar-escuro">
-          Fechar o caixa de hoje
+          Lançar vendas
         </button>
       </div>
 
@@ -82,6 +118,66 @@ export function Inicio() {
           {insight && <CartaoInsight texto={insight.texto} />}
           <QuemMexeu feed={feed} />
         </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Lembretes de vencimento: boleto e nota em aberto que já venceram ou vencem
+ * nos próximos dias. Só aparece quando há algo pra avisar.
+ */
+function Vencimentos({ avisos, aoPagar }: { avisos: Vencimento[]; aoPagar: (v: Vencimento) => void }) {
+  if (!avisos.length) return null
+  const vencidos = avisos.filter((v) => v.situacao === 'vencido')
+  const total = avisos.reduce((s, v) => s + v.valor, 0)
+  const critico = vencidos.length > 0
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 rounded-cartao border px-5 py-4 cel:px-6 cel:py-5',
+        critico ? 'border-telha-alerta/40 bg-telha-alerta/8' : 'border-[rgba(192,84,55,0.3)] bg-insight-fundo',
+      )}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className={cn('rotulo', critico ? 'text-telha-alerta' : 'text-insight-rotulo')}>
+          {critico
+            ? `${vencidos.length} ${vencidos.length === 1 ? 'conta vencida' : 'contas vencidas'}`
+            : 'Vencimentos dos próximos dias'}
+        </span>
+        <span className="mono text-sm font-bold text-tinta">{brl(total)} em aberto</span>
+      </div>
+      <ul className="flex flex-col">
+        {avisos.slice(0, 6).map((v) => (
+          <li
+            key={v.id}
+            className="flex flex-col gap-2 border-t border-[rgba(46,95,115,0.12)] py-3 first:border-0 first:pt-0 last:pb-0 cel:flex-row cel:items-center cel:justify-between"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-bold text-tinta">{v.fornecedor}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <TagVencimento dias={v.dias} />
+                <span className="text-xs text-tinta-4">
+                  {v.natureza === 'nota' ? 'nota fiscal' : 'conta da casa'} · vence {v.vencimento.split('-').reverse().slice(0, 2).join('/')}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 self-end cel:self-auto">
+              <span className="mono font-bold text-tinta">{brl(v.valor)}</span>
+              <button
+                onClick={() => aoPagar(v)}
+                className="inline-flex items-center gap-1.5 rounded-botao bg-mar px-3 py-1.5 text-xs font-bold text-creme transition hover:bg-mar-escuro"
+              >
+                <CheckCircle2 size={14} /> Marcar como pago
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-[rgba(46,95,115,0.12)] pt-3 text-sm font-bold text-mar">
+        {avisos.length > 6 && <span className="font-medium text-tinta-3">e mais {avisos.length - 6}</span>}
+        <Link to="/painel/compras" className="inline-flex items-center gap-1 hover:underline">Notas fiscais <ArrowRight size={14} /></Link>
+        <Link to="/painel/despesas" className="inline-flex items-center gap-1 hover:underline">Contas da casa <ArrowRight size={14} /></Link>
       </div>
     </div>
   )

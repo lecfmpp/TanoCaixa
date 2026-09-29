@@ -78,15 +78,15 @@ export interface GrupoInfo {
 }
 
 export const GRUPOS: GrupoInfo[] = [
-  { id: 'deducao', nome: 'Impostos, taxas e comissões sobre vendas', simples: 'Taxas e impostos', cor: '#2F6B4A', posicao: 'deducao' },
-  { id: 'cmv', nome: 'CMV — custo da mercadoria vendida', simples: 'Mercadoria', cor: '#C05437', posicao: 'cmv' },
-  { id: 'ocupacao', nome: 'Ocupação', simples: 'Aluguel e contas', cor: '#EFAB5C', posicao: 'operacional' },
-  { id: 'pessoal', nome: 'Despesas com pessoal', simples: 'Equipe', cor: '#2E5F73', posicao: 'operacional' },
-  { id: 'administrativa', nome: 'Despesas administrativas', simples: 'Administrativo', cor: '#6A7A7E', posicao: 'operacional' },
-  { id: 'operacional', nome: 'Despesas operacionais', simples: 'Operação', cor: '#8AA39B', posicao: 'operacional' },
-  { id: 'variavel', nome: 'Despesas variáveis', simples: 'Marketing e variáveis', cor: '#D08A5A', posicao: 'operacional' },
-  { id: 'franqueadora', nome: 'Despesas da franqueadora', simples: 'Franquia', cor: '#7B6A8C', posicao: 'operacional' },
-  { id: 'nao_operacional', nome: 'Outras despesas, provisões e retiradas', simples: 'Fora da operação', cor: '#A8A29A', posicao: 'nao_operacional' },
+  { id: 'deducao', nome: 'Impostos, taxas e comissões sobre vendas', simples: 'Impostos, taxas e comissões sobre vendas', cor: '#2F6B4A', posicao: 'deducao' },
+  { id: 'cmv', nome: 'CMV', simples: 'CMV', cor: '#C05437', posicao: 'cmv' },
+  { id: 'ocupacao', nome: 'Ocupação', simples: 'Ocupação', cor: '#EFAB5C', posicao: 'operacional' },
+  { id: 'pessoal', nome: 'Despesas com pessoal', simples: 'Despesas com pessoal', cor: '#2E5F73', posicao: 'operacional' },
+  { id: 'administrativa', nome: 'Despesas Administrativas', simples: 'Despesas Administrativas', cor: '#6A7A7E', posicao: 'operacional' },
+  { id: 'operacional', nome: 'Despesas Operacionais', simples: 'Despesas Operacionais', cor: '#8AA39B', posicao: 'operacional' },
+  { id: 'variavel', nome: 'Despesas Variáveis', simples: 'Despesas Variáveis', cor: '#D08A5A', posicao: 'operacional' },
+  { id: 'franqueadora', nome: 'Despesas Franqueadora', simples: 'Despesas Franqueadora', cor: '#7B6A8C', posicao: 'operacional' },
+  { id: 'nao_operacional', nome: 'Outras despesas / provisões / retiradas', simples: 'Outras despesas / provisões / retiradas', cor: '#A8A29A', posicao: 'nao_operacional' },
 ]
 
 export const GRUPO: Record<GrupoDRE, GrupoInfo> = Object.fromEntries(
@@ -105,16 +105,16 @@ export interface ContaInfo {
 
 export const CONTAS: ContaInfo[] = [
   // (−) Impostos, taxas e comissões sobre vendas
-  { id: 'comissao_marketplace', nome: 'Comissão de app', grupo: 'deducao', ajuda: 'iFood, Rappi, 99Food', aliases: ['ifood', 'rappi', 'comissao', 'taxa de app', 'taxas_app', 'marketplace', '99food', 'uber eats'] },
-  { id: 'taxa_cartao', nome: 'Taxa de cartão', grupo: 'deducao', ajuda: 'maquininha, Pix taxado', aliases: ['cartao', 'maquininha', 'stone', 'cielo', 'getnet', 'pagseguro', 'adquirente'] },
-  { id: 'antecipacao', nome: 'Antecipação de recebíveis', grupo: 'deducao', ajuda: 'quando você puxa o dinheiro antes', aliases: ['antecipacao', 'antecipar'] },
+  { id: 'comissao_marketplace', nome: 'Comissão iFood e 99', grupo: 'deducao', ajuda: 'iFood, 99Food, Rappi', aliases: ['ifood', 'rappi', 'comissao', 'taxa de app', 'taxas_app', 'marketplace', '99food', 'uber eats', 'comissao de app'] },
   { id: 'tarifa_bancaria', nome: 'Tarifas bancárias', grupo: 'deducao', ajuda: 'conta, boleto, TED', aliases: ['tarifa', 'banco', 'bancaria'] },
-  { id: 'imposto_vendas', nome: 'Imposto sobre venda', grupo: 'deducao', ajuda: 'Simples Nacional, MEI, ISS', aliases: ['imposto', 'simples', 'simples nacional', 'mei', 'iss', 'das', 'tributo'] },
+  { id: 'antecipacao', nome: 'Antecipação', grupo: 'deducao', ajuda: 'quando você puxa o dinheiro antes', aliases: ['antecipacao', 'antecipar', 'antecipacao de recebiveis'] },
+  { id: 'taxa_cartao', nome: 'Taxas de cartão', grupo: 'deducao', ajuda: 'maquininha, Pix taxado', aliases: ['taxa de cartao', 'cartao', 'maquininha', 'stone', 'cielo', 'getnet', 'pagseguro', 'adquirente'] },
+  { id: 'imposto_vendas', nome: 'Simples Nacional / MEI / ISS / outros', grupo: 'deducao', ajuda: 'DAS, MEI, ISS e outros impostos sobre a venda', aliases: ['imposto', 'imposto sobre venda', 'simples', 'simples nacional', 'mei', 'iss', 'das', 'tributo'] },
 
   // CMV
-  { id: 'cmv_alimentos', nome: 'Alimentos', grupo: 'cmv', ajuda: 'hortifrúti, carnes, secos', aliases: ['mercadoria', 'alimento', 'comida', 'hortifruti', 'carne', 'secos', 'insumo', 'materia prima', 'acougue', 'frigorifico', 'padaria'] },
-  { id: 'cmv_bebidas', nome: 'Bebidas', grupo: 'cmv', ajuda: 'refrigerante, cerveja, suco', aliases: ['bebida', 'refrigerante', 'cerveja', 'suco', 'agua mineral', 'distribuidora'] },
-  { id: 'cmv_descartaveis', nome: 'Descartáveis e embalagens', grupo: 'cmv', ajuda: 'marmita, sacola, guardanapo', aliases: ['descartavel', 'embalagem', 'marmita', 'sacola', 'copo', 'guardanapo'] },
+  { id: 'cmv_alimentos', nome: 'CMV - Matéria Prima (alimentos)', grupo: 'cmv', ajuda: 'hortifrúti, carnes, secos', aliases: ['alimentos', 'mercadoria', 'alimento', 'comida', 'hortifruti', 'carne', 'secos', 'insumo', 'materia prima', 'acougue', 'frigorifico', 'padaria'] },
+  { id: 'cmv_bebidas', nome: 'CMV - Matéria Prima (bebidas)', grupo: 'cmv', ajuda: 'refrigerante, cerveja, suco', aliases: ['bebidas', 'bebida', 'refrigerante', 'cerveja', 'suco', 'agua mineral', 'distribuidora'] },
+  { id: 'cmv_descartaveis', nome: 'CMV - Matéria Prima (descartáveis)', grupo: 'cmv', ajuda: 'marmita, sacola, guardanapo', aliases: ['descartaveis', 'descartavel', 'embalagem', 'embalagens', 'marmita', 'sacola', 'copo', 'guardanapo'] },
 
   // (−) Ocupação
   { id: 'aluguel', nome: 'Aluguel', grupo: 'ocupacao', aliases: ['aluguel', 'locacao', 'ocupacao'] },
@@ -126,36 +126,36 @@ export const CONTAS: ContaInfo[] = [
   { id: 'seguro', nome: 'Seguro', grupo: 'ocupacao', ajuda: 'seguro do ponto, incêndio', aliases: ['seguro', 'seguradora'] },
 
   // (−) Despesas com pessoal
-  { id: 'folha', nome: 'Folha de pagamento', grupo: 'pessoal', ajuda: 'salários da equipe', aliases: ['folha', 'salario', 'pessoal', 'equipe', 'pagamento equipe'] },
-  { id: 'encargos', nome: 'Encargos', grupo: 'pessoal', ajuda: 'FGTS, INSS', aliases: ['encargo', 'fgts', 'inss', 'gps'] },
-  { id: 'vale_transporte', nome: 'Vale-transporte', grupo: 'pessoal', aliases: ['vale transporte', 'vt', 'transporte', 'passagem', 'riocard'] },
-  { id: 'vale_alimentacao', nome: 'Vale-alimentação', grupo: 'pessoal', ajuda: 'VA/VR e refeição da equipe', aliases: ['vale alimentacao', 'va', 'vr', 'vale refeicao', 'alimentacao da equipe'] },
-  { id: 'bonus', nome: 'Bônus e gorjetas', grupo: 'pessoal', aliases: ['bonus', 'premio', 'gorjeta', 'comissao equipe'] },
-  { id: 'prolabore', nome: 'Pró-labore', grupo: 'pessoal', ajuda: 'o salário dos sócios', aliases: ['prolabore', 'pro labore', 'socio'] },
+  { id: 'folha', nome: 'Folha de Pagamento', grupo: 'pessoal', ajuda: 'salários da equipe', aliases: ['folha', 'salario', 'pessoal', 'equipe', 'pagamento equipe', 'folha de pagamento'] },
+  { id: 'encargos', nome: 'Encargos (FGTS)', grupo: 'pessoal', ajuda: 'FGTS, INSS', aliases: ['encargo', 'encargos', 'fgts', 'inss', 'gps'] },
+  { id: 'vale_transporte', nome: 'Vale Transporte', grupo: 'pessoal', aliases: ['vale transporte', 'vale-transporte', 'vt', 'transporte', 'passagem', 'riocard'] },
+  { id: 'vale_alimentacao', nome: 'Vale Alimentação', grupo: 'pessoal', ajuda: 'VA/VR e refeição da equipe', aliases: ['vale alimentacao', 'vale-alimentacao', 'va', 'vr', 'vale refeicao', 'alimentacao da equipe'] },
+  { id: 'bonus', nome: 'Bônus', grupo: 'pessoal', ajuda: 'prêmios, gorjetas repassadas', aliases: ['bonus', 'premio', 'gorjeta', 'comissao equipe'] },
+  { id: 'prolabore', nome: 'Prólabore', grupo: 'pessoal', ajuda: 'o salário dos sócios', aliases: ['prolabore', 'pro labore', 'socio'] },
   { id: 'rescisoes', nome: 'Rescisões', grupo: 'pessoal', aliases: ['rescisao', 'demissao', 'acerto'] },
-  { id: 'pessoal_outros', nome: 'Outros com pessoal', grupo: 'pessoal', ajuda: 'uniforme, exame, treinamento', aliases: ['uniforme', 'exame', 'treinamento', 'freelancer', 'extra'] },
+  { id: 'pessoal_outros', nome: 'Outros', grupo: 'pessoal', ajuda: 'uniforme, exame, treinamento', aliases: ['outros com pessoal', 'uniforme', 'exame', 'treinamento', 'freelancer', 'extra'] },
 
-  // (−) Despesas administrativas
+  // (−) Despesas Administrativas
   { id: 'sistemas', nome: 'Sistemas', grupo: 'administrativa', ajuda: 'PDV, delivery, este app', aliases: ['sistema', 'software', 'pdv', 'assinatura', 'mensalidade sistema', 'tecnologia'] },
   { id: 'contador', nome: 'Contador', grupo: 'administrativa', ajuda: 'honorários da contabilidade', aliases: ['contador', 'contabilidade', 'escritorio contabil'] },
 
-  // (−) Despesas operacionais
+  // (−) Despesas Operacionais
   { id: 'limpeza', nome: 'Limpeza', grupo: 'operacional', ajuda: 'produtos e material de higiene', aliases: ['limpeza', 'higiene', 'detergente', 'produto de limpeza'] },
   { id: 'detetizacao', nome: 'Detetização', grupo: 'operacional', aliases: ['detetizacao', 'dedetizacao', 'controle de pragas'] },
-  { id: 'coleta_lixo', nome: 'Coleta de lixo', grupo: 'operacional', ajuda: 'inclui coleta de óleo', aliases: ['lixo', 'coleta', 'residuo', 'oleo usado', 'comlurb'] },
+  { id: 'coleta_lixo', nome: 'Coleta de Lixo', grupo: 'operacional', ajuda: 'inclui coleta de óleo', aliases: ['lixo', 'coleta', 'residuo', 'oleo usado', 'comlurb'] },
 
-  // (−) Despesas variáveis
-  { id: 'cupons_app', nome: 'Cupons e patrocínio no app', grupo: 'variavel', ajuda: 'promoções bancadas por você no iFood', aliases: ['cupom', 'cupons', 'patrocinio', 'promocao ifood', 'super restaurante'] },
-  { id: 'marketing', nome: 'Marketing e redes sociais', grupo: 'variavel', ajuda: 'anúncios, fotos, social media', aliases: ['marketing', 'anuncio', 'ads', 'trafego', 'social', 'instagram', 'publicidade', 'design'] },
-  { id: 'variavel_outros', nome: 'Outras variáveis', grupo: 'variavel', ajuda: 'o que muda com o movimento', aliases: ['outros variaveis', 'diversos'] },
+  // (−) Despesas Variáveis
+  { id: 'cupons_app', nome: 'Cupons iFood (Marketing)', grupo: 'variavel', ajuda: 'promoções bancadas por você no iFood', aliases: ['cupom', 'cupons', 'patrocinio', 'promocao ifood', 'super restaurante', 'cupons ifood'] },
+  { id: 'marketing', nome: 'Marketing / redes sociais', grupo: 'variavel', ajuda: 'anúncios, fotos, social media', aliases: ['marketing', 'anuncio', 'ads', 'trafego', 'social', 'instagram', 'publicidade', 'design', 'redes sociais'] },
+  { id: 'variavel_outros', nome: 'Outros', grupo: 'variavel', ajuda: 'o que muda com o movimento', aliases: ['outros variaveis', 'outras variaveis', 'diversos'] },
 
-  // (−) Despesas da franqueadora
-  { id: 'fundo_promocao', nome: 'Fundo de promoção', grupo: 'franqueadora', aliases: ['fundo', 'fundo de promocao', 'fpp'] },
+  // (−) Despesas Franqueadora
+  { id: 'fundo_promocao', nome: 'Fundo de Promoção', grupo: 'franqueadora', aliases: ['fundo', 'fundo de promocao', 'fpp'] },
   { id: 'royalties', nome: 'Royalties', grupo: 'franqueadora', aliases: ['royalt', 'royalties', 'franqueadora', 'franquia'] },
 
-  // (−) Não operacional
-  { id: 'retiradas', nome: 'Retiradas e provisões', grupo: 'nao_operacional', ajuda: 'dinheiro que sai do caixa e não é despesa da operação', aliases: ['retirada', 'provisao', 'distribuicao de lucro', 'emprestimo', 'obra', 'investimento'] },
-  { id: 'multas', nome: 'Multas e juros', grupo: 'nao_operacional', ajuda: 'atraso de conta, multa de contrato', aliases: ['multa', 'juros', 'atraso', 'mora'] },
+  // Depois do lucro operacional
+  { id: 'retiradas', nome: 'Outras despesas / provisões / retiradas', grupo: 'nao_operacional', ajuda: 'dinheiro que sai do caixa e não é despesa da operação', aliases: ['retirada', 'retiradas', 'provisao', 'distribuicao de lucro', 'emprestimo', 'obra', 'investimento', 'outras despesas'] },
+  { id: 'multas', nome: 'Multas, atrasos', grupo: 'nao_operacional', ajuda: 'atraso de conta, multa de contrato', aliases: ['multa', 'multas', 'juros', 'atraso', 'mora', 'multas e juros'] },
 ]
 
 export const CONTA: Record<CategoriaDespesa, ContaInfo> = Object.fromEntries(
@@ -195,9 +195,13 @@ function chave(v: string): string {
 }
 
 /** Aliases achatados, do mais específico pro mais genérico. */
+const NOMES_REPETIDOS = new Set(
+  CONTAS.map((c) => chave(c.nome)).filter((n, i, todos) => todos.indexOf(n) !== i),
+)
 const INDICE: { termo: string; id: CategoriaDespesa }[] = CONTAS.flatMap((c) => [
   { termo: chave(c.id), id: c.id },
-  { termo: chave(c.nome), id: c.id },
+  // "Outros" existe em pessoal e em variáveis: sozinho, não identifica conta.
+  ...(NOMES_REPETIDOS.has(chave(c.nome)) ? [] : [{ termo: chave(c.nome), id: c.id }]),
   ...(c.aliases ?? []).map((a) => ({ termo: chave(a), id: c.id })),
 ]).sort((a, b) => b.termo.length - a.termo.length)
 
@@ -330,7 +334,7 @@ export interface LinhaReceitaInfo {
 /** As quatro linhas de receita bruta do modelo padrão. */
 export const LINHAS_RECEITA: LinhaReceitaInfo[] = [
   { id: 'loja', nome: 'Vendas loja própria', canais: ['balcao'], cor: '#2E5F73' },
-  { id: 'delivery_app', nome: 'Vendas delivery (apps)', canais: ['ifood', 'rappi'], cor: '#C05437' },
+  { id: 'delivery_app', nome: 'Vendas delivery', canais: ['ifood', 'rappi'], cor: '#C05437' },
   { id: 'delivery_proprio', nome: 'Venda delivery próprio', canais: ['whatsapp'], cor: '#2F6B4A' },
   { id: 'outras', nome: 'Outras receitas', canais: ['outros'], cor: '#EFAB5C' },
 ]

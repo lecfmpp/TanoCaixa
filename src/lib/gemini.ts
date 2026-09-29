@@ -108,3 +108,31 @@ export async function extrairDadosDeFoto(
     throw new Error(err.message || 'Não conseguimos ler a foto. Tente outra imagem.')
   }
 }
+
+const perguntar = httpsCallable<{ pergunta: string; contexto: string }, { resposta: string }>(
+  functions,
+  'perguntarEstoque',
+)
+
+/**
+ * Pergunta à IA sobre o estoque. `contexto` é o resumo das contagens, entradas
+ * e saídas (src/data/estoque.ts → contextoParaIA); o servidor só repassa ao Gemini.
+ */
+export async function perguntarSobreEstoque(pergunta: string, contexto: string): Promise<string> {
+  try {
+    const { data } = await perguntar({ pergunta, contexto })
+    return data.resposta
+  } catch (e) {
+    const err = e as FunctionsError
+    if (err.code === 'functions/unauthenticated') {
+      throw new Error('A análise do estoque precisa de login. Entre na sua conta e tente de novo.')
+    }
+    if (err.code === 'functions/resource-exhausted' || err.code === 'functions/invalid-argument') {
+      throw new Error(err.message)
+    }
+    if (err.code === 'functions/not-found') {
+      throw new Error('A análise por IA ainda não foi publicada neste ambiente.')
+    }
+    throw new Error(err.message || 'Não consegui analisar o estoque agora. Tente de novo.')
+  }
+}

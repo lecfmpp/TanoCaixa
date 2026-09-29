@@ -36,6 +36,14 @@ export interface Nota {
   itens: ItemNota[]
   quem: string
   criadoEm: string
+  /** Vencimento do boleto/nota — o mais próximo, quando há mais de um lançamento. */
+  vencimento?: string
+  observacao?: string
+  /** Quando e por quem a nota foi marcada como paga. */
+  pagoEm?: string
+  pagoPorNome?: string
+  /** A nota nasceu com id de nota (dá pra refazer item a item) ou é lançamento antigo, avulso. */
+  temNotaId: boolean
   /** Lançamentos que formam a nota (uma conta de CMV cada). */
   lancamentos: DespesaDoc[]
 }
@@ -64,6 +72,16 @@ export function agruparEmNotas(despesas: DespesaDoc[]): Nota[] {
         itens: lancamentos.flatMap((l) => l.itens ?? []),
         quem: base.criadoPorNome,
         criadoEm: base.criadoEm,
+        vencimento: lancamentos
+          .map((l) => l.dataVencimento)
+          .filter((v): v is string => !!v)
+          .sort()[0],
+        observacao: base.observacao,
+        pagoEm: lancamentos.every((l) => l.status === 'pago')
+          ? lancamentos.map((l) => l.pagoEm).filter((v): v is string => !!v).sort().pop()
+          : undefined,
+        pagoPorNome: lancamentos.find((l) => l.pagoPorNome)?.pagoPorNome,
+        temNotaId: !!base.notaId,
         lancamentos,
       }
     })

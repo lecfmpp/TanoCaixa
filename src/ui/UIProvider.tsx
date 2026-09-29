@@ -6,6 +6,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { Nota } from '@/data/compras'
+import type { ProdutoDoc } from '@/data/types'
 
 export type TipoToast = 'sucesso' | 'andamento' | 'atencao' | 'erro' | 'sistema'
 
@@ -30,6 +32,14 @@ export interface ModalConfig {
 
 export type TipoGaveta = 'despesa' | 'compra' | 'produto' | 'estoque' | 'fechamento'
 
+/** O que a gaveta recebe quando abre pra EDITAR algo que já existe. */
+export interface DadosGaveta {
+  /** Nota fiscal em edição (gaveta 'compra'). */
+  nota?: Nota
+  /** Produto em edição (gaveta 'produto'). */
+  produto?: ProdutoDoc
+}
+
 interface UIContexto {
   toasts: Toast[]
   adicionarToast: (t: Omit<Toast, 'id'>) => string
@@ -38,7 +48,8 @@ interface UIContexto {
   confirmar: (c: ModalConfig) => void
   fecharModal: () => void
   gaveta: TipoGaveta | null
-  abrirGaveta: (t: TipoGaveta) => void
+  gavetaDados: DadosGaveta | null
+  abrirGaveta: (t: TipoGaveta, dados?: DadosGaveta) => void
   fecharGaveta: () => void
 }
 
@@ -58,6 +69,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [modal, setModal] = useState<ModalConfig | null>(null)
   const [gaveta, setGaveta] = useState<TipoGaveta | null>(null)
+  const [gavetaDados, setGavetaDados] = useState<DadosGaveta | null>(null)
 
   const removerToast = useCallback((id: string) => {
     setToasts((ts) => ts.filter((t) => t.id !== id))
@@ -76,8 +88,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const confirmar = useCallback((c: ModalConfig) => setModal(c), [])
   const fecharModal = useCallback(() => setModal(null), [])
-  const abrirGaveta = useCallback((t: TipoGaveta) => setGaveta(t), [])
-  const fecharGaveta = useCallback(() => setGaveta(null), [])
+  const abrirGaveta = useCallback((t: TipoGaveta, dados?: DadosGaveta) => {
+    setGavetaDados(dados ?? null)
+    setGaveta(t)
+  }, [])
+  const fecharGaveta = useCallback(() => {
+    setGaveta(null)
+    setGavetaDados(null)
+  }, [])
 
   const valor = useMemo<UIContexto>(
     () => ({
@@ -88,10 +106,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
       confirmar,
       fecharModal,
       gaveta,
+      gavetaDados,
       abrirGaveta,
       fecharGaveta,
     }),
-    [toasts, adicionarToast, removerToast, modal, confirmar, fecharModal, gaveta, abrirGaveta, fecharGaveta],
+    [toasts, adicionarToast, removerToast, modal, confirmar, fecharModal, gaveta, gavetaDados, abrirGaveta, fecharGaveta],
   )
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>

@@ -204,7 +204,7 @@ export {
 } from './stripe'
 
 /* ------------------- Gemini Vision (foto → lançamento) ------------------- */
-export { analisarFoto } from './gemini'
+export { analisarFoto, perguntarEstoque } from './gemini'
 
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'

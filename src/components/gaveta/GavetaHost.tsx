@@ -9,7 +9,7 @@ import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useDesfazer, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { useCriarDespesa, useCriarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useDesfazer, useEditarLancamentos, useEditarNota, useEditarProduto, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
@@ -42,8 +42,14 @@ const TITULOS: Record<TipoGaveta, { titulo: string; sub: string; etapas: string[
   despesa: { titulo: 'Lançar despesa', sub: 'Conta da casa', etapas: ['Dados', 'Confere', 'Pronto'] },
   compra: { titulo: 'Nota fiscal', sub: 'Compra de mercadoria', etapas: ['Itens', 'Confere', 'Pronto'] },
   produto: { titulo: 'Novo produto', sub: 'Item do estoque', etapas: ['Dados', 'Confere', 'Pronto'] },
-  estoque: { titulo: 'Movimento de estoque', sub: 'Perda, contagem, transferência', etapas: ['Dados', 'Confere', 'Pronto'] },
-  fechamento: { titulo: 'Fechar o dia', sub: 'Vendas do dia', etapas: ['Dados', 'Confere', 'Pronto'] },
+  estoque: { titulo: 'Perda ou transferência', sub: 'Saída de estoque que não é venda', etapas: ['Dados', 'Confere', 'Pronto'] },
+  fechamento: { titulo: 'Lançar vendas', sub: 'Vendas do dia', etapas: ['Dados', 'Confere', 'Pronto'] },
+}
+
+/** Quando a gaveta abre pra editar, o título muda. */
+const TITULOS_EDICAO: Partial<Record<TipoGaveta, { titulo: string; sub: string }>> = {
+  compra: { titulo: 'Editar nota fiscal', sub: 'Itens, vencimento e pagamento' },
+  produto: { titulo: 'Editar produto', sub: 'Cadastro do estoque' },
 }
 
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Ainda vou pagar']
@@ -88,8 +94,18 @@ function AvisoIA({ campos }: { campos: string[] }) {
  */
 const hojeISO = diaDeHoje
 
-/** Movimento que não mexe em dinheiro. Entrada de mercadoria tem nota. */
-const MOVIMENTOS = ['Perda ou quebra', 'Contagem do mês', 'Transferência'] as const
+/**
+ * Movimento que não mexe em dinheiro. Entrada de mercadoria tem nota; contagem
+ * tem a própria aba no Estoque.
+ */
+const MOVIMENTOS = ['Perda ou quebra', 'Transferência'] as const
+
+/** Forma de pagamento gravada → chip da gaveta, na hora de editar. */
+function chipDePagamento(forma: string, status: string): string {
+  if (status !== 'pago') return 'Ainda vou pagar'
+  const mapa: Record<string, string> = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', boleto: 'Boleto' }
+  return mapa[forma] ?? 'Pix'
+}
 
 interface ItemForm { produtoId: string; quantidade: string; preco: string }
 const ITEM_VAZIO: ItemForm = { produtoId: '', quantidade: '', preco: '' }
@@ -98,6 +114,9 @@ const NOTA_VAZIA = {
   fornecedor: '',
   data: hojeISO(),
   pagamento: 'Pix',
+  vencimento: '',
+  /** Valor da nota antiga, sem itens — só aparece ao editar lançamento de antes da nota ter itens. */
+  valor: '',
   obs: '',
   itens: [ITEM_VAZIO],
 }
@@ -108,19 +127,23 @@ const DESPESA_VAZIA = {
   grupo: 'ocupacao' as GrupoDRE,
   conta: 'aluguel' as CategoriaDespesa,
   data: hojeISO(),
+  vencimento: '',
   pagamento: 'Pix',
   obs: '',
   repete: false,
 }
 
 export function GavetaHost() {
-  const { gaveta, abrirGaveta, fecharGaveta, adicionarToast } = useUI()
+  const { gaveta, gavetaDados, abrirGaveta, fecharGaveta, adicionarToast } = useUI()
   const { sessao } = useAuth()
   const criarDespesa = useCriarDespesa()
   const criarProduto = useCriarProduto()
   const criarFechamento = useCriarFechamento()
   const criarMovimento = useCriarMovimento()
   const criarNota = useCriarNota()
+  const editarNota = useEditarNota()
+  const editarLancamentos = useEditarLancamentos()
+  const editarProduto = useEditarProduto()
   const produtos = useProdutos().data ?? []
   const desfazer = useDesfazer()
   const cfg = useRestaurante().data
@@ -151,15 +174,50 @@ export function GavetaHost() {
     setDespesa((d) => ({ ...d, grupo: g, conta: contasDoGrupo(g)[0].id }))
   }
 
+  const notaEdit = gavetaDados?.nota
+  const produtoEdit = gavetaDados?.produto
+  /** Nota antiga, de antes de a nota ter itens: só dá pra editar o cabeçalho e o valor. */
+  const notaSimples = !!notaEdit && !(notaEdit.temNotaId && notaEdit.itens.length > 0)
+
   useEffect(() => {
     setEtapa(0)
     setModo('form')
     setIaPreencheu([])
     setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
-    setProduto({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-    setNota({ ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] })
+    setProduto(
+      produtoEdit
+        ? {
+            nome: produtoEdit.nome,
+            categoria: produtoEdit.categoria,
+            unidade: produtoEdit.unidade,
+            custo: custoFormatado(produtoEdit.custoAtual),
+            minimo: produtoEdit.estoqueMinimo ? String(produtoEdit.estoqueMinimo) : '',
+            fornecedor: produtoEdit.fornecedor,
+            cmv: produtoEdit.entraNoCmv,
+          }
+        : { nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true },
+    )
+    setNota(
+      notaEdit
+        ? {
+            fornecedor: notaEdit.fornecedor,
+            data: notaEdit.data.slice(0, 10),
+            pagamento: chipDePagamento(notaEdit.formaPagamento, notaEdit.status),
+            vencimento: notaEdit.vencimento ?? '',
+            valor: custoFormatado(notaEdit.valorTotal),
+            obs: notaEdit.observacao ?? '',
+            itens: notaEdit.itens.length
+              ? notaEdit.itens.map((i) => ({
+                  produtoId: i.produtoId,
+                  quantidade: String(i.quantidade).replace('.', ','),
+                  preco: custoFormatado(i.precoUnitario),
+                }))
+              : [ITEM_VAZIO],
+          }
+        : { ...NOTA_VAZIA, data: hojeISO(), itens: [ITEM_VAZIO] },
+    )
     setEstoque({ tipo: MOVIMENTOS[0], produtoId: '', quantidade: '', obs: '' })
-  }, [gaveta])
+  }, [gaveta, notaEdit, produtoEdit])
 
   useEffect(() => {
     if (!gaveta) return
@@ -175,7 +233,7 @@ export function GavetaHost() {
   )
 
   if (!gaveta) return null
-  const meta = TITULOS[gaveta]
+  const meta = { ...TITULOS[gaveta], ...(notaEdit || produtoEdit ? TITULOS_EDICAO[gaveta] : {}) }
 
   const porId = new Map(produtos.map((p) => [p.id, p]))
   /** Linhas da nota que já dá pra salvar: produto escolhido e quantidade. */
@@ -186,7 +244,11 @@ export function GavetaHost() {
 
   /** Trava o "Continuar": nota sem item e movimento sem produto não existem. */
   const podeAvancar =
-    gaveta === 'compra' ? itensValidos.length > 0 && totalNota > 0
+    gaveta === 'compra'
+      ? (notaSimples ? soNum(nota.valor) > 0 || (notaEdit?.lancamentos.length ?? 0) > 1 : itensValidos.length > 0 && totalNota > 0) &&
+        (nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
+    : gaveta === 'despesa' ? despesa.pagamento !== 'Ainda vou pagar' || !!despesa.vencimento
+    : gaveta === 'produto' ? produto.nome.trim().length > 0
     : gaveta === 'estoque' ? !!estoque.produtoId && soNum(estoque.quantidade) > 0
     : true
 
@@ -200,14 +262,16 @@ export function GavetaHost() {
         { rot: 'Conta', val: CONTA[despesa.conta]?.nome ?? '' },
         { rot: 'Competência', val: despesa.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: despesa.pagamento },
+        ...(despesa.pagamento === 'Ainda vou pagar' ? [{ rot: 'Vencimento', val: despesa.vencimento.split('-').reverse().join('/') }] : []),
       ]
     if (gaveta === 'compra')
       return [
         { rot: 'Fornecedor', val: nota.fornecedor || '—' },
-        { rot: 'Itens', val: `${itensValidos.length}` },
+        ...(notaSimples ? [] : [{ rot: 'Itens', val: `${itensValidos.length}` }]),
         { rot: 'Data', val: nota.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: nota.pagamento },
-        { rot: 'Total da nota', val: brl(totalNota) },
+        ...(nota.pagamento === 'Ainda vou pagar' ? [{ rot: 'Vencimento', val: nota.vencimento.split('-').reverse().join('/') }] : []),
+        { rot: 'Total da nota', val: brl(notaSimples && soNum(nota.valor) > 0 ? soNum(nota.valor) : totalNota || (notaEdit?.valorTotal ?? 0)) },
       ]
     if (gaveta === 'produto')
       return [
@@ -219,7 +283,7 @@ export function GavetaHost() {
       const apps = VENDA_APP_DEMO.ifood.bruto + VENDA_APP_DEMO.rappi.bruto
       const loja = soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)
       return [
-        { rot: 'Vendas delivery (apps)', val: brl(apps) },
+        { rot: 'Vendas delivery', val: brl(apps) },
         { rot: 'Vendas loja própria', val: brl(loja) },
         { rot: 'Venda delivery próprio', val: brl(soNum(fecha.delivery)) },
         { rot: 'Outras receitas', val: brl(soNum(fecha.outras)) },
@@ -326,28 +390,64 @@ export function GavetaHost() {
         observacao: despesa.obs,
         recorrente: despesa.repete,
         tipoLancamento: 'conta',
+        ...(st === 'a_pagar' && despesa.vencimento ? { dataVencimento: despesa.vencimento } : {}),
       })
       toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'compra') {
-      const n = await criarNota.mutateAsync({
+      const aPagar = nota.pagamento === 'Ainda vou pagar'
+      const formaPagamento = (aPagar ? 'boleto' : nota.pagamento.toLowerCase()) as never
+      const status = (aPagar ? 'a_pagar' : 'pago') as never
+      const vencimento = aPagar ? nota.vencimento : undefined
+
+      if (notaEdit && notaSimples) {
+        await editarLancamentos.mutateAsync({
+          ids: notaEdit.lancamentos.map((l) => l.id),
+          dados: {
+            fornecedor: nota.fornecedor || notaEdit.fornecedor,
+            dataCompetencia: nota.data,
+            formaPagamento,
+            status,
+            dataVencimento: vencimento,
+            observacao: nota.obs,
+            valorTotal: notaEdit.lancamentos.length === 1 ? soNum(nota.valor) : undefined,
+          },
+        })
+        adicionarToast({ tipo: 'sucesso', titulo: 'Nota atualizada', texto: `${nota.fornecedor || notaEdit.fornecedor} · dados salvos.` })
+        return
+      }
+
+      const dados = {
         fornecedor: nota.fornecedor,
         data: nota.data,
-        formaPagamento: (nota.pagamento === 'Ainda vou pagar' ? 'boleto' : nota.pagamento.toLowerCase()) as never,
-        status: (nota.pagamento === 'Ainda vou pagar' ? 'a_pagar' : 'pago') as never,
+        formaPagamento,
+        status,
+        vencimento,
         observacao: nota.obs,
         itens: itensValidos.map((i) => ({
           produtoId: i.produtoId,
           quantidade: soNum(i.quantidade),
           precoUnitario: soNum(i.preco),
         })),
-      })
+      }
+
+      if (notaEdit) {
+        const n = await editarNota.mutateAsync({ notaId: notaEdit.id, dados })
+        adicionarToast({
+          tipo: 'sucesso',
+          titulo: 'Nota atualizada',
+          texto: `${brl(n.valorTotal)} em ${n.itens} ${n.itens === 1 ? 'item' : 'itens'} — estoque e CMV refeitos.`,
+        })
+        return
+      }
+
+      const n = await criarNota.mutateAsync(dados)
       toastComDesfazer(
         'Nota lançada',
         `${brl(n.valorTotal)} em ${n.itens} ${n.itens === 1 ? 'item' : 'itens'} — estoque e CMV atualizados.`,
         n.criados,
       )
     } else if (gaveta === 'produto') {
-      const p = await criarProduto.mutateAsync({
+      const campos = {
         nome: produto.nome || 'Produto',
         categoria: produto.categoria,
         unidade: produto.unidade,
@@ -355,7 +455,13 @@ export function GavetaHost() {
         estoqueMinimo: soNum(produto.minimo),
         fornecedor: produto.fornecedor,
         entraNoCmv: produto.cmv,
-      })
+      }
+      if (produtoEdit) {
+        await editarProduto.mutateAsync({ id: produtoEdit.id, dados: campos })
+        adicionarToast({ tipo: 'sucesso', titulo: 'Produto atualizado', texto: `${campos.nome} · cadastro salvo.` })
+        return
+      }
+      const p = await criarProduto.mutateAsync(campos)
       toastComDesfazer('Produto cadastrado', `${produto.nome || 'Produto'} entrou no estoque.`, [{ colecao: 'produtos', id: p.id }])
     } else if (gaveta === 'fechamento') {
       const f = await criarFechamento.mutateAsync({
@@ -365,7 +471,7 @@ export function GavetaHost() {
         delivery: soNum(fecha.delivery),
         outras: soNum(fecha.outras),
       })
-      toastComDesfazer('Dia fechado', `${brl(f.totalDia)} confirmados no caixa de hoje.`, [{ colecao: 'receita_dia', id: f.id }])
+      toastComDesfazer('Vendas lançadas', `${brl(f.totalDia)} lançados no caixa de hoje.`, [{ colecao: 'receita_dia', id: f.id }])
     } else {
       const m = await criarMovimento.mutateAsync({
         tipo: estoque.tipo,
@@ -411,7 +517,7 @@ export function GavetaHost() {
 
         {/* Conteúdo */}
         <div className="scroll-fina flex-1 overflow-y-auto px-6 py-5">
-          {etapa === 0 && TIPO_IMPORT[gaveta] && (
+          {etapa === 0 && TIPO_IMPORT[gaveta] && !produtoEdit && (
             <div className="mb-4 flex rounded-botao bg-preenchimento p-1">
               <button
                 onClick={() => setModo('form')}
@@ -476,6 +582,9 @@ export function GavetaHost() {
                   {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={despesa.pagamento === p} aoClicar={() => setDespesa({ ...despesa, pagamento: p })} />)}
                 </div>
               </div>
+              {despesa.pagamento === 'Ainda vou pagar' && (
+                <Campo rotulo="Vencimento" type="date" value={despesa.vencimento} onChange={(e) => setDespesa({ ...despesa, vencimento: e.target.value })} />
+              )}
               <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
                 <span><span className="block text-sm font-bold text-tinta">Isso se repete todo mês</span><span className="block text-xs text-tinta-4">aluguel, contador, internet…</span></span>
                 <Switch ligado={despesa.repete} aoTrocar={(v) => setDespesa({ ...despesa, repete: v })} />
@@ -486,16 +595,30 @@ export function GavetaHost() {
 
           {etapa === 0 && modo === 'form' && gaveta === 'compra' && (
             <div className="flex flex-col gap-4">
-              <BotaoFoto
-                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
-                apoio="A IA lê o cabeçalho da nota. Os itens você confirma pelo cadastro."
-                aoClicar={() => setCameraAberta(true)}
-              />
-              <AvisoIA campos={iaPreencheu} />
+              {!notaEdit && (
+                <>
+                  <BotaoFoto
+                    rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto da nota'}
+                    apoio="A IA lê o cabeçalho da nota. Os itens você confirma pelo cadastro."
+                    aoClicar={() => setCameraAberta(true)}
+                  />
+                  <AvisoIA campos={iaPreencheu} />
+                </>
+              )}
               <Campo rotulo="Fornecedor" destaque={daIA('fornecedor')} placeholder="Ex: Hortifrúti Zona Sul" value={nota.fornecedor} onChange={(e) => setNota({ ...nota, fornecedor: e.target.value })} />
               <Campo rotulo="Data da nota" type="date" value={nota.data} onChange={(e) => setNota({ ...nota, data: e.target.value })} />
 
-              {produtos.length === 0 ? (
+              {notaSimples ? (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-cartao bg-preenchimento/60 p-3.5 text-sm text-tinta-2">
+                    Essa nota foi lançada antes de a nota ter itens, então não há o que refazer no estoque. Dá pra
+                    ajustar fornecedor, datas, pagamento e valor.
+                  </div>
+                  {notaEdit!.lancamentos.length === 1 && (
+                    <Campo rotulo="Valor da nota" inputMode="decimal" placeholder="R$ 0,00" value={nota.valor} onChange={(e) => setNota({ ...nota, valor: e.target.value })} />
+                  )}
+                </div>
+              ) : produtos.length === 0 ? (
                 <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4">
                   <p className="text-sm text-insight-texto">
                     <strong className="font-bold">Nenhum produto cadastrado ainda.</strong> A nota é lançada item a
@@ -591,21 +714,33 @@ export function GavetaHost() {
                   {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={nota.pagamento === p} aoClicar={() => setNota({ ...nota, pagamento: p })} />)}
                 </div>
               </div>
+              {nota.pagamento === 'Ainda vou pagar' && (
+                <div className="flex flex-col gap-1.5">
+                  <Campo rotulo="Vencimento do boleto" type="date" value={nota.vencimento} onChange={(e) => setNota({ ...nota, vencimento: e.target.value })} />
+                  <p className="text-xs text-tinta-4">É com essa data que o Início avisa “vence hoje” ou “vencido há X dias”.</p>
+                </div>
+              )}
               <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: entrega da semana" value={nota.obs} onChange={(e) => setNota({ ...nota, obs: e.target.value })} />
               <p className="text-xs text-tinta-4">
-                A nota dá entrada no estoque, atualiza o custo de cada produto e entra no CMV do DRE — tudo de uma vez.
+                {notaEdit
+                  ? 'Ao salvar, a entrada no estoque e o CMV são refeitos com os itens acima.'
+                  : 'A nota dá entrada no estoque, atualiza o custo de cada produto e entra no CMV do DRE — tudo de uma vez.'}
               </p>
             </div>
           )}
 
           {etapa === 0 && modo === 'form' && gaveta === 'produto' && (
             <div className="flex flex-col gap-4">
-              <BotaoFoto
-                rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto do produto'}
-                apoio="A IA lê o rótulo e preenche os campos abaixo. Você só confere."
-                aoClicar={() => setCameraAberta(true)}
-              />
-              <AvisoIA campos={iaPreencheu} />
+              {!produtoEdit && (
+                <>
+                  <BotaoFoto
+                    rotulo={iaPreencheu.length ? 'Ler outra foto' : 'Tirar foto do produto'}
+                    apoio="A IA lê o rótulo e preenche os campos abaixo. Você só confere."
+                    aoClicar={() => setCameraAberta(true)}
+                  />
+                  <AvisoIA campos={iaPreencheu} />
+                </>
+              )}
               <Campo rotulo="Nome do produto" destaque={daIA('nome')} placeholder="Grão de bico seco" value={produto.nome} onChange={(e) => setProduto({ ...produto, nome: e.target.value })} />
               <div className={cn(daIA('categoria') && 'rounded-campo border border-telhado/40 bg-insight-fundo/40 p-3')}>
                 <span className="rotulo mb-1.5 block text-tinta-4">Categoria</span>
@@ -630,7 +765,7 @@ export function GavetaHost() {
           {etapa === 0 && modo === 'form' && gaveta === 'fechamento' && (
             <div className="flex flex-col gap-4">
               <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
-                <span className="rotulo text-tinta-4">Vendas delivery (apps) · já veio das plataformas</span>
+                <span className="rotulo text-tinta-4">Vendas delivery · já veio das plataformas</span>
                 <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · {VENDA_APP_DEMO.ifood.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.ifood.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.ifood.bruto)}</span></div>
                 <div className="mt-1 flex items-center justify-between text-sm"><span className="text-tinta-2">Rappi · {VENDA_APP_DEMO.rappi.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.rappi.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.rappi.bruto)}</span></div>
               </div>
@@ -663,7 +798,7 @@ export function GavetaHost() {
                 <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-4">
                   <p className="text-sm text-insight-texto">
                     <strong className="font-bold">Cadastre um produto primeiro.</strong> Todo movimento de estoque é
-                    sobre um produto seu — sem isso o mesmo item vira dois nomes diferentes e a contagem para de fechar.
+                    sobre um produto seu — sem isso o mesmo item vira dois nomes diferentes e a contagem não bate.
                   </p>
                   <Button variante="secundario" onClick={() => abrirGaveta('produto')} className="mt-3">
                     Cadastrar o primeiro produto
@@ -745,7 +880,11 @@ export function GavetaHost() {
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-mata/15 text-mata">✓</div>
               <h3 className="text-tinta" style={{ fontSize: 18, fontWeight: 800 }}>Pronto!</h3>
-              <p className="max-w-xs text-sm text-tinta-3">O lançamento já entrou no painel e aparece no “Quem mexeu no quê”.</p>
+              <p className="max-w-xs text-sm text-tinta-3">
+                {notaEdit || produtoEdit
+                  ? 'A alteração já está valendo e fica registrada no “Quem mexeu no quê”.'
+                  : 'O lançamento já entrou no painel e aparece no “Quem mexeu no quê”.'}
+              </p>
             </div>
           )}
         </div>

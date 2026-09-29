@@ -70,16 +70,15 @@ export const CONFIGS_IMPORT: Record<TipoImport, ConfigImport> = {
   estoque: {
     tipo: 'estoque',
     titulo: 'Contagem de estoque',
-    descricao: 'Atualize a quantidade contada de cada produto já cadastrado.',
+    descricao: 'Registra uma contagem de hoje com a quantidade de cada produto já cadastrado.',
     nomeModelo: 'modelo-contagem-tanocaixa',
     colunas: [
       { chave: 'produto', rotulo: 'Produto (nome cadastrado)', exemplo: 'Grão de bico seco', obrigatorio: true },
       { chave: 'quantidade', rotulo: 'Quantidade contada', exemplo: '18', obrigatorio: true },
-      { chave: 'custo_unitario', rotulo: 'Custo unitário (opcional)', exemplo: '9,80' },
     ],
     exemplos: [
-      ['Grão de bico seco', '18', '9,80'],
-      ['Tomate italiano', '14', '8,90'],
+      ['Grão de bico seco', '18'],
+      ['Tomate italiano', '14'],
     ],
   },
 }
