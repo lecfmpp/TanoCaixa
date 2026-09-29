@@ -19,6 +19,10 @@ import {
   useRestaurante,
   useIntegracoes,
   useConectarIntegracao,
+  useListarLojasIFood,
+  useConectarIFood,
+  useSincronizarIFood,
+  type LojaIFood,
   useSalvarMembro,
   useRemoverMembro,
   useSalvarRestaurante,
@@ -294,12 +298,46 @@ function SeuNegocio() {
 function Integracoes() {
   const integracoes = (useIntegracoes().data ?? []) as IntegracaoDoc[]
   const conectar = useConectarIntegracao()
+  const listarLojas = useListarLojasIFood()
+  const conectarIFood = useConectarIFood()
+  const sincronizarIFood = useSincronizarIFood()
   const { adicionarToast } = useUI()
   const conhecidas = ['ifood', 'rappi', 'maquininha', 'pdv']
   const porId = new Map(integracoes.map((i) => [i.provedor, i]))
 
   const [abrindo, setAbrindo] = useState<string | null>(null)
   const [merchantId, setMerchantId] = useState('')
+  const [lojas, setLojas] = useState<LojaIFood[] | null>(null)
+  const [erroLojas, setErroLojas] = useState('')
+
+  /** Abre o painel de conexão. No iFood já vai buscando as lojas do dono. */
+  async function abrirConexao(prov: string) {
+    setAbrindo(prov)
+    setMerchantId('')
+    setLojas(null)
+    setErroLojas('')
+    if (prov !== 'ifood') return
+    try {
+      setLojas(await listarLojas.mutateAsync())
+    } catch (e) {
+      setErroLojas(mensagemDeErro(e, 'Não foi possível falar com o iFood agora.'))
+    }
+  }
+
+  async function escolherLoja(loja: LojaIFood) {
+    try {
+      await conectarIFood.mutateAsync(loja.id)
+      setAbrindo(null)
+      setLojas(null)
+      adicionarToast({
+        tipo: 'sistema',
+        titulo: `${loja.nome} conectada`,
+        texto: 'O faturamento e as taxas entram sozinhos todo dia às 6h.',
+      })
+    } catch (e) {
+      setErroLojas(mensagemDeErro(e, 'Não foi possível conectar essa loja.'))
+    }
+  }
 
   async function salvarConexao(prov: string) {
     await conectar.mutateAsync({ provedor: prov, merchantId: merchantId.trim(), status: 'conectando' })
@@ -311,6 +349,28 @@ function Integracoes() {
       titulo: `${nome} conectando…`,
       texto: 'Assim que o backend entrar no ar, o faturamento entra sozinho todo dia às 6h.',
     })
+  }
+
+  async function sincronizarAgora(it: IntegracaoDoc) {
+    if (it.provedor !== 'ifood' || !it.merchantId) {
+      adicionarToast({ tipo: 'andamento', titulo: 'Sincronizando…', texto: 'O sync automático roda todo dia às 6h.' })
+      return
+    }
+    adicionarToast({ tipo: 'andamento', titulo: 'Sincronizando com o iFood…', texto: 'Buscando cardápio e situação da loja.' })
+    try {
+      const r = await sincronizarIFood.mutateAsync(it.merchantId)
+      adicionarToast({
+        tipo: 'sistema',
+        titulo: 'iFood sincronizado',
+        texto: `${r.itens} ${r.itens === 1 ? 'item' : 'itens'} de cardápio atualizados.`,
+      })
+    } catch (e) {
+      adicionarToast({
+        tipo: 'sistema',
+        titulo: 'Falha ao sincronizar',
+        texto: mensagemDeErro(e, 'Não foi possível falar com o iFood agora.'),
+      })
+    }
   }
 
   return (
@@ -337,9 +397,18 @@ function Integracoes() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-tinta capitalize">{info?.nome ?? prov}</div>
-                  <div className="text-xs text-tinta-4">
-                    {status === 'conectado' && it?.pedidosUltimoDia != null
-                      ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
+                  <div className="truncate text-xs text-tinta-4">
+                    {status === 'conectado'
+                      ? [
+                          it?.nomeLoja,
+                          it?.pedidosUltimoDia != null
+                            ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
+                            : null,
+                          it?.estadoLoja === 'CLOSED' ? 'loja fechada agora' : null,
+                          it?.pausas?.length ? 'loja pausada' : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || 'conectado'
                       : status === 'conectando'
                         ? 'conectando… entra no ar no próximo sync'
                         : (DICA_PROV[prov] ?? 'não conectado')}
@@ -347,19 +416,15 @@ function Integracoes() {
                 </div>
                 {status === 'conectado' ? (
                   <button
-                    onClick={() =>
-                      adicionarToast({ tipo: 'andamento', titulo: `Sincronizando ${info?.nome}…`, texto: 'O sync automático roda todo dia às 6h.' })
-                    }
-                    className="shrink-0 text-xs font-bold text-mar hover:underline"
+                    onClick={() => it && sincronizarAgora(it)}
+                    disabled={sincronizarIFood.isPending}
+                    className="shrink-0 text-xs font-bold text-mar hover:underline disabled:opacity-50"
                   >
-                    Sincronizar
+                    {sincronizarIFood.isPending ? 'sincronizando…' : 'Sincronizar'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      setAbrindo(aberto ? null : prov)
-                      setMerchantId('')
-                    }}
+                    onClick={() => (aberto ? setAbrindo(null) : abrirConexao(prov))}
                     className={cn('shrink-0 rounded-chip px-2.5 py-1 text-xs font-bold', st.cls)}
                   >
                     {aberto ? 'fechar' : status === 'conectando' ? st.txt : 'conectar'}
@@ -367,12 +432,62 @@ function Integracoes() {
                 )}
               </div>
 
-              {aberto && (
+              {aberto && prov === 'ifood' && (
+                <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3">
+                  {listarLojas.isPending ? (
+                    <p className="text-sm text-tinta-3">Buscando suas lojas no iFood…</p>
+                  ) : erroLojas ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-tinta-3">{erroLojas}</p>
+                      <button
+                        onClick={() => abrirConexao('ifood')}
+                        className="self-start text-xs font-bold text-mar hover:underline"
+                      >
+                        Tentar de novo
+                      </button>
+                    </div>
+                  ) : lojas && lojas.length === 0 ? (
+                    <p className="text-sm text-tinta-3">
+                      Nenhuma loja liberada para o Tá no Caixa ainda. Autorize o acesso no Portal do Parceiro do iFood e
+                      volte aqui.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-tinta-4">
+                        {lojas?.length === 1 ? 'Sua loja no iFood:' : 'Escolha a loja que você quer acompanhar:'}
+                      </p>
+                      <ul className="flex flex-col gap-1.5">
+                        {(lojas ?? []).map((loja) => (
+                          <li key={loja.id}>
+                            <button
+                              onClick={() => escolherLoja(loja)}
+                              disabled={conectarIFood.isPending}
+                              className="flex w-full items-center gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-left transition hover:border-mar disabled:opacity-50"
+                            >
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-bold text-tinta">{loja.nome}</span>
+                                {loja.razaoSocial && (
+                                  <span className="block truncate text-xs text-tinta-4">{loja.razaoSocial}</span>
+                                )}
+                              </span>
+                              <span className="shrink-0 text-xs font-bold text-mar">
+                                {conectarIFood.isPending ? '…' : 'conectar'}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {aberto && prov !== 'ifood' && (
                 <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
                   <input
                     value={merchantId}
                     onChange={(e) => setMerchantId(e.target.value)}
-                    placeholder={prov === 'ifood' ? 'ID da loja no iFood (merchantId)' : 'ID / conta da integração'}
+                    placeholder="ID / conta da integração"
                     className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar"
                   />
                   <button
@@ -391,7 +506,6 @@ function Integracoes() {
     </Cartao>
   )
 }
-
 function Equipe() {
   const { sessao, permissoes } = useAuth()
   const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]

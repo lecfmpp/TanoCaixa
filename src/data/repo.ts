@@ -127,6 +127,17 @@ export interface IntegracaoDoc {
   ultimoSyncEm?: string
   pedidosUltimoDia?: number
   faturamentoUltimoDia?: number
+  /* Dados da loja no marketplace, preenchidos pelo sync (ver functions/src/ifood/sync.ts). */
+  nomeLoja?: string
+  razaoSocial?: string
+  /** OK · WARNING · CLOSED · ERROR */
+  estadoLoja?: string
+  /** Pausas ativas: explicam buraco de faturamento no meio do dia. */
+  pausas?: { id: string; inicio: string; fim: string; motivo?: string }[]
+  horarios?: { dia: string; inicio: string; duracaoMin: number }[]
+  estadoAtualizadoEm?: string
+  itensCardapio?: number
+  cardapioAtualizadoEm?: string
 }
 
 /** Assinatura em tempo real de uma coleção (para sincronização entre abas). */

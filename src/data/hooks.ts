@@ -1,6 +1,7 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
 import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
@@ -1433,5 +1434,65 @@ export function useSalvarContagem() {
   return useMutation({
     mutationFn: (c: ContagemDoc) => repo.contagens.salvar(t, c.id, c),
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'contagens'] }),
+  })
+}
+
+/* ------------------------------ iFood ----------------------------------- */
+
+export interface LojaIFood {
+  id: string
+  nome: string
+  razaoSocial: string
+}
+
+/**
+ * Lojas do iFood autorizadas para o nosso aplicativo. O dono escolhe a dele
+ * numa lista em vez de digitar o código — além de evitar erro de digitação,
+ * é o que faz o clique gerar a consulta real ao iFood.
+ */
+export function useListarLojasIFood() {
+  return useMutation({
+    mutationFn: async (): Promise<LojaIFood[]> => {
+      const fn = httpsCallable<void, { lojas: LojaIFood[] }>(functions, 'listarLojasIFood')
+      const { data } = await fn()
+      return data.lojas ?? []
+    },
+  })
+}
+
+/**
+ * Vincula a loja escolhida ao restaurante. Passa pela Cloud Function porque
+ * é lá que confirmamos, contra o iFood, que a loja existe e que temos acesso.
+ */
+export function useConectarIFood() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (merchantId: string) => {
+      const fn = httpsCallable<
+        { restauranteId: string; provedor: string; merchantId: string },
+        { ok: boolean }
+      >(functions, 'conectarIntegracao')
+      const { data } = await fn({ restauranteId: t, provedor: 'ifood', merchantId })
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
+  })
+}
+
+/** Sincroniza cardápio e estado da loja na hora, sem esperar o sync das 6h. */
+export function useSincronizarIFood() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (merchantId: string) => {
+      const fn = httpsCallable<{ restauranteId: string; merchantId: string }, { itens: number }>(
+        functions,
+        'sincronizarIFoodAgora',
+      )
+      const { data } = await fn({ restauranteId: t, merchantId })
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
   })
 }
