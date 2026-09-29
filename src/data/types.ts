@@ -167,3 +167,44 @@ export interface InsightDoc {
   acaoSugerida?: string
   criadoEm: string
 }
+
+/* ------------------------------ PDV / Cardápio ------------------------------ */
+
+/**
+ * Uma matéria-prima da ficha técnica. A quantidade está na unidade DA FICHA
+ * (g para produto em kg, ml para produto em L, a própria unidade nos demais) —
+ * ninguém pesa 150 g de carne em "0,15 kg".
+ */
+export interface IngredienteFicha {
+  produtoId: string
+  quantidade: number
+  /** Perda no preparo (aparas, cocção, sobra de porcionamento). Entra no custo e vira desperdício previsto. */
+  perdaPct?: number
+}
+
+export interface ComponenteCombo {
+  pratoId: string
+  quantidade: number
+}
+
+/**
+ * Produto final do cardápio — o que o cliente compra. O prato consome matérias-
+ * primas (a ficha técnica) e o combo consome outros pratos. É esse elo que
+ * permite a venda baixar estoque e alimentar CMV e desperdício.
+ */
+export interface PratoDoc extends Autoria {
+  id: string
+  nome: string
+  /** Código do PDV (ex.: P1). Vazio = sem código. */
+  codigo?: string
+  categoria: string
+  tipo: 'prato' | 'combo'
+  preco: number
+  descricao?: string
+  ativo: boolean
+  canais: { presencial: boolean; delivery: boolean }
+  ficha: IngredienteFicha[]
+  componentes?: ComponenteCombo[]
+  editadoEm?: string
+  editadoPorNome?: string
+}

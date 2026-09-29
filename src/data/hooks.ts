@@ -40,6 +40,7 @@ import type {
   AtividadeDoc,
   ContagemDoc,
   MembroDoc,
+  PratoDoc,
 } from './types'
 
 /**
@@ -75,6 +76,10 @@ export function useProdutos() {
 export function useDespesas() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'despesas'], queryFn: () => repo.despesas.listar(t) })
+}
+export function usePratos() {
+  const t = useTenant()
+  return useQuery({ queryKey: [t, 'pratos'], queryFn: () => repo.pratos.listar(t) })
 }
 export function useReceitaDia() {
   const t = useTenant()
@@ -1687,5 +1692,77 @@ export function useSincronizarIFood() {
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
+  })
+}
+
+
+/* ------------------------------ Cardápio (PDV) ------------------------------ */
+
+/** Cria ou edita um prato/combo. Quem criou continua sendo o autor. */
+export function useSalvarPrato() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { existente?: PratoDoc; dados: Omit<PratoDoc, 'id' | 'criadoEm' | 'criadoPorId' | 'criadoPorNome' | 'origem'> }) => {
+      const autor = getAutor()
+      const id = p.existente?.id ?? novoId('pr')
+      const doc: PratoDoc = {
+        ...p.dados,
+        id,
+        ...(p.existente
+          ? {
+              criadoEm: p.existente.criadoEm,
+              criadoPorId: p.existente.criadoPorId,
+              criadoPorNome: p.existente.criadoPorNome,
+              origem: p.existente.origem,
+              editadoEm: autor.criadoEm,
+              editadoPorNome: autor.criadoPorNome,
+            }
+          : { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }),
+      }
+      await repo.pratos.salvar(t, id, doc)
+      await registrarAtividade(
+        t,
+        { acao: p.existente ? 'editou o prato' : 'cadastrou o prato', entidade: doc.nome, tipo: 'Cardápio', valor: doc.preco, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return doc
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'pratos'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+export function useRemoverPrato() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: PratoDoc) => {
+      const autor = getAutor()
+      await repo.pratos.remover(t, p.id)
+      await registrarAtividade(
+        t,
+        { acao: 'excluiu o prato', entidade: p.nome, tipo: 'Cardápio', quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'pratos'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Liga ou desliga um prato no cardápio (sem apagar). */
+export function useAtivarPrato() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ativo }: { id: string; ativo: boolean }) => repo.pratos.salvar(t, id, { ativo }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'pratos'] }),
   })
 }

@@ -4,6 +4,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
 import { useAuth } from '@/auth/AuthContext'
+import { usePdvLiberado } from '@/auth/pdv'
 import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
@@ -12,6 +13,7 @@ import { temRede } from '@/types'
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const { sessao, permissoes, sair } = useAuth()
   const usuario = sessao?.usuario
+  const pdvLiberado = usePdvLiberado()
 
   // "Rede" só faz sentido pra quem opera mais de uma loja — ou pra quem já
   // criou a rede. Loja única não vê o item.
@@ -54,6 +56,16 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-4">
         {itens.map((item) => (
           <li key={item.para}>
+            {item.recurso === 'pdv' && !pdvLiberado ? (
+              <span
+                aria-disabled
+                title="O PDV está chegando"
+                className="flex cursor-not-allowed items-center justify-between rounded-botao px-4 py-2.5 text-[15px] font-medium text-creme/40"
+              >
+                {item.rotulo}
+                <span className="rounded-chip bg-sol/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
+              </span>
+            ) : (
             <NavLink
               to={item.para}
               end={item.para === '/painel'}
@@ -69,6 +81,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
             >
               {item.rotulo}
             </NavLink>
+            )}
           </li>
         ))}
       </ul>

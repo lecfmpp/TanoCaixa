@@ -21,6 +21,7 @@ import type {
   AtividadeDoc,
   InsightDoc,
   MovimentoDoc,
+  PratoDoc,
 } from './types'
 
 /* Caminhos: restaurants/{tenant}/{colecao}/{id} */
@@ -84,6 +85,11 @@ export const repo = {
     salvar: (t: string, id: string, d: Partial<DespesaDoc>) => salvar(t, 'despesas', id, d),
     atualizar: (t: string, id: string, d: Partial<DespesaDoc>) => atualizar(t, 'despesas', id, d),
     remover: (t: string, id: string) => remover(t, 'despesas', id),
+  },
+  pratos: {
+    listar: (t: string) => listar<PratoDoc>(t, 'pratos'),
+    salvar: (t: string, id: string, d: Partial<PratoDoc>) => salvar(t, 'pratos', id, d),
+    remover: (t: string, id: string) => remover(t, 'pratos', id),
   },
   receitaDia: {
     listar: (t: string) => listar<ReceitaDiaDoc>(t, 'receita_dia'),

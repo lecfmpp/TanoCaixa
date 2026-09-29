@@ -28,6 +28,8 @@ import { Ajustes } from '@/pages/painel/Ajustes'
 import { Perfil } from '@/pages/painel/Perfil'
 import { ConvitePage } from '@/pages/auth/ConvitePage'
 import { Plano } from '@/pages/painel/Plano'
+import { PdvLayout } from '@/pages/pdv/PdvLayout'
+import { Cardapio } from '@/pages/pdv/Cardapio'
 
 export default function App() {
   return (
@@ -62,6 +64,10 @@ export default function App() {
                 <Route path="franquias" element={<ExigePermissao chave="veRede"><Franquias /></ExigePermissao>} />
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Numeros /></ExigePermissao>} />
                 <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
+                <Route path="pdv" element={<PdvLayout />}>
+                  <Route index element={<Navigate to="cardapio" replace />} />
+                  <Route path="cardapio" element={<Cardapio />} />
+                </Route>
                 <Route path="assinatura" element={<Plano />} />
                 <Route path="perfil" element={<Perfil />} />
               </Route>

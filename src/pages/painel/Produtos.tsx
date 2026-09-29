@@ -7,7 +7,8 @@ import { Chip } from '@/components/ui/Chip'
 import { useUI } from '@/ui/UIProvider'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useProdutos, useRemoverProduto, useRestaurante } from '@/data/hooks'
+import { useProdutos, usePratos, useRemoverProduto, useRestaurante } from '@/data/hooks'
+import { pratosQueUsam } from '@/data/cardapio'
 import { HOJE } from '@/data/derive'
 import { CATEGORIAS_PRODUTO as CATEGORIAS, CONTA, contaDeCmvDoProduto } from '@/data/planoContas'
 import { mensagemDeErro } from '@/lib/erros'
@@ -23,6 +24,7 @@ function corNome(nome: string): string {
 export function Produtos() {
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
   const remover = useRemoverProduto()
+  const pratos = usePratos().data ?? []
   const restaurante = useRestaurante()
   const produtos = useProdutos()
   const [busca, setBusca] = useState('')
@@ -37,11 +39,16 @@ export function Produtos() {
   }, [produtos.data, filtro, busca])
 
   function pedirExclusao(p: ProdutoDoc) {
+    // Matéria-prima que está numa ficha técnica: o prato ficaria com um buraco.
+    const usados = pratosQueUsam(p.id, pratos)
     confirmar({
       gravidade: 'destrutivo',
       titulo: `Excluir ${p.nome}?`,
       texto:
-        'O produto sai do cadastro e some das próximas notas e contagens. O histórico de compras e entradas no estoque que já existem continua guardado.',
+        'O produto sai do cadastro e some das próximas notas e contagens. O histórico de compras e entradas no estoque que já existem continua guardado.' +
+        (usados.length
+          ? ` Atenção: ele está na ficha técnica de ${usados.length} ${usados.length === 1 ? 'prato' : 'pratos'} do cardápio (${usados.slice(0, 3).map((x) => x.nome).join(', ')}${usados.length > 3 ? '…' : ''}) e o custo deles deixa de contar com ele.`
+          : ''),
       resumo: [
         { rot: 'Produto', val: p.nome },
         { rot: 'Categoria', val: p.categoria },
