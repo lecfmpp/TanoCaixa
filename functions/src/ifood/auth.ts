@@ -15,6 +15,14 @@ export class AutenticacaoIFood {
     this.base = cred.baseUrl ?? BASE_PADRAO
   }
 
+  /**
+   * Descarta o token em cache. Chamado quando o iFood devolve 401 — o token
+   * pode ter sido revogado antes de expirar, e insistir com ele não adianta.
+   */
+  invalidar(): void {
+    this.token = null
+  }
+
   /** Retorna um access token válido (renova se estiver perto de expirar). */
   async accessToken(): Promise<string> {
     const agora = Date.now()
