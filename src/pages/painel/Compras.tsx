@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, Pencil, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Button } from '@/components/ui/Button'
@@ -13,8 +13,9 @@ import { MES_REF, diaDeHoje } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra, type Nota } from '@/data/compras'
 import { diasAte, lembretes } from '@/data/vencimentos'
-import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { mensagemDeErro } from '@/lib/erros'
+import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
+import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
 
@@ -186,54 +187,49 @@ export function Compras() {
               const dias = n.vencimento ? diasAte(n.vencimento, hoje) : null
               return (
                 <div key={n.id} className="border-b border-divisoria last:border-0">
+                  <div className="flex items-center pr-2 transition hover:bg-preenchimento/30">
                   <button
                     onClick={() => setAberta(aberto ? null : n.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-preenchimento/30"
+                    className="flex flex-1 items-center gap-3 px-4 py-3 text-left"
                   >
                     {n.itens.length > 0
                       ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
                       : <span className="w-4 shrink-0" />}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold text-tinta">{n.fornecedor}</span>
+                    <span className="flex-1">
+                      <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
                       <span className="block text-xs text-tinta-4">
                         {dataCurta(dataDoDia(n.data))} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                       </span>
                     </span>
-                    <span className="mono shrink-0 text-right font-bold text-tinta cel:w-28">{brl(n.valorTotal)}</span>
-                  </button>
-
-                  {/* Situação + ações, sempre à vista: editar e pagar são o que se faz com a nota. */}
-                  <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-11">
                     {pago ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-mata">
-                        <CheckCircle2 size={13} /> paga{n.pagoPorNome ? ` por ${n.pagoPorNome}` : ''}
-                      </span>
+                      <span className="text-xs font-bold text-mata">pago{n.pagoPorNome ? ` · ${n.pagoPorNome}` : ''}</span>
                     ) : dias !== null ? (
                       <TagVencimento dias={dias} />
                     ) : (
-                      <span className="rounded-chip bg-preenchimento px-2 py-0.5 text-xs font-bold text-tinta-3">a pagar · sem vencimento</span>
+                      <span className="text-xs font-bold text-telha-alerta">a pagar · sem vencimento</span>
                     )}
-                    {!pago && n.vencimento && (
-                      <span className="text-xs text-tinta-4">vence {dataCurta(dataDoDia(n.vencimento))}</span>
-                    )}
-                    <span className="ml-auto flex items-center gap-2">
-                      {!pago && (
-                        <button
-                          onClick={() => pedirPagamento(n)}
-                          className="inline-flex items-center gap-1.5 rounded-botao bg-mar px-3 py-1.5 text-xs font-bold text-creme transition hover:bg-mar-escuro"
-                        >
-                          <CheckCircle2 size={14} /> Marcar como paga
-                        </button>
-                      )}
-                      <button
-                        onClick={() => abrirGaveta('compra', { nota: n })}
-                        className="inline-flex items-center gap-1.5 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-3 py-1.5 text-xs font-bold text-tinta-2 transition hover:border-mar/50"
-                      >
-                        <Pencil size={13} /> Editar
-                      </button>
-                    </span>
+                    <span className="mono w-28 text-right font-bold text-tinta">{brl(n.valorTotal)}</span>
+                  </button>
+                  {/* Corrigir/duplicar/apagar a nota inteira: os lançamentos do
+                   * DRE, as entradas de estoque e o custo dos produtos andam
+                   * juntos. Compra antiga sem itens não tem estoque atrás — ela
+                   * é corrigida como lançamento avulso, na gaveta de despesa. */}
+                  {!pago && (
+                    <button
+                      onClick={() => pedirPagamento(n)}
+                      className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-botao bg-mar px-3 py-1.5 text-xs font-bold text-creme transition hover:bg-mar-escuro"
+                    >
+                      <CheckCircle2 size={14} /> <span className="hidden cel:inline">Marcar como paga</span><span className="cel:hidden">Pagar</span>
+                    </button>
+                  )}
+                  <AcoesLancamento
+                    alvo={
+                      n.itens.length || n.lancamentos.length > 1
+                        ? { tipo: 'nota', nota: n }
+                        : { tipo: 'conta', despesa: n.lancamentos[0] }
+                    }
+                  />
                   </div>
-
                   {aberto && n.itens.length > 0 && (
                     <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
                       {n.itens.map((i, idx) => (

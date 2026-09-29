@@ -1,6 +1,7 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
 import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
@@ -19,7 +20,17 @@ import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
 import { temRede, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
-import { normalizarCategoria, contaDeCmvDoProduto, TETOS_PADRAO, type Tetos, type CategoriaDespesa } from './planoContas'
+import { precosPorItem, type Nota } from './compras'
+import {
+  normalizarCategoria,
+  contaDeCmvDoProduto,
+  aplicarPlanoDeContas,
+  CONTA,
+  TETOS_PADRAO,
+  type Tetos,
+  type CategoriaDespesa,
+  type ContaPersonalizada,
+} from './planoContas'
 import type {
   DespesaDoc,
   ItemNota,
@@ -299,6 +310,126 @@ export function useContexto() {
   }
 }
 
+/* --------------------------- Plano de contas ---------------------------- *
+ * O plano de contas é o modelo padrão + o que a loja personalizou. O registro
+ * vive em `planoContas.ts` e é reescrito aqui assim que as contas da loja
+ * chegam do banco — por isso todo mundo que lê `CONTA`/`CONTAS` (gaveta, DRE,
+ * Despesas, Plano do mês, importação) enxerga a conta nova sem mudar nada.
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Carrega e aplica o plano de contas da loja. Precisa ser chamado alto na
+ * árvore (o AppShell chama) pra que o registro já esteja em pé quando as
+ * telas renderizarem.
+ */
+export function usePlanoContas() {
+  const t = useTenant()
+  return useQuery({
+    queryKey: [t, 'contas'],
+    queryFn: async () => {
+      const contas = await repo.contas.listar(t)
+      aplicarPlanoDeContas(contas)
+      return contas
+    },
+  })
+}
+
+/** Cria ou corrige uma conta do plano. Id de conta padrão vira edição dela. */
+export function useSalvarConta() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (conta: ContaPersonalizada) => {
+      const autor = getAutor()
+      const jaExiste = !!CONTA[conta.id]
+      await repo.contas.salvar(t, conta.id, conta)
+      await registrarAtividade(
+        t,
+        {
+          acao: jaExiste ? 'corrigiu a conta' : 'criou a conta',
+          entidade: conta.nome ?? conta.id,
+          tipo: 'Plano de contas',
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return conta
+    },
+    onSuccess: () => invalidarPlano(qc, t),
+  })
+}
+
+/**
+ * Tira uma conta do plano.
+ *
+ * Conta própria some de vez — e por isso, se ainda tem lançamento, é
+ * obrigatório dizer para qual conta ele vai: sem destino o valor sumiria do
+ * DRE junto com a conta. Conta do modelo padrão só é ARQUIVADA (sai das listas
+ * de lançamento, o histórico continua somando), então mover é opcional.
+ */
+export function useRemoverConta() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ id, destino }: { id: string; destino?: CategoriaDespesa }) => {
+      const autor = getAutor()
+      const info = CONTA[id]
+      const daConta = (await repo.despesas.listar(t)).filter((d) => d.categoria === id)
+      if (daConta.length && !destino && info?.propria) {
+        throw new Error('Escolha para qual conta os lançamentos vão antes de apagar esta.')
+      }
+      // Sem destino, nada se move: a conta é arquivada e o histórico fica nela.
+      const aMover = destino ? daConta : []
+      for (const d of aMover) {
+        await repo.despesas.salvar(t, d.id, {
+          categoria: normalizarCategoria(destino),
+          editadoEm: autor.criadoEm,
+          editadoPorId: autor.criadoPorId,
+          editadoPorNome: autor.criadoPorNome,
+        })
+      }
+      if (info?.propria) await repo.contas.remover(t, id)
+      else await repo.contas.salvar(t, id, { id, arquivada: true })
+      await registrarAtividade(
+        t,
+        {
+          acao: info?.propria ? 'apagou a conta' : 'arquivou a conta',
+          entidade: info?.nome ?? id,
+          tipo: 'Plano de contas',
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return { movidos: aMover.length }
+    },
+    onSuccess: () => {
+      invalidarPlano(qc, t)
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+    },
+  })
+}
+
+/** Devolve uma conta arquivada pro uso. */
+export function useReativarConta() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => repo.contas.salvar(t, id, { id, arquivada: false }),
+    onSuccess: () => invalidarPlano(qc, t),
+  })
+}
+
+function invalidarPlano(qc: ReturnType<typeof useQueryClient>, t: string) {
+  qc.invalidateQueries({ queryKey: [t, 'contas'] })
+  qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+}
+
 /* ------------------------------- Mutations ------------------------------ */
 
 function novoId(prefixo: string) {
@@ -316,6 +447,16 @@ function useAutor() {
     _inicial: sessao?.usuario.avatarInicial ?? 'H',
     _cor: sessao?.usuario.avatarCor ?? '#2E5F73',
   })
+}
+
+/** Só os campos de autoria que vão pro documento (sem o avatar do toast). */
+function autoriaDe(autor: ReturnType<ReturnType<typeof useAutor>>) {
+  return {
+    criadoEm: autor.criadoEm,
+    criadoPorId: autor.criadoPorId,
+    criadoPorNome: autor.criadoPorNome,
+    origem: autor.origem,
+  }
 }
 
 /** Registra uma linha na trilha de autoria. */
@@ -381,12 +522,120 @@ export function useCriarDespesa() {
   })
 }
 
+/**
+ * Corrige uma conta da casa já lançada. Grava por cima do mesmo documento —
+ * o id não muda, então o caixa, o DRE e o Plano do mês leem a versão nova sem
+ * precisar saber que houve correção. Quem lançou continua sendo o autor.
+ *
+ * Compra de mercadoria NÃO passa por aqui: ela tem estoque e custo de produto
+ * atrás e é corrigida pela nota inteira, em `useAtualizarNota`.
+ */
+export function useAtualizarDespesa() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ id, dados }: { id: string; dados: Partial<DespesaDoc> }) => {
+      const autor = getAutor()
+      const atual = (await repo.despesas.listar(t)).find((d) => d.id === id)
+      if (!atual) throw new Error('Esse lançamento não existe mais — atualize a tela.')
+      const doc: DespesaDoc = {
+        ...atual,
+        ...dados,
+        categoria: normalizarCategoria(dados.categoria ?? atual.categoria),
+        id,
+        // Autoria original preservada; a correção fica registrada ao lado.
+        criadoEm: atual.criadoEm,
+        criadoPorId: atual.criadoPorId,
+        criadoPorNome: atual.criadoPorNome,
+        origem: atual.origem,
+        editadoEm: autor.criadoEm,
+        editadoPorId: autor.criadoPorId,
+        editadoPorNome: autor.criadoPorNome,
+      }
+      await repo.despesas.salvar(t, id, doc)
+      await registrarAtividade(
+        t,
+        { acao: 'corrigiu a despesa', entidade: doc.fornecedor, tipo: 'Despesa', valor: doc.valorTotal, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return doc
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Cópia de uma conta da casa, com id próprio e apontando pra origem. */
+export function useDuplicarDespesa() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ origem, dados }: { origem: DespesaDoc; dados?: Partial<DespesaDoc> }) => {
+      const autor = getAutor()
+      const id = novoId('d')
+      // `itens`, `notaId` e as marcas de edição ficam de fora: a cópia nasce
+      // limpa, senão ela apareceria dentro da nota fiscal do original.
+      const {
+        id: _id,
+        notaId: _notaId,
+        itens: _itens,
+        editadoEm: _e1,
+        editadoPorId: _e2,
+        editadoPorNome: _e3,
+        ...base
+      } = origem
+      const doc: DespesaDoc = {
+        ...base,
+        ...dados,
+        categoria: normalizarCategoria(dados?.categoria ?? origem.categoria),
+        duplicadoDe: origem.id,
+        ...autoriaDe(autor),
+        id,
+      }
+      await repo.despesas.salvar(t, id, doc)
+      await registrarAtividade(
+        t,
+        { acao: 'duplicou a despesa', entidade: doc.fornecedor, tipo: 'Despesa', valor: doc.valorTotal, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return doc
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/**
+ * Apaga uma conta da casa. Lançamento de nota fiscal não entra aqui — quem
+ * apaga compra é `useRemoverNota`, que leva junto o estoque e o custo.
+ */
 export function useRemoverDespesa() {
   const t = useTenant()
   const qc = useQueryClient()
+  const getAutor = useAutor()
   return useMutation({
-    mutationFn: (id: string) => repo.despesas.remover(t, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'despesas'] }),
+    mutationFn: async (alvo: string | DespesaDoc) => {
+      const autor = getAutor()
+      const id = typeof alvo === 'string' ? alvo : alvo.id
+      const doc = typeof alvo === 'string' ? (await repo.despesas.listar(t)).find((d) => d.id === id) : alvo
+      await repo.despesas.remover(t, id)
+      await registrarAtividade(
+        t,
+        { acao: 'apagou a despesa', entidade: doc?.fornecedor ?? 'lançamento', tipo: 'Despesa', valor: doc?.valorTotal, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+      return doc ?? null
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
   })
 }
 
@@ -666,7 +915,7 @@ export interface ItemDaNota {
   precoUnitario: number
 }
 
-export interface DadosDaNota {
+export interface EntradaNota {
   fornecedor: string
   data: string
   formaPagamento: DespesaDoc['formaPagamento']
@@ -677,254 +926,358 @@ export interface DadosDaNota {
   itens: ItemDaNota[]
 }
 
-type Autoria = Pick<DespesaDoc, 'criadoEm' | 'criadoPorId' | 'criadoPorNome' | 'origem'>
+/** Autoria já resolvida, sem os campos privados do `useAutor`. */
+type Autoria = { criadoEm: string; criadoPorId: string; criadoPorNome: string; origem: ReturnType<typeof origemAtual> }
+
+/** Marca de quem corrigiu o lançamento, sem apagar quem lançou. */
+function marcaDeEdicao(autor: Autoria) {
+  return { editadoEm: autor.criadoEm, editadoPorId: autor.criadoPorId, editadoPorNome: autor.criadoPorNome }
+}
 
 /**
- * Grava a nota: entrada no estoque item a item, custo do produto em dia e o
- * financeiro separado por conta do DRE (alimento, bebida, descartável) — senão
- * uma nota mista jogaria bebida na linha de alimentos. Os lançamentos carregam
- * o mesmo `notaId`, então a tela remonta a nota inteira.
+ * Grava os documentos de uma nota fiscal sob um `notaId`: movimento de estoque
+ * por item, custo do produto em dia e o financeiro separado por conta do DRE.
+ *
+ * É o mesmo caminho para lançar e para corrigir — corrigir apaga os docs
+ * antigos da nota e regrava por aqui, senão sobrava movimento de estoque órfão
+ * de uma versão que não existe mais.
  */
 async function gravarNota(
   t: string,
   notaId: string,
-  e: DadosDaNota,
+  e: EntradaNota,
   autoria: Autoria,
-  extra: Partial<DespesaDoc> = {},
-  atualizarCustoDe: (produtoId: string) => boolean = () => true,
+  extras: Record<string, unknown> = {},
 ) {
   const produtos = await repo.produtos.listar(t)
   const porId = new Map(produtos.map((p) => [p.id, p]))
   const criados: { colecao: string; id: string }[] = []
 
+  // Item a item: entrada no estoque + custo do produto em dia.
   const linhas = e.itens
     .map((i) => ({ item: i, produto: porId.get(i.produtoId) }))
     .filter((l): l is { item: ItemDaNota; produto: ProdutoDoc } => !!l.produto && l.item.quantidade > 0)
 
-  try {
-    for (const { item, produto } of linhas) {
-      const movimentoId = novoId('mov')
-      await repo.movimentos.salvar(t, movimentoId, {
-        id: movimentoId,
-        tipo: 'Entrou mercadoria',
-        notaId,
-        data: e.data,
+  for (const { item, produto } of linhas) {
+    const movimentoId = novoId('mov')
+    await repo.movimentos.salvar(t, movimentoId, {
+      id: movimentoId,
+      tipo: 'Entrou mercadoria',
+      notaId,
+      data: e.data,
+      produtoId: produto.id,
+      produto: produto.nome,
+      fornecedor: e.fornecedor || 'Fornecedor',
+      quantidade: item.quantidade,
+      custoUnitario: item.precoUnitario,
+      valor: item.quantidade * item.precoUnitario,
+      ...autoria,
+    })
+    criados.push({ colecao: 'movimentos_estoque', id: movimentoId })
+  }
+
+  // Financeiro: um lançamento por conta de CMV envolvida na nota.
+  const porConta = new Map<CategoriaDespesa, ItemNota[]>()
+  for (const { item, produto } of linhas) {
+    // A conta sai da CATEGORIA do produto (embalagem → descartáveis,
+    // limpeza → limpeza). O `entraNoCmv` não decide aqui: marmita marcada
+    // como fora do CMV ia parar na conta de Limpeza, o que ninguém entende
+    // lendo o DRE.
+    const conta = contaDeCmvDoProduto(produto.categoria)
+    const variacao =
+      produto.custoAtual > 0 ? ((item.precoUnitario - produto.custoAtual) / produto.custoAtual) * 100 : undefined
+    porConta.set(conta, [
+      ...(porConta.get(conta) ?? []),
+      {
         produtoId: produto.id,
         produto: produto.nome,
-        fornecedor: e.fornecedor || 'Fornecedor',
+        unidade: produto.unidade,
         quantidade: item.quantidade,
-        custoUnitario: item.precoUnitario,
-        valor: item.quantidade * item.precoUnitario,
-        ...autoria,
-      })
-      criados.push({ colecao: 'movimentos_estoque', id: movimentoId })
-    }
+        precoUnitario: item.precoUnitario,
+        ...(variacao === undefined ? {} : { variacao }),
+      },
+    ])
+  }
 
-    const porConta = new Map<CategoriaDespesa, ItemNota[]>()
-    for (const { item, produto } of linhas) {
-      // A conta sai da CATEGORIA do produto (embalagem → descartáveis,
-      // limpeza → limpeza). O `entraNoCmv` não decide aqui: marmita marcada
-      // como fora do CMV ia parar na conta de Limpeza, o que ninguém entende
-      // lendo o DRE.
-      const conta = contaDeCmvDoProduto(produto.categoria)
-      const variacao =
-        produto.custoAtual > 0 ? ((item.precoUnitario - produto.custoAtual) / produto.custoAtual) * 100 : undefined
-      porConta.set(conta, [
-        ...(porConta.get(conta) ?? []),
-        {
-          produtoId: produto.id,
-          produto: produto.nome,
-          unidade: produto.unidade,
-          quantidade: item.quantidade,
-          precoUnitario: item.precoUnitario,
-          ...(variacao === undefined ? {} : { variacao }),
-        },
-      ])
-    }
+  let valorTotal = 0
+  for (const [categoria, itens] of porConta) {
+    const valor = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+    valorTotal += valor
+    const despesaId = novoId('d')
+    await repo.despesas.salvar(t, despesaId, {
+      id: despesaId,
+      fornecedor: e.fornecedor || 'Fornecedor',
+      descricao: itens.map((i) => i.produto).join(', '),
+      categoria,
+      valorTotal: valor,
+      dataCompetencia: e.data,
+      ...(e.vencimento ? { dataVencimento: e.vencimento } : {}),
+      formaPagamento: e.formaPagamento,
+      status: e.status,
+      recorrente: false,
+      tipoLancamento: 'compra',
+      notaId,
+      itens,
+      ...(e.observacao ? { observacao: e.observacao } : {}),
+      ...autoria,
+      ...extras,
+    })
+    criados.push({ colecao: 'despesas', id: despesaId })
+  }
 
-    let valorTotal = 0
-    for (const [categoria, itens] of porConta) {
-      const valor = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
-      valorTotal += valor
-      const despesaId = novoId('d')
-      await repo.despesas.salvar(t, despesaId, {
-        id: despesaId,
-        fornecedor: e.fornecedor || 'Fornecedor',
-        descricao: itens.map((i) => i.produto).join(', '),
-        categoria,
-        valorTotal: valor,
-        dataCompetencia: e.data,
-        ...(e.vencimento ? { dataVencimento: e.vencimento } : {}),
-        formaPagamento: e.formaPagamento,
-        status: e.status,
-        recorrente: false,
-        tipoLancamento: 'compra',
-        notaId,
-        itens,
-        ...(e.observacao ? { observacao: e.observacao } : {}),
-        ...autoria,
-        ...extra,
-      })
-      criados.push({ colecao: 'despesas', id: despesaId })
-    }
+  // O custo do produto é sempre o da compra mais recente que existe hoje —
+  // recalculado do histórico inteiro, não escrito direto pelo preço desta nota.
+  // Assim editar uma nota velha não sobrescreve o preço de uma compra nova.
+  await resincronizarCustos(t, linhas.map((l) => l.produto.id))
 
-    // O custo do produto passa a ser o da última compra — é ele que valoriza
-    // a contagem de estoque e, por tabela, o CMV do DRE.
-    for (const { item, produto } of linhas) {
-      if (item.precoUnitario > 0 && item.precoUnitario !== produto.custoAtual && atualizarCustoDe(produto.id)) {
-        await repo.produtos.atualizar(t, produto.id, { custoAtual: item.precoUnitario })
-      }
-    }
+  return { notaId, valorTotal, itens: linhas.length, criados }
+}
 
-    return { valorTotal, itens: linhas.length, criados }
-  } catch (erro) {
-    // Falhou no meio: desfaz o que já entrou, pra nota não ficar pela metade.
-    await Promise.allSettled(criados.map((c) => deleteDoc(doc(db, 'restaurants', t, c.colecao, c.id))))
-    throw erro
+/**
+ * Apaga tudo que uma nota gerou: os lançamentos financeiros e as entradas de
+ * estoque. Devolve o que foi apagado e quais produtos precisam de custo novo.
+ */
+async function apagarNota(t: string, notaId: string) {
+  const despesas = (await repo.despesas.listar(t)).filter((d) => (d.notaId ?? d.id) === notaId)
+  const movimentos = (await repo.movimentos.listar(t)).filter((m) => m.notaId === notaId)
+  const produtosTocados = new Set<string>([
+    ...movimentos.map((m) => m.produtoId),
+    ...despesas.flatMap((d) => (d.itens ?? []).map((i) => i.produtoId)),
+  ])
+  for (const d of despesas) await repo.despesas.remover(t, d.id)
+  for (const m of movimentos) await repo.movimentos.remover(t, m.id)
+  return {
+    despesas,
+    movimentos,
+    produtosTocados: [...produtosTocados].filter(Boolean),
+    valorTotal: despesas.reduce((s, d) => s + d.valorTotal, 0),
   }
 }
 
-/** Lança uma nota fiscal de mercadoria: estoque, custo do produto e financeiro de uma vez. */
+/**
+ * Recoloca o custo de cada produto no preço da compra mais recente que ainda
+ * existe. É o que fecha o furo de apagar ou corrigir uma nota: sem isso o
+ * produto continuava valendo o preço de uma compra que não existe mais, e a
+ * contagem de estoque (e o CMV do DRE) mentia junto.
+ *
+ * Produto sem nenhuma compra restante mantém o custo do cadastro — zerar aqui
+ * apagaria o valor da prateleira.
+ */
+async function resincronizarCustos(t: string, produtoIds: string[]) {
+  if (!produtoIds.length) return
+  const alvo = new Set(produtoIds)
+  const despesas = await repo.despesas.listar(t)
+  const produtos = await repo.produtos.listar(t)
+  const precos = new Map(precosPorItem(despesas).map((p) => [p.produtoId, p]))
+  for (const produto of produtos) {
+    if (!alvo.has(produto.id)) continue
+    const preco = precos.get(produto.id)
+    if (!preco || preco.atual <= 0 || preco.atual === produto.custoAtual) continue
+    await repo.produtos.atualizar(t, produto.id, { custoAtual: preco.atual })
+  }
+}
+
+/**
+ * Lança uma nota fiscal de mercadoria: dá entrada no estoque item a item,
+ * atualiza o custo de cada produto e gera o lançamento financeiro.
+ *
+ * O financeiro sai separado por conta do DRE (alimento, bebida, descartável),
+ * senão uma nota mista jogaria bebida na linha de alimentos. Os lançamentos
+ * carregam o mesmo `notaId`, então a tela remonta a nota inteira.
+ */
 export function useCriarNota() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (e: DadosDaNota) => {
+    mutationFn: async (e: EntradaNota) => {
       const autor = getAutor()
-      const autoria = {
-        criadoEm: autor.criadoEm,
-        criadoPorId: autor.criadoPorId,
-        criadoPorNome: autor.criadoPorNome,
-        origem: autor.origem,
-      }
-      const notaId = novoId('nf')
-      const r = await gravarNota(t, notaId, e, autoria)
+      const r = await gravarNota(t, novoId('nf'), e, autoriaDe(autor))
       await registrarAtividade(
         t,
-        { acao: 'lançou a nota do', entidade: e.fornecedor || 'fornecedor', tipo: 'Compra', valor: r.valorTotal, quem: '', quemInicial: '', quemCor: '' },
-        autor,
-      )
-      return { notaId, ...r }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
-      qc.invalidateQueries({ queryKey: [t, 'produtos'] })
-      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
-      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
-    },
-  })
-}
-
-/**
- * Edita uma nota já lançada. Os itens mudam estoque e financeiro, então a
- * nota é refeita inteira: grava a versão nova primeiro e só depois apaga a
- * antiga — se algo falhar no meio, a nota original continua intacta.
- * Autoria original e a marca de "pago" são preservadas.
- */
-export function useEditarNota() {
-  const t = useTenant()
-  const qc = useQueryClient()
-  const getAutor = useAutor()
-  return useMutation({
-    mutationFn: async ({ notaId, dados }: { notaId: string; dados: DadosDaNota }) => {
-      const autor = getAutor()
-      const [despesasAntigas, movimentosAntigos] = await Promise.all([
-        repo.despesas.listar(t),
-        repo.movimentos.listar(t),
-      ])
-      const velhasDespesas = despesasAntigas.filter((d) => d.notaId === notaId)
-      const velhosMovimentos = movimentosAntigos.filter((m) => m.notaId === notaId)
-      const original = velhasDespesas[0]
-      if (!original) throw new Error('Não achei essa nota. Atualize a página e tente de novo.')
-
-      // Só mexe no custo do produto se esta nota ainda for a compra mais recente dele.
-      const maisRecente = (produtoId: string) =>
-        !movimentosAntigos.some(
-          (m) => m.produtoId === produtoId && m.tipo === 'Entrou mercadoria' && m.notaId !== notaId && (m.data ?? '') > dados.data,
-        )
-
-      const autoria = {
-        criadoEm: original.criadoEm,
-        criadoPorId: original.criadoPorId,
-        criadoPorNome: original.criadoPorNome,
-        origem: original.origem,
-      }
-      const pagoAntes = velhasDespesas.every((d) => d.status === 'pago')
-      const extra: Partial<DespesaDoc> = {
-        editadoEm: autor.criadoEm,
-        editadoPorNome: autor.criadoPorNome,
-        // Já estava paga: mantém quem pagou. Passou a paga agora: quem editou pagou.
-        ...(dados.status === 'pago'
-          ? pagoAntes
-            ? { pagoEm: original.pagoEm, pagoPorNome: original.pagoPorNome }
-            : { pagoEm: autor.criadoEm, pagoPorNome: autor.criadoPorNome }
-          : {}),
-      }
-      const r = await gravarNota(t, notaId, dados, autoria, extra, maisRecente)
-
-      // A versão nova já existe; agora sim sai a antiga.
-      await Promise.all([
-        ...velhasDespesas.map((d) => repo.despesas.remover(t, d.id)),
-        ...velhosMovimentos.map((m) => repo.movimentos.remover(t, m.id)),
-      ])
-      await registrarAtividade(
-        t,
-        { acao: 'editou a nota do', entidade: dados.fornecedor || 'fornecedor', tipo: 'Compra', valor: r.valorTotal, quem: '', quemInicial: '', quemCor: '' },
+        {
+          acao: 'lançou a nota do',
+          entidade: e.fornecedor || 'fornecedor',
+          tipo: 'Compra',
+          valor: r.valorTotal,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
         autor,
       )
       return r
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
-      qc.invalidateQueries({ queryKey: [t, 'produtos'] })
-      qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
-      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
-    },
+    onSuccess: () => invalidarNota(qc, t),
   })
 }
 
 /**
- * Edita lançamento antigo, de antes da nota ligar-se a itens: só o cabeçalho
- * (fornecedor, datas, pagamento) e o valor. Não há item nem estoque a refazer.
+ * Corrige uma nota já lançada. Apaga os documentos da versão antiga e regrava
+ * a nota inteira sob o MESMO `notaId`: o estoque, o custo dos produtos e o
+ * financeiro passam a contar a mesma história. Quem lançou continua sendo o
+ * autor; quem corrigiu fica registrado ao lado.
  */
-export function useEditarLancamentos() {
+export function useAtualizarNota() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (p: {
-      ids: string[]
-      dados: Pick<DespesaDoc, 'fornecedor' | 'dataCompetencia' | 'formaPagamento' | 'status'> & {
-        dataVencimento?: string
-        observacao?: string
-        valorTotal?: number
-      }
-    }) => {
+    mutationFn: async ({ notaId, entrada }: { notaId: string; entrada: EntradaNota }) => {
       const autor = getAutor()
-      for (const id of p.ids) {
-        await repo.despesas.atualizar(t, id, {
-          fornecedor: p.dados.fornecedor,
-          dataCompetencia: p.dados.dataCompetencia,
-          formaPagamento: p.dados.formaPagamento,
-          status: p.dados.status,
-          dataVencimento: p.dados.dataVencimento ?? '',
-          observacao: p.dados.observacao ?? '',
-          ...(p.dados.valorTotal !== undefined && p.ids.length === 1 ? { valorTotal: p.dados.valorTotal } : {}),
-          editadoEm: autor.criadoEm,
-          editadoPorNome: autor.criadoPorNome,
-        })
-      }
+      const antiga = await apagarNota(t, notaId)
+      const original = antiga.despesas[0]
+      // A autoria original sobrevive à correção — senão o "quem lançou" da
+      // tela passava a apontar pra quem só arrumou o preço de um item.
+      const autoria: Autoria = original
+        ? {
+            criadoEm: original.criadoEm,
+            criadoPorId: original.criadoPorId,
+            criadoPorNome: original.criadoPorNome,
+            origem: original.origem,
+          }
+        : autoriaDe(autor)
+      // Já estava paga: mantém quem pagou. Passou a paga agora: quem corrigiu pagou.
+      const pagaAntes = antiga.despesas.length > 0 && antiga.despesas.every((d) => d.status === 'pago')
+      const marcaPago =
+        entrada.status === 'pago'
+          ? pagaAntes
+            ? { pagoEm: original?.pagoEm, pagoPorNome: original?.pagoPorNome }
+            : { pagoEm: autor.criadoEm, pagoPorNome: autor.criadoPorNome }
+          : {}
+      const r = await gravarNota(t, notaId, entrada, autoria, { ...marcaDeEdicao(autor), ...marcaPago })
+      // Produto que saiu da nota também precisa de custo novo.
+      await resincronizarCustos(t, antiga.produtosTocados)
       await registrarAtividade(
         t,
-        { acao: 'editou o lançamento de', entidade: p.dados.fornecedor, tipo: 'Compra', valor: p.dados.valorTotal, quem: '', quemInicial: '', quemCor: '' },
+        {
+          acao: 'corrigiu a nota do',
+          entidade: entrada.fornecedor || 'fornecedor',
+          tipo: 'Compra',
+          valor: r.valorTotal,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
         autor,
       )
+      return r
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
-      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    onSuccess: () => invalidarNota(qc, t),
+  })
+}
+
+/**
+ * Apaga a nota inteira: lançamentos financeiros, entradas de estoque e o custo
+ * dos produtos de volta pra compra anterior. Apagar só a despesa deixava a
+ * mercadoria no estoque sem nunca ter sido paga.
+ */
+export function useRemoverNota() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async ({ notaId, fornecedor }: { notaId: string; fornecedor?: string }) => {
+      const autor = getAutor()
+      const apagada = await apagarNota(t, notaId)
+      await resincronizarCustos(t, apagada.produtosTocados)
+      await registrarAtividade(
+        t,
+        {
+          acao: 'apagou a nota do',
+          entidade: fornecedor || apagada.despesas[0]?.fornecedor || 'fornecedor',
+          tipo: 'Compra',
+          valor: apagada.valorTotal,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return apagada
     },
+    onSuccess: () => invalidarNota(qc, t),
+  })
+}
+
+/** Nota nova, igualzinha à original — com `notaId` próprio e estoque próprio. */
+export function useDuplicarNota() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (e: EntradaNota) => {
+      const autor = getAutor()
+      const r = await gravarNota(t, novoId('nf'), e, autoriaDe(autor))
+      await registrarAtividade(
+        t,
+        {
+          acao: 'duplicou a nota do',
+          entidade: e.fornecedor || 'fornecedor',
+          tipo: 'Compra',
+          valor: r.valorTotal,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return r
+    },
+    onSuccess: () => invalidarNota(qc, t),
+  })
+}
+
+/**
+ * Traz de volta uma nota apagada, com o mesmo `notaId` e a autoria original.
+ * É o "Desfazer" do toast: apagar uma nota mexe em estoque, custo de produto e
+ * financeiro, então desfazer precisa refazer os três — apagar de novo o que
+ * sobrou não bastava.
+ */
+export function useRestaurarNota() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (nota: Nota) => {
+      const autor = getAutor()
+      const base = nota.lancamentos[0]
+      const autoria: Autoria = base
+        ? { criadoEm: base.criadoEm, criadoPorId: base.criadoPorId, criadoPorNome: base.criadoPorNome, origem: base.origem }
+        : autoriaDe(autor)
+      return gravarNota(
+        t,
+        nota.id,
+        {
+          fornecedor: nota.fornecedor,
+          data: nota.data,
+          formaPagamento: nota.formaPagamento,
+          status: nota.status,
+          vencimento: nota.vencimento,
+          observacao: base?.observacao,
+          itens: nota.itens.map((i) => ({
+            produtoId: i.produtoId,
+            quantidade: i.quantidade,
+            precoUnitario: i.precoUnitario,
+          })),
+        },
+        autoria,
+      )
+    },
+    onSuccess: () => invalidarNota(qc, t),
+  })
+}
+
+/** Traz de volta uma conta da casa apagada, com o mesmo id e a mesma autoria. */
+export function useRestaurarDespesa() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (d: DespesaDoc) => {
+      await repo.despesas.salvar(t, d.id, d)
+      return d
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'despesas'] }),
   })
 }
 
@@ -964,6 +1317,14 @@ export function useMarcarPago() {
       qc.invalidateQueries({ queryKey: [t, 'atividades'] })
     },
   })
+}
+
+/** Uma nota mexe em quatro coleções — todas revalidam juntas. */
+function invalidarNota(qc: ReturnType<typeof useQueryClient>, t: string) {
+  qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+  qc.invalidateQueries({ queryKey: [t, 'produtos'] })
+  qc.invalidateQueries({ queryKey: [t, 'movimentos_estoque'] })
+  qc.invalidateQueries({ queryKey: [t, 'atividades'] })
 }
 
 /**
@@ -1266,5 +1627,65 @@ export function useSalvarContagem() {
   return useMutation({
     mutationFn: (c: ContagemDoc) => repo.contagens.salvar(t, c.id, c),
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'contagens'] }),
+  })
+}
+
+/* ------------------------------ iFood ----------------------------------- */
+
+export interface LojaIFood {
+  id: string
+  nome: string
+  razaoSocial: string
+}
+
+/**
+ * Lojas do iFood autorizadas para o nosso aplicativo. O dono escolhe a dele
+ * numa lista em vez de digitar o código — além de evitar erro de digitação,
+ * é o que faz o clique gerar a consulta real ao iFood.
+ */
+export function useListarLojasIFood() {
+  return useMutation({
+    mutationFn: async (): Promise<LojaIFood[]> => {
+      const fn = httpsCallable<void, { lojas: LojaIFood[] }>(functions, 'listarLojasIFood')
+      const { data } = await fn()
+      return data.lojas ?? []
+    },
+  })
+}
+
+/**
+ * Vincula a loja escolhida ao restaurante. Passa pela Cloud Function porque
+ * é lá que confirmamos, contra o iFood, que a loja existe e que temos acesso.
+ */
+export function useConectarIFood() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (merchantId: string) => {
+      const fn = httpsCallable<
+        { restauranteId: string; provedor: string; merchantId: string },
+        { ok: boolean }
+      >(functions, 'conectarIntegracao')
+      const { data } = await fn({ restauranteId: t, provedor: 'ifood', merchantId })
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
+  })
+}
+
+/** Sincroniza cardápio e estado da loja na hora, sem esperar o sync das 6h. */
+export function useSincronizarIFood() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (merchantId: string) => {
+      const fn = httpsCallable<{ restauranteId: string; merchantId: string }, { itens: number }>(
+        functions,
+        'sincronizarIFoodAgora',
+      )
+      const { data } = await fn({ restauranteId: t, merchantId })
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
   })
 }

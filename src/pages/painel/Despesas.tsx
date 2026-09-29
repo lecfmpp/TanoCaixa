@@ -14,7 +14,8 @@ import { mensagemDeErro } from '@/lib/erros'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { nomeDoMes } from '@/data/planoMes'
-import { ehCompra } from '@/data/compras'
+import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
+import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 import { useUI } from '@/ui/UIProvider'
 import type { DespesaDoc } from '@/data/types'
 
@@ -54,6 +55,21 @@ export function Despesas() {
   )
 
   const compras = useMemo(() => doMes.filter(ehCompra), [doMes])
+  /**
+   * Uma nota fiscal pode virar mais de um lançamento (alimento e bebida saem
+   * em contas diferentes do DRE). Corrigir ou apagar é sempre pela nota
+   * inteira — meia nota deixaria mercadoria no estoque sem ninguém ter pagado.
+   */
+  const notaDoLancamento = useMemo(() => {
+    const mapa = new Map<string, Nota>()
+    // Compra antiga, sem itens detalhados, não tem estoque atrás: ela é
+    // corrigida como lançamento avulso mesmo, não pela gaveta de nota fiscal.
+    for (const n of agruparEmNotas(compras)) {
+      if (!n.itens.length) continue
+      for (const l of n.lancamentos) mapa.set(l.id, n)
+    }
+    return mapa
+  }, [compras])
   const contas = useMemo(() => doMes.filter((d) => !ehCompra(d)), [doMes])
   const daAba = aba === 'compras' ? compras : contas
 
@@ -195,7 +211,7 @@ export function Despesas() {
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>Data</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th>
+                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>Data</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th><Th><span className="sr-only">Ações</span></Th>
               </tr>
             </thead>
             <tbody>
@@ -211,7 +227,14 @@ export function Despesas() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={26} />
-                      <div className="leading-tight"><div className="text-xs font-semibold text-tinta">{d.criadoPorNome}</div><div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), HOJE)}</div></div>
+                      <div className="leading-tight">
+                        <div className="text-xs font-semibold text-tinta">{d.criadoPorNome}</div>
+                        <div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), HOJE)}</div>
+                        {/* Correção não apaga quem lançou — fica registrada ao lado. */}
+                        {d.editadoPorNome && (
+                          <div className="text-[11px] text-telhado">corrigido por {d.editadoPorNome}</div>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -231,6 +254,16 @@ export function Despesas() {
                     )}
                   </td>
                   <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(d.valorTotal)}</td>
+                  <td className="px-2 py-3">
+                    <AcoesLancamento
+                      alvo={
+                        aba === 'compras' && notaDoLancamento.get(d.id)
+                          ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
+                          : { tipo: 'conta', despesa: d }
+                      }
+                      className="flex justify-end"
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -101,7 +101,7 @@ export function Produtos() {
                   <div className="text-[11px] text-tinta-4">por {p.unidade}</div>
                 </div>
               </div>
-              <AcoesProduto produto={p} aoEditar={() => abrirGaveta('produto', { produto: p })} aoExcluir={() => pedirExclusao(p)} />
+              <AcoesProduto produto={p} aoEditar={() => abrirGaveta('produto', { alvo: 'produto', produto: p })} aoExcluir={() => pedirExclusao(p)} />
             </li>
           ))}
         </ul>
@@ -142,7 +142,7 @@ export function Produtos() {
                   <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(p.custoAtual)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end">
-                      <AcoesProduto produto={p} aoEditar={() => abrirGaveta('produto', { produto: p })} aoExcluir={() => pedirExclusao(p)} />
+                      <AcoesProduto produto={p} aoEditar={() => abrirGaveta('produto', { alvo: 'produto', produto: p })} aoExcluir={() => pedirExclusao(p)} />
                     </div>
                   </td>
                 </tr>

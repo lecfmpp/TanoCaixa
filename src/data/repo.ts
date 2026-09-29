@@ -10,7 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { normalizarCategoria } from './planoContas'
+import { normalizarCategoria, type ContaPersonalizada } from './planoContas'
 import type {
   RestauranteDoc,
   MembroDoc,
@@ -108,6 +108,12 @@ export const repo = {
     listar: (t: string) => listar<InsightDoc>(t, 'insights'),
     salvar: (t: string, id: string, d: Partial<InsightDoc>) => salvar(t, 'insights', id, d),
   },
+  // Plano de contas da loja: edições das contas padrão e as contas próprias.
+  contas: {
+    listar: (t: string) => listar<ContaPersonalizada>(t, 'contas'),
+    salvar: (t: string, id: string, d: Partial<ContaPersonalizada>) => salvar(t, 'contas', id, d),
+    remover: (t: string, id: string) => remover(t, 'contas', id),
+  },
   integracoes: {
     listar: (t: string) => listar<IntegracaoDoc>(t, 'integracoes'),
     salvar: (t: string, id: string, d: Partial<IntegracaoDoc>) => salvar(t, 'integracoes', id, d),
@@ -122,6 +128,17 @@ export interface IntegracaoDoc {
   ultimoSyncEm?: string
   pedidosUltimoDia?: number
   faturamentoUltimoDia?: number
+  /* Dados da loja no marketplace, preenchidos pelo sync (ver functions/src/ifood/sync.ts). */
+  nomeLoja?: string
+  razaoSocial?: string
+  /** OK · WARNING · CLOSED · ERROR */
+  estadoLoja?: string
+  /** Pausas ativas: explicam buraco de faturamento no meio do dia. */
+  pausas?: { id: string; inicio: string; fim: string; motivo?: string }[]
+  horarios?: { dia: string; inicio: string; duracaoMin: number }[]
+  estadoAtualizadoEm?: string
+  itensCardapio?: number
+  cardapioAtualizadoEm?: string
 }
 
 /** Assinatura em tempo real de uma coleção (para sincronização entre abas). */

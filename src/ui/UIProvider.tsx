@@ -6,8 +6,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { DespesaDoc, ProdutoDoc } from '@/data/types'
 import type { Nota } from '@/data/compras'
-import type { ProdutoDoc } from '@/data/types'
 
 export type TipoToast = 'sucesso' | 'andamento' | 'atencao' | 'erro' | 'sistema'
 
@@ -32,13 +32,18 @@ export interface ModalConfig {
 
 export type TipoGaveta = 'despesa' | 'compra' | 'produto' | 'estoque' | 'fechamento'
 
-/** O que a gaveta recebe quando abre pra EDITAR algo que já existe. */
-export interface DadosGaveta {
-  /** Nota fiscal em edição (gaveta 'compra'). */
-  nota?: Nota
-  /** Produto em edição (gaveta 'produto'). */
-  produto?: ProdutoDoc
-}
+/**
+ * Lançamento que a gaveta abriu para CORRIGIR, em vez de criar do zero. A
+ * gaveta é a mesma — ela só grava por cima do que já existe (mesmo id, mesma
+ * nota). Sem isso a gaveta só sabia criar, e um lançamento errado ficava
+ * errado pra sempre.
+ *
+ * Duplicar não passa por aqui: a cópia é criada direto, com confirmação.
+ */
+export type EdicaoGaveta =
+  | { alvo: 'despesa'; despesa: DespesaDoc }
+  | { alvo: 'nota'; nota: Nota }
+  | { alvo: 'produto'; produto: ProdutoDoc }
 
 interface UIContexto {
   toasts: Toast[]
@@ -48,8 +53,9 @@ interface UIContexto {
   confirmar: (c: ModalConfig) => void
   fecharModal: () => void
   gaveta: TipoGaveta | null
-  gavetaDados: DadosGaveta | null
-  abrirGaveta: (t: TipoGaveta, dados?: DadosGaveta) => void
+  /** Lançamento que a gaveta aberta está corrigindo ou copiando. */
+  gavetaEdicao: EdicaoGaveta | null
+  abrirGaveta: (t: TipoGaveta, edicao?: EdicaoGaveta) => void
   fecharGaveta: () => void
 }
 
@@ -69,7 +75,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [modal, setModal] = useState<ModalConfig | null>(null)
   const [gaveta, setGaveta] = useState<TipoGaveta | null>(null)
-  const [gavetaDados, setGavetaDados] = useState<DadosGaveta | null>(null)
+  const [gavetaEdicao, setGavetaEdicao] = useState<EdicaoGaveta | null>(null)
 
   const removerToast = useCallback((id: string) => {
     setToasts((ts) => ts.filter((t) => t.id !== id))
@@ -88,13 +94,13 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const confirmar = useCallback((c: ModalConfig) => setModal(c), [])
   const fecharModal = useCallback(() => setModal(null), [])
-  const abrirGaveta = useCallback((t: TipoGaveta, dados?: DadosGaveta) => {
-    setGavetaDados(dados ?? null)
+  const abrirGaveta = useCallback((t: TipoGaveta, edicao?: EdicaoGaveta) => {
+    setGavetaEdicao(edicao ?? null)
     setGaveta(t)
   }, [])
   const fecharGaveta = useCallback(() => {
     setGaveta(null)
-    setGavetaDados(null)
+    setGavetaEdicao(null)
   }, [])
 
   const valor = useMemo<UIContexto>(
@@ -106,11 +112,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
       confirmar,
       fecharModal,
       gaveta,
-      gavetaDados,
+      gavetaEdicao,
       abrirGaveta,
       fecharGaveta,
     }),
-    [toasts, adicionarToast, removerToast, modal, confirmar, fecharModal, gaveta, gavetaDados, abrirGaveta, fecharGaveta],
+    [toasts, adicionarToast, removerToast, modal, confirmar, fecharModal, gaveta, gavetaEdicao, abrirGaveta, fecharGaveta],
   )
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
