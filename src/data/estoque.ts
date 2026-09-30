@@ -13,6 +13,8 @@ import type { ContagemDoc, MovimentoDoc, ProdutoDoc } from './types'
 
 export const TIPO_ENTRADA = 'Entrou mercadoria'
 export const TIPO_PERDA = 'Perda ou quebra'
+/** Saída que o PDV gera a cada pedido, pela ficha técnica dos pratos vendidos. */
+export const TIPO_VENDA = 'Saída por venda'
 
 /** Dia do movimento ('YYYY-MM-DD'): a nota manda a data dela. */
 export function diaDoMovimento(m: MovimentoDoc): string {
@@ -131,6 +133,8 @@ export interface PeriodoDeSaida {
   contagemFinal: number
   /** Perda ou quebra registrada no período — já está dentro de `saiu`. */
   perdaRegistrada: number
+  /** O que o PDV diz que as vendas consumiram no período (ficha técnica × pedidos). */
+  vendido: number
   /** contagemInicial + entrou − contagemFinal. Negativo = sobrou mais do que devia. */
   saiu: number
 }
@@ -143,6 +147,10 @@ export interface SaidaDoProduto {
   periodos: PeriodoDeSaida[]
   saiu: number
   valorSaiu: number
+  /** Total que as vendas do PDV explicam nesses períodos. */
+  vendido: number
+  /** Saída real − o que as vendas + perdas registradas explicam. Positivo = sumiu mais do que o PDV vendeu. */
+  semExplicacao: number
   /** Média de saída por dia, olhando só os períodos com saída positiva. */
   mediaPorDia: number
 }
@@ -203,6 +211,7 @@ export function saidasPorProduto(
         entrou,
         contagemFinal: fim.quantidade,
         perdaRegistrada: doProduto(produtoId, TIPO_PERDA, ini.dia, fim.dia),
+        vendido: doProduto(produtoId, TIPO_VENDA, ini.dia, fim.dia),
         saiu: Math.round((ini.quantidade + entrou - fim.quantidade) * 1000) / 1000,
       })
     }
@@ -221,6 +230,8 @@ export function saidasPorProduto(
       periodos,
       saiu,
       valorSaiu: saiu * custoUnitario,
+      vendido: periodos.reduce((s, p) => s + p.vendido, 0),
+      semExplicacao: saiu - periodos.reduce((s, p) => s + p.vendido + p.perdaRegistrada, 0),
       mediaPorDia: diasPositivos ? positivos.reduce((s, p) => s + p.saiu, 0) / diasPositivos : 0,
     })
   }
@@ -262,6 +273,8 @@ export function contextoParaIA(
       unidade: s.unidade,
       custoUnitario: arred(s.custoUnitario),
       saiuNoTotal: arred(s.saiu),
+      explicadoPelasVendas: arred(s.vendido),
+      saiuSemExplicacao: arred(s.semExplicacao),
       valorQueSaiu: arred(s.valorSaiu),
       mediaPorDia: arred(s.mediaPorDia),
       periodos: s.periodos.slice(-6).map((p) => ({
@@ -271,6 +284,7 @@ export function contextoParaIA(
         entrou: arred(p.entrou),
         contagemFinal: arred(p.contagemFinal),
         perdaRegistrada: arred(p.perdaRegistrada),
+        vendidoNoPdv: arred(p.vendido),
         saiu: arred(p.saiu),
       })),
     })),

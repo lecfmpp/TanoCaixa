@@ -269,6 +269,10 @@ Você recebe um JSON com os dados REAIS do estoque dele:
   saiu = contagemInicial + entrou − contagemFinal. "saiu" negativo significa que sobrou mais do que
   devia (entrada sem nota, contagem errada ou produto contado em unidade diferente).
   perdaRegistrada é a parte da saída que o dono já registrou como perda ou quebra.
+  vendidoNoPdv / explicadoPelasVendas é o quanto as VENDAS do PDV (ficha técnica × pedidos) explicam dessa saída.
+  saiuSemExplicacao = saída real − vendas − perdas registradas: se for positivo, sumiu mais mercadoria do que
+  o PDV vendeu (desperdício, porcionamento acima da ficha, furto ou venda sem lançar); se for negativo, sobrou.
+  Se explicadoPelasVendas for 0 em tudo, o dono ainda não usa o PDV — ignore essa coluna.
 - entradasRecentes: mercadoria que entrou por nota fiscal
 - perdasRegistradas: perdas e quebras já registradas
 

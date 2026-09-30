@@ -9,7 +9,7 @@ import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useReceitaDia, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
@@ -176,6 +176,7 @@ export function GavetaHost() {
   const atualizarDespesa = useAtualizarDespesa()
   const atualizarNota = useAtualizarNota()
   const produtos = useProdutos().data ?? []
+  const receitaPdvHoje = (useReceitaDia().data ?? []).find((r) => r.id === `pdv-${hojeISO()}`)
   const desfazer = useDesfazer()
   const cfg = useRestaurante().data
   // Quem não é franqueado não tem royalties nem fundo — o grupo some da lista
@@ -851,6 +852,11 @@ export function GavetaHost() {
 
           {etapa === 0 && modo === 'form' && gaveta === 'fechamento' && (
             <div className="flex flex-col gap-4">
+              {receitaPdvHoje && (
+                <div className="rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-3.5 text-sm text-insight-texto">
+                  <strong className="font-bold">O PDV já fechou as vendas de hoje ({brl(receitaPdvHoje.totalDia)}).</strong> Se lançar aqui também, a mesma venda entra duas vezes no DRE — use só pra o que o PDV não registra.
+                </div>
+              )}
               <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
                 <span className="rotulo text-tinta-4">Vendas delivery · já veio das plataformas</span>
                 <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · {VENDA_APP_DEMO.ifood.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.ifood.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.ifood.bruto)}</span></div>

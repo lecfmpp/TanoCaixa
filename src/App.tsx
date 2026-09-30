@@ -30,6 +30,11 @@ import { ConvitePage } from '@/pages/auth/ConvitePage'
 import { Plano } from '@/pages/painel/Plano'
 import { PdvLayout } from '@/pages/pdv/PdvLayout'
 import { Cardapio } from '@/pages/pdv/Cardapio'
+import { NovoPedido } from '@/pages/pdv/NovoPedido'
+import { Pedidos } from '@/pages/pdv/Pedidos'
+import { CaixaPdv } from '@/pages/pdv/CaixaPdv'
+import { Historico } from '@/pages/pdv/Historico'
+import { Kds } from '@/pages/pdv/Kds'
 
 export default function App() {
   return (
@@ -65,7 +70,12 @@ export default function App() {
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Numeros /></ExigePermissao>} />
                 <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
                 <Route path="pdv" element={<PdvLayout />}>
-                  <Route index element={<Navigate to="cardapio" replace />} />
+                  <Route index element={<Navigate to="pedidos" replace />} />
+                  <Route path="pedido/novo" element={<NovoPedido />} />
+                  <Route path="pedidos" element={<Pedidos />} />
+                  <Route path="caixa" element={<CaixaPdv />} />
+                  <Route path="historico" element={<Historico />} />
+                  <Route path="kds" element={<Kds />} />
                   <Route path="cardapio" element={<Cardapio />} />
                 </Route>
                 <Route path="assinatura" element={<Plano />} />

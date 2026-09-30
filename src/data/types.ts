@@ -146,6 +146,8 @@ export interface MovimentoDoc extends Autoria {
   notaId?: string
   /** Quem entregou — só nos movimentos que vieram de nota. */
   fornecedor?: string
+  /** Preenchido quando o movimento nasceu de uma venda do PDV. */
+  pedidoId?: string
   observacao?: string
 }
 
@@ -207,4 +209,78 @@ export interface PratoDoc extends Autoria {
   componentes?: ComponenteCombo[]
   editadoEm?: string
   editadoPorNome?: string
+}
+
+/* ------------------------------ PDV / Vendas ------------------------------ */
+
+export type FormaPagamentoPdv = 'dinheiro' | 'pix' | 'debito' | 'credito' | 'voucher'
+export type TipoPedido = 'balcao' | 'retirada' | 'entrega'
+export type StatusPedido = 'em_preparo' | 'pronto' | 'em_entrega' | 'concluido' | 'cancelado'
+
+export interface ItemPedido {
+  pratoId: string
+  nome: string
+  codigo?: string
+  quantidade: number
+  precoUnitario: number
+  obs?: string
+}
+
+export interface PedidoPdvDoc extends Autoria {
+  id: string
+  /** Número do pedido no dia — o que o cliente e a cozinha chamam. */
+  numero: number
+  dia: string // 'YYYY-MM-DD'
+  caixaId: string
+  tipo: TipoPedido
+  cliente?: string
+  telefone?: string
+  endereco?: string
+  itens: ItemPedido[]
+  subtotal: number
+  desconto: number
+  taxaEntrega: number
+  total: number
+  pagamentos: { forma: FormaPagamentoPdv; valor: number }[]
+  troco: number
+  status: StatusPedido
+  prontoEm?: string
+  saiuEm?: string
+  concluidoEm?: string
+  canceladoEm?: string
+  canceladoPorNome?: string
+  motivoCancelamento?: string
+  /** Custo teórico dos itens (ficha técnica) no momento da venda. */
+  custo: number
+  /** O que a venda tirou do estoque, na unidade de compra do produto. */
+  consumo: { produtoId: string; quantidade: number; perda: number }[]
+  /** Movimentos de estoque gerados — apagados se o pedido for cancelado. */
+  movimentoIds: string[]
+}
+
+export interface MovimentoDeCaixa {
+  tipo: 'sangria' | 'reforco'
+  valor: number
+  motivo?: string
+  em: string
+  porNome: string
+}
+
+export interface CaixaPdvDoc extends Autoria {
+  id: string
+  numero: number
+  status: 'aberto' | 'fechado'
+  abertoEm: string
+  abertoPorNome: string
+  dia: string
+  fundo: number
+  movimentos: MovimentoDeCaixa[]
+  fechadoEm?: string
+  fechadoPorNome?: string
+  /** O que o operador contou de cada forma ao fechar. */
+  contado?: { forma: FormaPagamentoPdv; esperado: number; contado: number }[]
+  /** Contado − esperado, somando as formas. Negativo = quebra de caixa. */
+  diferenca?: number
+  faturamento?: number
+  obs?: string
 }

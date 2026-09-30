@@ -437,12 +437,12 @@ function invalidarPlano(qc: ReturnType<typeof useQueryClient>, t: string) {
 
 /* ------------------------------- Mutations ------------------------------ */
 
-function novoId(prefixo: string) {
+export function novoId(prefixo: string) {
   return `${prefixo}-${Math.random().toString(36).slice(2, 9)}`
 }
 
 /** Dados de autoria do usuário logado no momento. */
-function useAutor() {
+export function useAutor() {
   const { sessao } = useAuth()
   return () => ({
     criadoEm: new Date().toISOString(),
@@ -465,7 +465,7 @@ function autoriaDe(autor: ReturnType<ReturnType<typeof useAutor>>) {
 }
 
 /** Registra uma linha na trilha de autoria. */
-async function registrarAtividade(
+export async function registrarAtividade(
   tenant: string,
   a: Omit<AtividadeDoc, 'id' | 'criadoEm' | 'criadoPorId' | 'criadoPorNome' | 'origem'>,
   autor: ReturnType<ReturnType<typeof useAutor>>,

@@ -3,6 +3,8 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
+  where,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -22,6 +24,8 @@ import type {
   InsightDoc,
   MovimentoDoc,
   PratoDoc,
+  PedidoPdvDoc,
+  CaixaPdvDoc,
 } from './types'
 
 /* Caminhos: restaurants/{tenant}/{colecao}/{id} */
@@ -90,6 +94,18 @@ export const repo = {
     listar: (t: string) => listar<PratoDoc>(t, 'pratos'),
     salvar: (t: string, id: string, d: Partial<PratoDoc>) => salvar(t, 'pratos', id, d),
     remover: (t: string, id: string) => remover(t, 'pratos', id),
+  },
+  caixasPdv: {
+    listar: (t: string) => listar<CaixaPdvDoc>(t, 'pdv_caixas'),
+    salvar: (t: string, id: string, d: Partial<CaixaPdvDoc>) => salvar(t, 'pdv_caixas', id, d),
+  },
+  pedidosPdv: {
+    /** Pedidos de um dia em diante — o PDV nunca precisa do histórico inteiro de uma vez. */
+    desde: async (t: string, dia: string) => {
+      const snap = await getDocs(query(colRef(t, 'pdv_pedidos'), where('dia', '>=', dia)))
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as PedidoPdvDoc)
+    },
+    salvar: (t: string, id: string, d: Partial<PedidoPdvDoc>) => salvar(t, 'pdv_pedidos', id, d),
   },
   receitaDia: {
     listar: (t: string) => listar<ReceitaDiaDoc>(t, 'receita_dia'),

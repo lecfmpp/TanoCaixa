@@ -21,6 +21,7 @@ import { HOJE, MES_REF, diaDeHoje } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import {
   TIPO_ENTRADA,
+  TIPO_VENDA,
   contextoParaIA,
   diaDaContagem,
   diaDoMovimento,
@@ -222,13 +223,13 @@ function VisaoAdicionados({
 /* ------------------------------ Log de entradas ------------------------- */
 
 function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: MovimentoDoc[]; aoRegistrarSaida: () => void }) {
-  const [filtro, setFiltro] = useState<'entradas' | 'outros'>('entradas')
+  const [filtro, setFiltro] = useState<'entradas' | 'vendas' | 'outros'>('entradas')
   const [limite, setLimite] = useState(15)
 
   const lista = useMemo(
     () =>
       movimentos
-        .filter((m) => (filtro === 'entradas' ? m.tipo === TIPO_ENTRADA : m.tipo !== TIPO_ENTRADA))
+        .filter((m) => (filtro === 'entradas' ? m.tipo === TIPO_ENTRADA : filtro === 'vendas' ? m.tipo === TIPO_VENDA : m.tipo !== TIPO_ENTRADA && m.tipo !== TIPO_VENDA))
         .sort((a, b) => {
           const da = diaDoMovimento(a)
           const db = diaDoMovimento(b)
@@ -247,6 +248,7 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Chip rotulo="Entradas" selecionado={filtro === 'entradas'} aoClicar={() => { setFiltro('entradas'); setLimite(15) }} />
+          <Chip rotulo="Vendas (PDV)" selecionado={filtro === 'vendas'} aoClicar={() => { setFiltro('vendas'); setLimite(15) }} />
           <Chip rotulo="Perdas e transferências" selecionado={filtro === 'outros'} aoClicar={() => { setFiltro('outros'); setLimite(15) }} />
         </div>
       </div>
@@ -255,7 +257,9 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
         <p className="border-t border-divisoria px-5 py-8 text-center text-sm text-tinta-4">
           {filtro === 'entradas'
             ? 'Nenhuma entrada registrada. Cada item de nota fiscal lançada vira uma linha aqui.'
-            : 'Nenhuma perda ou transferência registrada.'}
+            : filtro === 'vendas'
+              ? 'Nenhuma venda do PDV ainda. Cada pedido lançado tira do estoque o que a ficha técnica manda.'
+              : 'Nenhuma perda ou transferência registrada.'}
         </p>
       ) : (
         <ul className="flex flex-col border-t border-divisoria">
@@ -266,7 +270,7 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
                 <div className="min-w-0">
                   <div className="truncate text-sm font-bold text-tinta">{m.produto}</div>
                   <div className="text-xs text-tinta-4">
-                    {entrada ? 'Entrou' : m.tipo}
+                    {entrada ? 'Entrou' : m.tipo === TIPO_VENDA ? 'Saiu na venda' : m.tipo}
                     {m.fornecedor ? ` · ${m.fornecedor}` : ''}
                     {m.observacao ? ` · ${m.observacao}` : ''}
                   </div>
@@ -433,6 +437,12 @@ function InsightsIA({
                     <>
                       <span className="mono font-bold text-tinta">saiu {qtd(s.saiu)} {s.unidade}</span>
                       <span className="mono ml-2 text-xs text-tinta-4">{brl(s.valorSaiu)}</span>
+                      {s.vendido > 0 && (
+                        <span className={cn('block text-xs', s.semExplicacao > s.saiu * 0.1 ? 'font-bold text-telha-alerta' : 'text-tinta-4')}>
+                          vendas explicam {qtd(s.vendido)} {s.unidade}
+                          {s.semExplicacao > 0.001 ? ` · ${qtd(s.semExplicacao)} ${s.unidade} sem explicação (${brl(s.semExplicacao * s.custoUnitario)})` : ''}
+                        </span>
+                      )}
                     </>
                   )}
                 </span>
@@ -628,15 +638,25 @@ function AbaContagem({ produtos, contagens }: { produtos: ProdutoDoc[]; contagen
               return (
                 <li
                   key={l.produtoId}
-                  className="flex items-center gap-3 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-3"
+                  className="flex flex-col gap-2.5 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-3"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-bold text-tinta">{p.nome}</div>
-                    <div className="text-xs text-tinta-4">
-                      {anterior ? `última: ${qtd(anterior.quantidade)} ${p.unidade} em ${dataCurta(dataDoDia(anterior.dia))}` : 'nunca contado'}
+                  {/* Nome inteiro em cima; quantidade embaixo, com espaço pro polegar. */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold leading-snug text-tinta">{p.nome}</div>
+                      <div className="text-xs text-tinta-4">
+                        {anterior ? `última: ${qtd(anterior.quantidade)} ${p.unidade} em ${dataCurta(dataDoDia(anterior.dia))}` : 'nunca contado'}
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setLinhas((ls) => ls.filter((x) => x.produtoId !== l.produtoId))}
+                      aria-label={`Tirar ${p.nome} da contagem`}
+                      className="-mr-1 -mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-botao text-tinta-4 transition hover:bg-preenchimento hover:text-telha-alerta"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <label className="flex shrink-0 items-center gap-1.5">
+                  <label className="flex items-center gap-2">
                     <input
                       autoFocus={foco === l.produtoId}
                       inputMode="decimal"
@@ -645,17 +665,10 @@ function AbaContagem({ produtos, contagens }: { produtos: ProdutoDoc[]; contagen
                       aria-label={`Quantidade de ${p.nome}`}
                       value={l.quantidade}
                       onChange={(e) => setQuantidade(l.produtoId, e.target.value)}
-                      className="mono h-12 w-24 rounded-campo border border-[rgba(46,95,115,0.2)] bg-fundo-app px-3 text-right text-[18px] font-bold text-tinta outline-none focus:border-mar focus:ring-2 focus:ring-mar/15"
+                      className="mono h-12 min-w-0 flex-1 rounded-campo border border-[rgba(46,95,115,0.2)] bg-fundo-app px-3 text-right text-[18px] font-bold text-tinta outline-none focus:border-mar focus:ring-2 focus:ring-mar/15"
                     />
-                    <span className="w-9 text-xs text-tinta-4">{p.unidade}</span>
+                    <span className="w-14 shrink-0 text-sm font-semibold text-tinta-3">{p.unidade}</span>
                   </label>
-                  <button
-                    onClick={() => setLinhas((ls) => ls.filter((x) => x.produtoId !== l.produtoId))}
-                    aria-label={`Tirar ${p.nome} da contagem`}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-botao text-tinta-4 transition hover:bg-preenchimento hover:text-telha-alerta"
-                  >
-                    <X size={18} />
-                  </button>
                 </li>
               )
             })}
