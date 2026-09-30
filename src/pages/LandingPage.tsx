@@ -143,7 +143,7 @@ function Problema() {
 
 function ComoFunciona() {
   const passos = [
-    ['Conecta uma vez', 'iFood, Rappi, maquininha e PDV. Depois disso o faturamento entra sozinho todo dia às 6 da manhã.'],
+    ['Conecta uma vez', 'Conecta o iFood. Depois disso o faturamento e as taxas do app entram sozinhos todo dia às 6 da manhã.'],
     ['Tira foto da nota', 'Fornecedor, itens, preços e categoria saem prontos em 5 segundos. Você só confere e confirma.'],
     ['Olha o painel em 3 segundos', 'Entrou, saiu, sobrou e quanto falta pro ponto de equilíbrio. Sem relatório pra rodar.'],
     ['Recebe o recado de segunda', 'Um e-mail curto com o que mudou na semana e uma coisa só pra fazer. No WhatsApp quando estoura um teto.'],

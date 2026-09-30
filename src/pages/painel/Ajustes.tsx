@@ -18,7 +18,6 @@ import {
   useAtividades,
   useRestaurante,
   useIntegracoes,
-  useConectarIntegracao,
   useListarLojasIFood,
   useConectarIFood,
   useSincronizarIFood,
@@ -196,18 +195,12 @@ export function Ajustes() {
 
 const PROVEDOR = {
   ifood: { nome: 'iFood', cor: '#EA1D2C' },
-  rappi: { nome: 'Rappi', cor: '#FF5A00' },
 } as const
 
 const STATUS_INT: Record<IntegracaoDoc['status'], { txt: string; cls: string }> = {
   conectado: { txt: 'conectado', cls: 'bg-mata/12 text-mata' },
   conectando: { txt: 'conectando…', cls: 'bg-sol/20 text-insight-rotulo' },
   desconectado: { txt: 'conectar', cls: 'bg-preenchimento text-tinta-2' },
-}
-
-const DICA_PROV: Record<string, string> = {
-  maquininha: 'Stone, Cielo, PagSeguro, Mercado Pago',
-  pdv: 'Colibri, Consumer, Goomer…',
 }
 
 /** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
@@ -297,23 +290,22 @@ function SeuNegocio() {
 
 function Integracoes() {
   const integracoes = (useIntegracoes().data ?? []) as IntegracaoDoc[]
-  const conectar = useConectarIntegracao()
   const listarLojas = useListarLojasIFood()
   const conectarIFood = useConectarIFood()
   const sincronizarIFood = useSincronizarIFood()
   const { adicionarToast } = useUI()
-  const conhecidas = ['ifood', 'rappi', 'maquininha', 'pdv']
+  // Só o iFood é integrado. Documentos antigos em `integracoes/` (ex.: rappi)
+  // continuam no Firestore, mas não aparecem aqui.
+  const conhecidas = ['ifood']
   const porId = new Map(integracoes.map((i) => [i.provedor, i]))
 
   const [abrindo, setAbrindo] = useState<string | null>(null)
-  const [merchantId, setMerchantId] = useState('')
   const [lojas, setLojas] = useState<LojaIFood[] | null>(null)
   const [erroLojas, setErroLojas] = useState('')
 
   /** Abre o painel de conexão. No iFood já vai buscando as lojas do dono. */
   async function abrirConexao(prov: string) {
     setAbrindo(prov)
-    setMerchantId('')
     setLojas(null)
     setErroLojas('')
     if (prov !== 'ifood') return
@@ -337,18 +329,6 @@ function Integracoes() {
     } catch (e) {
       setErroLojas(mensagemDeErro(e, 'Não foi possível conectar essa loja.'))
     }
-  }
-
-  async function salvarConexao(prov: string) {
-    await conectar.mutateAsync({ provedor: prov, merchantId: merchantId.trim(), status: 'conectando' })
-    setAbrindo(null)
-    setMerchantId('')
-    const nome = PROVEDOR[prov as keyof typeof PROVEDOR]?.nome ?? prov
-    adicionarToast({
-      tipo: 'sistema',
-      titulo: `${nome} conectando…`,
-      texto: 'Assim que o backend entrar no ar, o faturamento entra sozinho todo dia às 6h.',
-    })
   }
 
   async function sincronizarAgora(it: IntegracaoDoc) {
@@ -411,7 +391,7 @@ function Integracoes() {
                           .join(' · ') || 'conectado'
                       : status === 'conectando'
                         ? 'conectando… entra no ar no próximo sync'
-                        : (DICA_PROV[prov] ?? 'não conectado')}
+                        : 'não conectado'}
                   </div>
                 </div>
                 {status === 'conectado' ? (
@@ -479,24 +459,6 @@ function Integracoes() {
                       </ul>
                     </>
                   )}
-                </div>
-              )}
-
-              {aberto && prov !== 'ifood' && (
-                <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
-                  <input
-                    value={merchantId}
-                    onChange={(e) => setMerchantId(e.target.value)}
-                    placeholder="ID / conta da integração"
-                    className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar"
-                  />
-                  <button
-                    onClick={() => salvarConexao(prov)}
-                    disabled={!merchantId.trim() || conectar.isPending}
-                    className="shrink-0 rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
-                  >
-                    Conectar
-                  </button>
                 </div>
               )}
             </li>

@@ -121,7 +121,6 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
 
 const CANAIS = [
   { id: 'ifood', nome: 'iFood', dica: 'vendas e taxas automáticas' },
-  { id: 'rappi', nome: 'Rappi', dica: '' },
   { id: 'whatsapp', nome: 'WhatsApp / site próprio', dica: 'o mais lucrativo pra você' },
   { id: 'balcao', nome: 'Balcão e retirada', dica: 'maquininha ou Pix na loja' },
 ]
@@ -137,7 +136,7 @@ export function Passo2Canais({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
     <div>
       <TituloPasso
         titulo="Por onde você vende?"
-        sub="Marca tudo que usa hoje — cada canal marcado vira uma integração no passo 4."
+        sub="Marca tudo que usa hoje — se vende no iFood, ele vira uma integração no passo 4."
       />
       <div className="flex flex-col gap-2.5">
         {CANAIS.map((c) => {
@@ -269,13 +268,10 @@ export function Passo4Integracoes() {
     <div>
       <TituloPasso
         titulo="Conecta pra não digitar nunca mais"
-        sub="Uma vez só. Depois o faturamento entra sozinho todo dia."
+        sub="Conecta o iFood uma vez só. Depois o faturamento e as taxas do app entram sozinhos todo dia."
       />
       <div className="flex flex-col gap-2.5">
         <LinhaIntegracao nome="iFood" dica="conectado · 38 pedidos ontem" estado="conectado" />
-        <LinhaIntegracao nome="Rappi" dica="conectando…" estado="conectando" />
-        <LinhaIntegracao nome="Maquininha" dica="Stone, Cielo, PagSeguro, Mercado Pago" estado="conectar" />
-        <LinhaIntegracao nome="Sistema de PDV" dica="Colibri, Consumer, Goomer…" estado="conectar" />
       </div>
     </div>
   )
@@ -476,7 +472,7 @@ export function Passo6Metas({
       <LinhaPontilhada rotulo="taxa de app" />
 
       <p className="pretty text-sm text-tinta-3">
-        As taxas de app (iFood, Rappi…) entram sozinhas quando você conecta as integrações — cerca de{' '}
+        As taxas do iFood entram sozinhas quando você conecta a integração — cerca de{' '}
         <strong className="font-bold text-tinta-2">{TAXA_APP_TETO_PADRAO}%</strong> pra começar. Dá pra ajustar
         depois no Plano do mês.
       </p>
@@ -559,7 +555,7 @@ export function Passo8Pronto() {
   const [tipoImp, setTipoImp] = useState<TipoImport>('produtos')
   const feitos = [
     'Restaurante e equipe cadastrados',
-    'iFood conectado, Rappi a caminho',
+    'iFood conectado',
     'Meta de R$ 50.000 e tetos definidos',
   ]
   return (

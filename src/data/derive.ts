@@ -279,12 +279,12 @@ export function dreDoMes(entrada: Contexto | Contexto[], mes: string = MES_REF):
   const L = (l: Omit<LinhaDRE, 'pct'>) => linhas.push({ ...l, pct: pct(l.valor) })
 
   /* ---------------------------- Receita bruta --------------------------- */
-  const porCanal = (canais: string[]) =>
+  const porCanal = (canais: readonly string[]) =>
     rec.reduce((s, r) => s + r.canais.filter((c) => canais.includes(c.canal)).reduce((a, c) => a + c.valorBruto, 0), 0)
 
   L({ id: 'receita_bruta', label: '(+) Receita Bruta', valor: receitaBruta, tipo: 'subtotal', nivel: 0 })
   for (const lr of LINHAS_RECEITA) {
-    const valor = porCanal(lr.canais)
+    const valor = porCanal([...lr.canais, ...(lr.canaisLegados ?? [])])
     if (valor > 0 || receitaBruta === 0) L({ id: `rec_${lr.id}`, label: lr.nome, valor, tipo: 'receita', nivel: 1 })
   }
 

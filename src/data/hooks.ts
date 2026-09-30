@@ -2,7 +2,7 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '@/lib/firebase'
-import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
+import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
 import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
 import {
@@ -746,20 +746,6 @@ export function useRemoverMembro() {
   })
 }
 
-export function useConectarIntegracao() {
-  const t = useTenant()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (p: { provedor: string; merchantId?: string; status?: IntegracaoDoc['status'] }) =>
-      repo.integracoes.salvar(t, p.provedor, {
-        provedor: p.provedor,
-        merchantId: p.merchantId,
-        status: p.status ?? 'conectando',
-      } as Partial<IntegracaoDoc>),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
-  })
-}
-
 /** Importa um lote de registros de CSV (produtos, despesas ou estoque). */
 export function useImportar() {
   const t = useTenant()
@@ -838,10 +824,9 @@ export function useImportar() {
   })
 }
 
-/** O que já veio das plataformas no dia (enquanto a integração real não roda). */
+/** O que já veio do iFood no dia (enquanto a integração real não roda). */
 export const VENDA_APP_DEMO = {
   ifood: { bruto: 742.5, taxa: 178.2, pedidos: 38 },
-  rappi: { bruto: 186.4, taxa: 41.3, pedidos: 9 },
 }
 
 /**
@@ -866,7 +851,6 @@ export function useCriarFechamento() {
       // app, delivery próprio e outras receitas.
       const canais = [
         { canal: 'ifood' as const, valorBruto: VENDA_APP_DEMO.ifood.bruto, taxa: VENDA_APP_DEMO.ifood.taxa, pedidos: VENDA_APP_DEMO.ifood.pedidos },
-        { canal: 'rappi' as const, valorBruto: VENDA_APP_DEMO.rappi.bruto, taxa: VENDA_APP_DEMO.rappi.taxa, pedidos: VENDA_APP_DEMO.rappi.pedidos },
         { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
         { canal: 'whatsapp' as const, valorBruto: delivery, taxa: 0, pedidos: 0 },
         { canal: 'outros' as const, valorBruto: outras, taxa: 0, pedidos: 0 },
@@ -1504,10 +1488,10 @@ export function usePersistirOnboarding() {
         })
       }
 
-      // Canais marcados viram integrações "conectando".
+      // Canal iFood marcado vira integração "conectando" (é a única integrada).
       await Promise.all(
         r.canais
-          .filter((c) => c === 'ifood' || c === 'rappi')
+          .filter((c) => c === 'ifood')
           .map((c) => repo.integracoes.salvar(t, c, { provedor: c, status: 'conectando' })),
       )
     },

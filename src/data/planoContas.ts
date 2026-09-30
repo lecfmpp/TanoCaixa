@@ -122,7 +122,8 @@ export interface ContaInfo {
 /** O modelo padrão. Nunca muda — a loja personaliza por cima dele. */
 export const CONTAS_PADRAO: ContaInfo[] = [
   // (−) Impostos, taxas e comissões sobre vendas
-  { id: 'comissao_marketplace', nome: 'Comissão iFood e 99', grupo: 'deducao', ajuda: 'iFood, 99Food, Rappi', aliases: ['ifood', 'rappi', 'comissao', 'taxa de app', 'taxas_app', 'marketplace', '99food', 'uber eats', 'comissao de app'] },
+  // Aliases de outros apps ficam só para classificar notas/CSV antigos nesta conta.
+  { id: 'comissao_marketplace', nome: 'Comissão iFood', grupo: 'deducao', ajuda: 'comissão e taxas do app de delivery', aliases: ['ifood', 'rappi', 'comissao', 'taxa de app', 'taxas_app', 'marketplace', '99food', 'uber eats', 'comissao de app'] },
   { id: 'tarifa_bancaria', nome: 'Tarifas bancárias', grupo: 'deducao', ajuda: 'conta, boleto, TED', aliases: ['tarifa', 'banco', 'bancaria'] },
   { id: 'antecipacao', nome: 'Antecipação', grupo: 'deducao', ajuda: 'quando você puxa o dinheiro antes', aliases: ['antecipacao', 'antecipar', 'antecipacao de recebiveis'] },
   { id: 'taxa_cartao', nome: 'Taxas de cartão', grupo: 'deducao', ajuda: 'maquininha, Pix taxado', aliases: ['taxa de cartao', 'cartao', 'maquininha', 'stone', 'cielo', 'getnet', 'pagseguro', 'adquirente'] },
@@ -417,19 +418,31 @@ export function tetosNormalizados(tetos: Record<string, number> | undefined): Te
 
 /* ------------------------------ Receita ------------------------------ */
 
-export type CanalVenda = 'balcao' | 'ifood' | 'rappi' | 'whatsapp' | 'outros'
+export type CanalVenda = 'balcao' | 'ifood' | 'whatsapp' | 'outros'
+
+/**
+ * Canais de app que não são mais integrados, mas podem estar gravados em
+ * `receita_dia` antigos (ex.: 'rappi'). Só leitura: continuam somando na
+ * receita para o histórico não "sumir"; nada novo é gravado com eles.
+ */
+export const CANAIS_APP_LEGADOS: readonly string[] = ['rappi']
+
+/** Canais que entram como venda de app de delivery (hoje só o iFood). */
+export const CANAIS_APP: readonly string[] = ['ifood', ...CANAIS_APP_LEGADOS]
 
 export interface LinhaReceitaInfo {
   id: string
   nome: string
   canais: CanalVenda[]
+  /** Canais antigos que ainda contam nesta linha ao ler dados gravados. */
+  canaisLegados?: readonly string[]
   cor: string
 }
 
 /** As quatro linhas de receita bruta do modelo padrão. */
 export const LINHAS_RECEITA: LinhaReceitaInfo[] = [
   { id: 'loja', nome: 'Vendas loja própria', canais: ['balcao'], cor: '#2E5F73' },
-  { id: 'delivery_app', nome: 'Vendas delivery', canais: ['ifood', 'rappi'], cor: '#C05437' },
+  { id: 'delivery_app', nome: 'Vendas delivery', canais: ['ifood'], canaisLegados: CANAIS_APP_LEGADOS, cor: '#C05437' },
   { id: 'delivery_proprio', nome: 'Venda delivery próprio', canais: ['whatsapp'], cor: '#2F6B4A' },
   { id: 'outras', nome: 'Outras receitas', canais: ['outros'], cor: '#EFAB5C' },
 ]

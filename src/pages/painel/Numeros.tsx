@@ -77,7 +77,7 @@ export function Numeros() {
           rotulo="Taxas sobre venda"
           valor={`${pctv(r.apps).toFixed(1)}%`}
           meta={`meta ${tetoDeducao}%`}
-          texto="iFood, Rappi, maquininha"
+          texto="iFood, maquininha"
         />
         <CartaoKpi
           rotulo="Ponto de equilíbrio"

@@ -42,7 +42,7 @@ const RESPOSTAS_DEMO: RespostasOnboarding = {
   operacao: 'Delivery + salão',
   cozinha: 'Árabe',
   cnpj: '',
-  canais: ['ifood', 'rappi', 'balcao'],
+  canais: ['ifood', 'balcao'],
   ticket: '68',
   pedidos: '48',
   horarios: HORARIO_PADRAO,

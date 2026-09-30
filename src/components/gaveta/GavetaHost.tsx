@@ -347,7 +347,7 @@ export function GavetaHost() {
         { rot: 'Custo', val: brl(soNum(produto.custo)) + ' / ' + produto.unidade },
       ]
     if (gaveta === 'fechamento') {
-      const apps = VENDA_APP_DEMO.ifood.bruto + VENDA_APP_DEMO.rappi.bruto
+      const apps = VENDA_APP_DEMO.ifood.bruto
       const loja = soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)
       return [
         { rot: 'Vendas delivery', val: brl(apps) },
@@ -858,9 +858,8 @@ export function GavetaHost() {
                 </div>
               )}
               <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
-                <span className="rotulo text-tinta-4">Vendas delivery · já veio das plataformas</span>
+                <span className="rotulo text-tinta-4">Vendas delivery · já veio do iFood</span>
                 <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · {VENDA_APP_DEMO.ifood.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.ifood.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.ifood.bruto)}</span></div>
-                <div className="mt-1 flex items-center justify-between text-sm"><span className="text-tinta-2">Rappi · {VENDA_APP_DEMO.rappi.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.rappi.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.rappi.bruto)}</span></div>
               </div>
               <span className="rotulo text-tinta-4">Vendas loja própria · o que você recebeu no balcão</span>
               <div className="grid grid-cols-3 gap-3">

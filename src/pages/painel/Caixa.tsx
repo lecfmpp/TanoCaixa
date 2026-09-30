@@ -8,6 +8,7 @@ import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useReceitaDia, useRestaurante } from '@/data/hooks'
 import { HOJE } from '@/data/derive'
+import { CANAIS_APP } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
 const CORES = ['#2E5F73', '#C05437', '#2F6B4A', '#7B6A8C', '#EFAB5C']
@@ -37,10 +38,12 @@ export function Caixa() {
 
   const soma = (r: ReceitaDiaDoc, canal: string) =>
     r.canais.filter((c) => c.canal === canal).reduce((s, c) => s + c.valorBruto, 0)
+  // iFood + canais de app antigos (ex.: Rappi) que ainda existam em dias já lançados.
+  const plataformas = (r: ReceitaDiaDoc) => CANAIS_APP.reduce((s, c) => s + soma(r, c), 0)
   const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
 
   const hoje = receitas[0]
-  const plataformasHoje = hoje ? soma(hoje, 'ifood') + soma(hoje, 'rappi') : 0
+  const plataformasHoje = hoje ? plataformas(hoje) : 0
   const lojaHoje = hoje ? loja(hoje) : 0
 
   return (
@@ -56,7 +59,7 @@ export function Caixa() {
         <div>
           <p className="text-[15px] font-bold text-insight-texto">Lançar as vendas de hoje</p>
           <p className="text-sm text-insight-texto/80">
-            Confirme o que veio do iFood, Rappi e o que entrou de Pix, cartão e dinheiro na loja.
+            Confirme o que veio do iFood e o que entrou de Pix, cartão e dinheiro na loja.
             Fica registrado quem lançou e quando.
           </p>
         </div>
@@ -71,7 +74,7 @@ export function Caixa() {
       {/* Resumo do caixa de hoje */}
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
-        <CaixaCard rotulo="Plataformas" valor={plataformasHoje} apoio="iFood + Rappi" />
+        <CaixaCard rotulo="Plataformas" valor={plataformasHoje} apoio="iFood" />
         <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
         <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio="com vendas registradas" contagem />
       </div>
@@ -87,7 +90,7 @@ export function Caixa() {
             <thead>
               <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
                 <Th>Dia</Th>
-                <Th className="text-right">iFood + Rappi</Th>
+                <Th className="text-right">iFood</Th>
                 <Th className="text-right">Na loja</Th>
                 <Th className="text-right">Total</Th>
                 <Th>Lançado por</Th>
@@ -96,7 +99,7 @@ export function Caixa() {
             </thead>
             <tbody>
               {receitas.map((r) => {
-                const plat = soma(r, 'ifood') + soma(r, 'rappi')
+                const plat = plataformas(r)
                 const lj = loja(r)
                 const conferido = Math.abs(plat + lj - r.totalDia) < 0.01
                 const lancs = lancamentosDe(r)
