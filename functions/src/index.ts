@@ -1,12 +1,11 @@
 /* ------------------------------------------------------------------ *
- * Cloud Functions do Tá no Caixa — integrações financeiras (iFood + Rappi).
+ * Cloud Functions do Tá no Caixa — integração financeira com o iFood.
  *
  * PRÉ-REQUISITOS (ver functions/README.md):
  *  1. Plano Blaze habilitado no Firebase (Cloud Functions exige billing).
- *  2. Apps registrados no iFood (Centralizado) e no Rappi (Partners) → chaves.
+ *  2. App registrado no iFood (Centralizado) → chaves.
  *  3. Segredos:
  *     firebase functions:secrets:set IFOOD_CLIENT_ID / IFOOD_CLIENT_SECRET
- *     firebase functions:secrets:set RAPPI_CLIENT_ID / RAPPI_CLIENT_SECRET
  *
  * Deploy:  cd functions && npm i && firebase deploy --only functions
  * ------------------------------------------------------------------ */
@@ -23,17 +22,13 @@ import {
   syncEstadoLoja,
   type EscritorFirestore,
 } from './ifood/sync'
-import { ClienteRappi } from './rappi/client'
-import { syncFinanceiroDiaRappi, syncCatalogoRappi } from './rappi/sync'
 
 initializeApp()
 const db = getFirestore()
 
 const IFOOD_CLIENT_ID = defineSecret('IFOOD_CLIENT_ID')
 const IFOOD_CLIENT_SECRET = defineSecret('IFOOD_CLIENT_SECRET')
-const RAPPI_CLIENT_ID = defineSecret('RAPPI_CLIENT_ID')
-const RAPPI_CLIENT_SECRET = defineSecret('RAPPI_CLIENT_SECRET')
-const SEGREDOS = [IFOOD_CLIENT_ID, IFOOD_CLIENT_SECRET, RAPPI_CLIENT_ID, RAPPI_CLIENT_SECRET]
+const SEGREDOS = [IFOOD_CLIENT_ID, IFOOD_CLIENT_SECRET]
 
 async function setDoc(restauranteId: string, col: string, id: string, doc: unknown) {
   await db.doc(`restaurants/${restauranteId}/${col}/${id}`).set(doc as object, { merge: true })
@@ -51,9 +46,6 @@ const escritor: EscritorFirestore = {
 
 function clienteIFood() {
   return new ClienteIFood({ clientId: IFOOD_CLIENT_ID.value(), clientSecret: IFOOD_CLIENT_SECRET.value() })
-}
-function clienteRappi() {
-  return new ClienteRappi({ clientId: RAPPI_CLIENT_ID.value(), clientSecret: RAPPI_CLIENT_SECRET.value() })
 }
 
 function ontem(): string {
@@ -97,7 +89,6 @@ export const syncDiario = onSchedule(
   async () => {
     const data = ontem()
     const iF = clienteIFood()
-    const rp = clienteRappi()
     for (const loja of await lojasConectadas()) {
       try {
         if (loja.provedor === 'ifood') {
@@ -106,11 +97,10 @@ export const syncDiario = onSchedule(
           await syncEstadoLoja(ctx)
           await syncCatalogo(ctx)
           console.log(`iFood ${loja.restauranteId}: ${r.pedidos} pedidos, R$ ${r.bruto}`)
-        } else if (loja.provedor === 'rappi') {
-          const ctx = { cliente: rp, escritor, storeId: loja.merchantId, restauranteId: loja.restauranteId }
-          const r = await syncFinanceiroDiaRappi(ctx, data)
-          await syncCatalogoRappi(ctx)
-          console.log(`Rappi ${loja.restauranteId}: ${r.pedidos} pedidos, R$ ${r.bruto}`)
+        } else {
+          // Só o iFood é integrado. Documentos antigos de outros provedores
+          // (ex.: 'rappi') ficam no Firestore mas são ignorados aqui.
+          console.log(`sync ignorado: provedor '${loja.provedor}' não é mais integrado (${loja.restauranteId})`)
         }
       } catch (e) {
         console.error(`sync falhou (${loja.provedor}/${loja.restauranteId})`, e)
@@ -119,7 +109,7 @@ export const syncDiario = onSchedule(
   },
 )
 
-/* ------------ Conectar loja (guarda o merchantId/storeId) ---------------- */
+/* --------------- Conectar loja (guarda o merchantId) --------------------- */
 
 /**
  * Lojas do iFood às quais o aplicativo tem acesso. O dono escolhe a dele
@@ -286,11 +276,6 @@ export const ifoodWebhook = onRequest({ secrets: SEGREDOS }, async (req, res) =>
       console.error('iFood webhook: ACK falhou', e)
     }
   }
-  res.status(202).send('ok')
-})
-
-export const rappiWebhook = onRequest({ secrets: SEGREDOS }, async (req, res) => {
-  console.log('Rappi webhook', JSON.stringify(req.body))
   res.status(202).send('ok')
 })
 
