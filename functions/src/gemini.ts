@@ -121,7 +121,7 @@ Responda com um JSON contendo:
 - fornecedor: string — nome da empresa/loja emissora
 - valor: number — total da nota em CENTAVOS, inteiro (ex: 5900 para R$ 59,00)
 - categoria: string — a conta do plano de contas do DRE. Exatamente um destes códigos:
-  Impostos, taxas e comissões sobre vendas: "comissao_marketplace" (iFood/99/Rappi), "taxa_cartao" (maquininha),
+  Impostos, taxas e comissões sobre vendas: "comissao_marketplace" (iFood ou outro app de delivery), "taxa_cartao" (maquininha),
     "antecipacao", "tarifa_bancaria", "imposto_vendas" (Simples Nacional/DAS/ISS)
   CMV - Matéria Prima: "cmv_alimentos" (hortifrúti, carnes, secos), "cmv_bebidas", "cmv_descartaveis" (embalagem, marmita)
   Ocupação: "aluguel", "condominio", "agua", "luz", "gas", "iptu", "seguro"
