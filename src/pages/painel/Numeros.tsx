@@ -54,7 +54,7 @@ export function Numeros() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Números"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
+        subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''}
         periodo={periodo}
         aoTrocarPeriodo={setPeriodo}
       />

@@ -57,7 +57,7 @@ export function EntrarPage() {
           Bom te ver de novo, chefe
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Julho fechou com sobra. Vem ver.
+          Entra e vê como está o mês.
         </p>
       </div>
 

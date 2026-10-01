@@ -7,7 +7,7 @@ import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useMarcarPago, useRestaurante } from '@/data/hooks'
-import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, HOJE, MES_REF } from '@/data/derive'
+import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, MES_REF } from '@/data/derive'
 import { diasAte } from '@/data/vencimentos'
 import { TagVencimento } from '@/components/ui/TagVencimento'
 import { mensagemDeErro } from '@/lib/erros'
@@ -229,7 +229,7 @@ export function Despesas() {
                       <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={26} />
                       <div className="leading-tight">
                         <div className="text-xs font-semibold text-tinta">{d.criadoPorNome}</div>
-                        <div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), HOJE)}</div>
+                        <div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), agora())}</div>
                         {/* Correção não apaga quem lançou — fica registrada ao lado. */}
                         {d.editadoPorNome && (
                           <div className="text-[11px] text-telhado">corrigido por {d.editadoPorNome}</div>

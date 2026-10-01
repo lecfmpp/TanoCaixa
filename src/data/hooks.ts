@@ -3,7 +3,7 @@ import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
-import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
+import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
   salvarSolicitacao,
@@ -199,7 +199,8 @@ export function useAbrirLoja() {
         // Loja própria da rede: franqueada quando a rede é franquia.
         tipoNegocio: rede.data.tipo === 'franquia' ? 'franqueada' : 'multi_loja',
         aliquotaImposto: 0.06,
-        metaFaturamento: 50000,
+        // Loja nova começa sem meta; o dono define no Plano do mês.
+        metaFaturamento: 0,
       })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
@@ -442,7 +443,7 @@ export function useAutor() {
   return () => ({
     criadoEm: new Date().toISOString(),
     criadoPorId: sessao?.usuario.id ?? 'halim',
-    criadoPorNome: sessao?.usuario.nome ?? 'Halim',
+    criadoPorNome: sessao?.usuario.nome ?? 'Você',
     origem: origemAtual(),
     _inicial: sessao?.usuario.avatarInicial ?? 'H',
     _cor: sessao?.usuario.avatarCor ?? '#2E5F73',
@@ -1434,16 +1435,18 @@ export function usePersistirOnboarding() {
         cnpj: r.cnpj,
         regimeTributario: 'simples',
         aliquotaImposto: 0.06,
-        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 50000,
-        // Tetos por grupo do DRE — o que o onboarding não pergunta fica no padrão.
+        // Em branco = sem meta (0). Nada de meta de exemplo numa conta real.
+        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 0,
+        // Tetos por grupo do DRE — o que o onboarding não pergunta (ou a pessoa
+        // pulou) fica no padrão, em vez de virar teto de 0%.
         tetos: {
           ...TETOS_PADRAO,
-          ocupacao: pctDaMeta(r.contasFixas, r.meta),
-          pessoal: pctDaMeta(r.folha, r.meta),
-          cmv: pctDaMeta(r.mercadoria, r.meta),
+          ...(r.contasFixas > 0 ? { ocupacao: pctDaMeta(r.contasFixas, r.meta) } : {}),
+          ...(r.folha > 0 ? { pessoal: pctDaMeta(r.folha, r.meta) } : {}),
+          ...(r.mercadoria > 0 ? { cmv: pctDaMeta(r.mercadoria, r.meta) } : {}),
           deducao: TAXA_APP_TETO_PADRAO,
         },
-        aberturaMes: 'julho de 2026',
+        aberturaMes: nomeDoMesAtual(),
         onboardingConcluido: true,
         // Natureza do negócio: é ela que decide se o DRE tem linha de
         // franqueadora e se existe visão de rede.

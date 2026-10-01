@@ -282,7 +282,7 @@ export function GavetaHost() {
     return () => document.removeEventListener('keydown', onKey)
   }, [gaveta, fecharGaveta])
 
-  const nome = sessao?.usuario.nome ?? 'Halim'
+  const nome = sessao?.usuario.nome ?? 'Você'
   const hora = useMemo(
     () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     [gaveta, etapa],

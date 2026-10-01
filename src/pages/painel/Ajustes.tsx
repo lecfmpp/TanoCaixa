@@ -25,7 +25,8 @@ import {
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { functions } from '@/lib/firebase'
-import { HOJE } from '@/data/derive'
+import { agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { PAPEIS, TIPOS_NEGOCIO, rotuloPapel, normalizarPapel, type Papel, type Origem, type TipoNegocio } from '@/types'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
@@ -105,7 +106,7 @@ export function Ajustes() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Ajustes"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
+        subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''}
       />
 
       {/* Natureza do negócio — governa o DRE e a visão de rede */}
@@ -502,7 +503,7 @@ function LinhaAtividade({ a }: { a: AtividadeDoc }) {
       <td className="mono px-4 py-3 text-right font-medium text-tinta">
         {a.valor != null ? brl(a.valor) : '—'}
       </td>
-      <td className="px-4 py-3 text-tinta-4">{quando(new Date(a.criadoEm), HOJE)}</td>
+      <td className="px-4 py-3 text-tinta-4">{quando(new Date(a.criadoEm), agora())}</td>
     </tr>
   )
 }

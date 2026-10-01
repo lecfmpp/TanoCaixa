@@ -7,7 +7,7 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useReceitaDia, useRestaurante } from '@/data/hooks'
-import { HOJE } from '@/data/derive'
+import { agora } from '@/data/derive'
 import { CANAIS_APPS } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
@@ -120,7 +120,7 @@ export function Caixa() {
                           <Avatar inicial={(ultimo.porNome || '?')[0]} cor={corNome(ultimo.porNome)} tamanho={26} />
                           <span className="leading-tight">
                             <span className="block text-xs font-semibold text-tinta">{ultimo.porNome}</span>
-                            <span className="block text-[11px] text-tinta-4">{quando(new Date(ultimo.em), HOJE)}</span>
+                            <span className="block text-[11px] text-tinta-4">{quando(new Date(ultimo.em), agora())}</span>
                           </span>
                           {lancs.length > 1 && (
                             <span className="flex items-center gap-0.5 text-[11px] font-bold text-mar">
@@ -144,7 +144,7 @@ export function Caixa() {
                       lancs.map((l, i) => (
                         <tr key={`${r.id}-${i}`} className="border-b border-divisoria bg-preenchimento/30 text-xs">
                           <td className="px-4 py-2 text-tinta-4">{i === 0 ? 'lançou' : 'relançou'}</td>
-                          <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), HOJE)}</td>
+                          <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), agora())}</td>
                           <td className="mono px-4 py-2 text-right font-semibold text-tinta">{brl(l.total)}</td>
                           <td colSpan={2} />
                         </tr>

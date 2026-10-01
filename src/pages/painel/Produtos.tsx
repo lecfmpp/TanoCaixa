@@ -9,7 +9,8 @@ import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useProdutos, usePratos, useRemoverProduto, useRestaurante } from '@/data/hooks'
 import { pratosQueUsam } from '@/data/cardapio'
-import { HOJE } from '@/data/derive'
+import { agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { CATEGORIAS_PRODUTO as CATEGORIAS, CONTA, contaDeCmvDoProduto } from '@/data/planoContas'
 import { mensagemDeErro } from '@/lib/erros'
 import type { ProdutoDoc } from '@/data/types'
@@ -69,7 +70,7 @@ export function Produtos() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Produtos" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''} />
+      <SectionHeader titulo="Produtos" subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''} />
 
       {/* Busca + filtros */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center">
@@ -142,7 +143,7 @@ export function Produtos() {
                       <Avatar inicial={(p.criadoPorNome || '?')[0]} cor={corNome(p.criadoPorNome)} tamanho={26} />
                       <div className="leading-tight">
                         <div className="text-xs font-semibold text-tinta">{p.criadoPorNome}</div>
-                        <div className="text-[11px] text-tinta-4">{quando(new Date(p.criadoEm), HOJE)}</div>
+                        <div className="text-[11px] text-tinta-4">{quando(new Date(p.criadoEm), agora())}</div>
                       </div>
                     </div>
                   </td>

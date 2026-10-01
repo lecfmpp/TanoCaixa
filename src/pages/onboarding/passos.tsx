@@ -407,7 +407,7 @@ export function Passo5Metas({
         value={meta}
         onChange={(e) => onMeta(e.target.value)}
       />
-      <p className="mt-1.5 text-xs text-tinta-4">Um degrau acima de julho, sem apertar demais.</p>
+      <p className="mt-1.5 text-xs text-tinta-4">Um degrau acima de um mês normal, sem apertar demais.</p>
 
       <LinhaPontilhada rotulo="despesas" />
 
@@ -430,7 +430,7 @@ export function Passo5Metas({
       <div className="flex items-center justify-between rounded-cartao bg-mar px-5 py-3.5 text-creme">
         <span className="text-sm font-semibold">Sobra prevista</span>
         <span className="mono text-sm font-bold">
-          {sobraPct}% · {brlInteiro(sobraReais)}
+          {sobraPct}%{sobraReais > 0 ? ` · ${brlInteiro(sobraReais)}` : ''}
         </span>
       </div>
     </div>

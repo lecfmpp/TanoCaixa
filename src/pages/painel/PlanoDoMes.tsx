@@ -9,7 +9,7 @@ import { Cartao } from '@/components/ui/Cartao'
 import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante, usePlanoMes, useSalvarPlanoMes } from '@/data/hooks'
-import { resumoInicio, planoLinhas, MES_REF } from '@/data/derive'
+import { resumoInicio, planoLinhas, diasRestantesNoMes, MES_REF } from '@/data/derive'
 import { GRUPO, GRUPOS_COM_TETO } from '@/data/planoContas'
 import { mesSeguinte, nomeDoMes } from '@/data/planoMes'
 
@@ -44,10 +44,12 @@ export function PlanoDoMes() {
     .filter((l) => l.realPct > l.teto)
     .sort((a, b) => b.realPct - b.teto - (a.realPct - a.teto))[0]
 
-  const meta = planoDoMes?.metaFaturamento ?? cfg?.metaFaturamento ?? 50000
+  // Sem meta (conta nova que pulou a pergunta) não inventa número: pede pra definir.
+  const meta = planoDoMes?.metaFaturamento ?? cfg?.metaFaturamento ?? 0
   const feito = r.entrou
-  const progresso = Math.round((feito / meta) * 100)
-  const sub = cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''
+  const progresso = meta > 0 ? Math.round((feito / meta) * 100) : 0
+  const faltamDias = diasRestantesNoMes()
+  const sub = cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,13 +57,19 @@ export function PlanoDoMes() {
 
       <Cartao className="flex flex-col gap-3">
         <span className="rotulo text-tinta-4">Meta de faturamento</span>
-        <span className="mono text-tinta" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em' }}>{brl(meta)}</span>
+        <span className="mono text-tinta" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em' }}>{meta > 0 ? brl(meta) : 'Sem meta'}</span>
         <div className="h-2 w-full overflow-hidden rounded-full bg-trilho">
           <div className="h-full rounded-full bg-mar" style={{ width: `${Math.min(100, progresso)}%` }} />
         </div>
         <div className="flex flex-wrap items-baseline justify-between gap-1">
           <span className="text-sm font-bold text-tinta">{brlInteiro(feito)} feitos · {progresso}%</span>
-          <span className="text-xs text-tinta-4">faltam {brlInteiro(meta - feito)} em 4 dias</span>
+          <span className="text-xs text-tinta-4">
+            {meta <= 0
+              ? 'Sem meta definida ainda. Dá pra montar o plano do próximo mês aqui embaixo.'
+              : feito >= meta
+                ? 'Meta batida.'
+                : `faltam ${brlInteiro(meta - feito)} ${faltamDias === 0 ? 'hoje, último dia do mês' : `em ${faltamDias} ${faltamDias === 1 ? 'dia' : 'dias'}`}`}
+          </span>
         </div>
       </Cartao>
 
