@@ -5,7 +5,9 @@ import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { GoogleIcon } from '@/components/ui/GoogleIcon'
-import { useAuth, CHAVE_CONVITE, aceitarConviteFn } from '@/auth/AuthContext'
+import { useAuth, CHAVE_CONVITE, SENHA_MINIMA, aceitarConviteFn } from '@/auth/AuthContext'
+import { ErroDeSessao } from '@/auth/ErroDeSessao'
+import { mensagemDeErroAuth } from '@/auth/erros'
 import { functions } from '@/lib/firebase'
 import { rotuloPapel, normalizarPapel } from '@/types'
 
@@ -19,7 +21,7 @@ type Estado = 'carregando' | 'invalido' | 'valido'
 export function ConvitePage() {
   const { token } = useParams<{ token: string }>()
   const navegar = useNavigate()
-  const { sessao, entrarComEmail, criarConta, entrarComGoogle } = useAuth()
+  const { sessao, erroSessao, entrarComEmail, criarConta, entrarComGoogle } = useAuth()
 
   const [estado, setEstado] = useState<Estado>('carregando')
   const [convite, setConvite] = useState<{ restauranteNome: string; papel: string } | null>(null)
@@ -39,6 +41,14 @@ export function ConvitePage() {
   useEffect(() => {
     if (uidEsperado && sessao?.usuario.id === uidEsperado) navegar('/painel')
   }, [uidEsperado, sessao, navegar])
+
+  // Convite falhou ao montar a sessão: solta o botão (o aviso aparece abaixo).
+  useEffect(() => {
+    if (erroSessao) {
+      setEnviando(false)
+      setUidEsperado(null)
+    }
+  }, [erroSessao])
 
   useEffect(() => {
     if (!token) return
@@ -74,20 +84,26 @@ export function ConvitePage() {
     const fd = new FormData(e.currentTarget)
     const email = String(fd.get('email') ?? '')
     setErro(null)
+    if (modo === 'criar' && senha.length < SENHA_MINIMA) {
+      setErro(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`)
+      return
+    }
     setEnviando(true)
     sessionStorage.setItem(CHAVE_CONVITE, token)
     try {
-      const uid = modo === 'criar' ? await criarConta(nome, email, senha) : await entrarComEmail(email, senha)
+      const uid =
+        modo === 'criar' ? await criarConta({ nome, email, senha }) : await entrarComEmail(email, senha)
       // Não navega ainda — o efeito acima faz isso assim que `sessao` refletir
       // ESTE uid (inclui aceitar o convite via Cloud Function, que leva um instante).
       setUidEsperado(uid)
-    } catch {
+    } catch (err) {
       sessionStorage.removeItem(CHAVE_CONVITE)
       setEnviando(false)
       setErro(
-        modo === 'criar'
-          ? 'Não deu pra criar a conta. Talvez esse e-mail já tenha cadastro, ou a senha esteja curta (mínimo 6).'
-          : 'Não deu pra entrar. Confira e-mail e senha.',
+        mensagemDeErroAuth(
+          err,
+          modo === 'criar' ? 'Não deu pra criar a conta.' : 'Não deu pra entrar. Confira e-mail e senha.',
+        ),
       )
     }
   }
@@ -180,6 +196,7 @@ export function ConvitePage() {
       </div>
 
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
+        <ErroDeSessao />
         {modo === 'criar' && (
           <Campo rotulo="Seu nome" name="nome" placeholder="Seu nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
         )}
@@ -188,7 +205,7 @@ export function ConvitePage() {
           rotulo="Senha"
           name="senha"
           type="password"
-          placeholder={modo === 'criar' ? 'crie uma senha' : 'sua senha'}
+          placeholder={modo === 'criar' ? `crie uma senha de ${SENHA_MINIMA}+ caracteres` : 'sua senha'}
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           required
