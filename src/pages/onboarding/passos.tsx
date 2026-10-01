@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { TituloPasso, CaixaViva, CampoTexto, Rotulo, LinhaPontilhada } from './ui'
 import { Chip } from '@/components/ui/Chip'
 import { Switch } from '@/components/ui/Switch'
@@ -120,8 +120,7 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
 /* -------------------------------- Passo 2 ------------------------------- */
 
 const CANAIS = [
-  { id: 'ifood', nome: 'iFood', dica: 'vendas e taxas automáticas' },
-  { id: 'rappi', nome: 'Rappi', dica: '' },
+  { id: 'apps', nome: 'Apps de delivery', dica: 'você lança o total do dia junto com o fechamento' },
   { id: 'whatsapp', nome: 'WhatsApp / site próprio', dica: 'o mais lucrativo pra você' },
   { id: 'balcao', nome: 'Balcão e retirada', dica: 'maquininha ou Pix na loja' },
 ]
@@ -137,7 +136,7 @@ export function Passo2Canais({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
     <div>
       <TituloPasso
         titulo="Por onde você vende?"
-        sub="Marca tudo que usa hoje — cada canal marcado vira uma integração no passo 4."
+        sub="Marca tudo que usa hoje. Cada canal vira uma linha das suas vendas."
       />
       <div className="flex flex-col gap-2.5">
         {CANAIS.map((c) => {
@@ -264,64 +263,9 @@ export function Passo3Numeros({
 
 /* -------------------------------- Passo 4 ------------------------------- */
 
-export function Passo4Integracoes() {
-  return (
-    <div>
-      <TituloPasso
-        titulo="Conecta pra não digitar nunca mais"
-        sub="Uma vez só. Depois o faturamento entra sozinho todo dia."
-      />
-      <div className="flex flex-col gap-2.5">
-        <LinhaIntegracao nome="iFood" dica="conectado · 38 pedidos ontem" estado="conectado" />
-        <LinhaIntegracao nome="Rappi" dica="conectando…" estado="conectando" />
-        <LinhaIntegracao nome="Maquininha" dica="Stone, Cielo, PagSeguro, Mercado Pago" estado="conectar" />
-        <LinhaIntegracao nome="Sistema de PDV" dica="Colibri, Consumer, Goomer…" estado="conectar" />
-      </div>
-    </div>
-  )
-}
-
-function LinhaIntegracao({
-  nome,
-  dica,
-  estado,
-}: {
-  nome: string
-  dica: string
-  estado: 'conectado' | 'conectando' | 'conectar'
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3.5">
-      <div className="min-w-0">
-        <div className="text-sm font-bold text-tinta">{nome}</div>
-        <div className="flex items-center gap-1.5 text-xs text-tinta-4">
-          {estado === 'conectando' && <Loader2 size={12} className="animate-spin text-sol" />}
-          {estado === 'conectado' && <span className="h-1.5 w-1.5 rounded-full bg-mata" />}
-          {dica}
-        </div>
-      </div>
-      {estado === 'conectado' && (
-        <span className="flex items-center gap-1 rounded-chip bg-mata/12 px-2.5 py-1 text-xs font-bold text-mata">
-          <Check size={13} strokeWidth={3} /> pronto
-        </span>
-      )}
-      {estado === 'conectar' && (
-        <div className="flex shrink-0 items-center gap-3">
-          <button className="text-xs font-semibold text-tinta-4 hover:text-tinta-2">faço depois</button>
-          <Button variante="secundario" className="px-3.5 py-2 text-xs">
-            Conectar
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* -------------------------------- Passo 5 ------------------------------- */
-
 const PAPEIS = ['Gerente', 'Estoque', 'Só lançar nota', 'Contador']
 
-export function Passo5Equipe({ nomeDono }: { nomeDono?: string }) {
+export function Passo4Equipe({ nomeDono }: { nomeDono?: string }) {
   const [telConvite, setTelConvite] = useState('')
   const nome = (nomeDono || '').trim()
   return (
@@ -393,7 +337,7 @@ function LinhaMembro({
   )
 }
 
-/* -------------------------------- Passo 6 ------------------------------- */
+/* -------------------------------- Passo 5 ------------------------------- */
 
 /** Campo de despesa em R$ com o % da meta calculado sozinho embaixo. */
 function CampoDespesa({
@@ -423,7 +367,7 @@ function CampoDespesa({
   )
 }
 
-export function Passo6Metas({
+export function Passo5Metas({
   meta,
   onMeta,
   contasFixas,
@@ -476,9 +420,9 @@ export function Passo6Metas({
       <LinhaPontilhada rotulo="taxa de app" />
 
       <p className="pretty text-sm text-tinta-3">
-        As taxas de app (iFood, Rappi…) entram sozinhas quando você conecta as integrações — cerca de{' '}
-        <strong className="font-bold text-tinta-2">{TAXA_APP_TETO_PADRAO}%</strong> pra começar. Dá pra ajustar
-        depois no Plano do mês.
+        A comissão dos apps de delivery e a taxa da maquininha você lança como despesa. O teto começa em{' '}
+        <strong className="font-bold text-tinta-2">{TAXA_APP_TETO_PADRAO}%</strong> e dá pra ajustar depois no Plano do
+        mês.
       </p>
 
       <LinhaPontilhada />
@@ -493,9 +437,9 @@ export function Passo6Metas({
   )
 }
 
-/* -------------------------------- Passo 7 ------------------------------- */
+/* -------------------------------- Passo 6 ------------------------------- */
 
-export function Passo7Avisos({
+export function Passo6Avisos({
   avisos,
   onAvisos,
 }: {
@@ -551,17 +495,21 @@ function LinhaAviso({
   )
 }
 
-/* -------------------------------- Passo 8 ------------------------------- */
+/* -------------------------------- Passo 7 ------------------------------- */
 
 const TIPOS_IMPORT: TipoImport[] = ['produtos', 'despesas', 'estoque']
 
-export function Passo8Pronto() {
+export function Passo7Pronto({ r }: { r: RespostasOnboarding }) {
   const [tipoImp, setTipoImp] = useState<TipoImport>('produtos')
+  const meta = soDigitos(r.meta)
+  // Só o que a pessoa de fato respondeu — nada de item marcado por nós.
   const feitos = [
-    'Restaurante e equipe cadastrados',
-    'iFood conectado, Rappi a caminho',
-    'Meta de R$ 50.000 e tetos definidos',
-  ]
+    r.nome.trim() ? `${r.nome.trim()} cadastrado` : 'Restaurante cadastrado',
+    r.canais.length
+      ? `${r.canais.length} ${r.canais.length === 1 ? 'canal de venda marcado' : 'canais de venda marcados'}`
+      : null,
+    meta ? `Meta de ${brlInteiro(meta)} e tetos definidos` : 'Tetos de gasto no padrão (dá pra ajustar no Plano do mês)',
+  ].filter((f): f is string => !!f)
   return (
     <div>
       <h2 className="text-tinta" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.025em' }}>

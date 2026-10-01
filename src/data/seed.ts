@@ -1,4 +1,4 @@
-import { deleteDoc, doc, setDoc } from 'firebase/firestore'
+import { deleteDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { TETOS_PADRAO } from './planoContas'
@@ -19,8 +19,9 @@ import type { Origem } from './tenant'
  *  2 = plano de contas do DRE padrão. 3 = rede com três lojas.
  *  4 = mês anterior, pra o crescimento das franquias ser conta de verdade.
  *  5 = demo determinística: lançamento de teste não fica preso no exemplo.
- *  6 = valor do estoque derivado dos itens contados, não escrito à mão. */
-const SEED_VERSAO = 6
+ *  6 = valor do estoque derivado dos itens contados, não escrito à mão.
+ *  7 = sem integração com apps: vendas e taxas lançadas por gente, não "Automático". */
+const SEED_VERSAO = 7
 
 const dia = (d: number) => `2026-07-${String(d).padStart(2, '0')}`
 const autor = (nome: string, id: string, o: Origem = 'computador', d = 27) => ({
@@ -70,7 +71,7 @@ const R = (
     recebimentos: [],
     sangria: 0,
     totalDia: canais.reduce((s, c) => s + c.valorBruto, 0),
-    ...autor('Automático', 'sistema', 'integracao', d),
+    ...autor('Halim', 'halim', 'computador', d),
   }
 }
 
@@ -105,9 +106,9 @@ const D = (
 
 const despesas: DespesaDoc[] = [
   // (−) Impostos, taxas e comissões sobre vendas = 10.943,20
-  D('d17', 'Taxa iFood · julho', 'comissao_marketplace', 4980, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
-  D('d18', 'Taxa Rappi · julho', 'comissao_marketplace', 1310, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
-  D('d19', 'Maquininha Stone', 'taxa_cartao', 1050, 27, 'pago', 'automatico', { ...autor('Automático', 'sistema', 'integracao', 27) }),
+  D('d17', 'Taxa iFood · julho', 'comissao_marketplace', 4980, 27, 'pago', 'automatico', { ...autor('Jamile', 'jamile', 'computador', 27) }),
+  D('d18', 'Taxa Rappi · julho', 'comissao_marketplace', 1310, 27, 'pago', 'automatico', { ...autor('Jamile', 'jamile', 'computador', 27) }),
+  D('d19', 'Maquininha Stone', 'taxa_cartao', 1050, 27, 'pago', 'automatico', { ...autor('Jamile', 'jamile', 'computador', 27) }),
   D('d20', 'Antecipação Stone', 'antecipacao', 320, 27, 'pago', 'automatico', { descricao: 'recebíveis de julho' }),
   D('d21', 'Tarifas · Banco do Brasil', 'tarifa_bancaria', 96, 27, 'pago', 'automatico', { recorrente: true }),
   D('d22', 'Simples Nacional · DAS', 'imposto_vendas', 3187.2, 20, 'pago', 'boleto', { descricao: '6% sobre o faturamento' }),
@@ -159,7 +160,7 @@ const despesas: DespesaDoc[] = [
 const atividades: AtividadeDoc[] = [
   { id: 'at1', quem: 'Jamile', quemInicial: 'J', quemCor: '#C05437', acao: 'lançou a nota do', entidade: 'Frigorífico Salomão', tipo: 'Despesa', valor: 1284, ...autor('Jamile', 'jamile', 'ia_foto', 28) },
   { id: 'at2', quem: 'Wesley', quemInicial: 'W', quemCor: '#2F6B4A', acao: 'contou', entidade: '12 itens do estoque', tipo: 'Estoque', valor: 4180.6, ...autor('Wesley', 'wesley', 'celular', 28) },
-  { id: 'at3', quem: 'Automático', quemInicial: '', quemCor: '#AEB9B8', acao: 'puxou as vendas do', entidade: 'iFood e da Rappi', tipo: 'Vendas', valor: 928.9, ...autor('Automático', 'sistema', 'integracao', 28) },
+  { id: 'at3', quem: 'Halim', quemInicial: 'H', quemCor: '#2E5F73', acao: 'lançou as vendas dos', entidade: 'apps de delivery', tipo: 'Vendas', valor: 928.9, ...autor('Halim', 'halim', 'computador', 28) },
   { id: 'at4', quem: 'Halim', quemInicial: 'H', quemCor: '#2E5F73', acao: 'lançou as vendas de', entidade: 'sábado', tipo: 'Vendas', valor: 1412.3, ...autor('Halim', 'halim', 'computador', 27) },
 ]
 
@@ -340,27 +341,8 @@ async function seedRedeDemo(): Promise<void> {
 
 /** Cria os dados da demonstração se o tenant ainda estiver vazio. */
 export async function seedDemoSeVazio(tenant: string): Promise<void> {
-  // Integrações — sempre garantidas (idempotente), independente do resto.
-  await setDoc(
-    doc(db, 'restaurants', tenant, 'integracoes', 'ifood'),
-    {
-      provedor: 'ifood',
-      status: 'conectado',
-      merchantId: 'demo-merchant',
-      ultimoSyncEm: `${dia(28)}T06:00:00.000Z`,
-      pedidosUltimoDia: 38,
-      faturamentoUltimoDia: 742.5,
-    },
-    { merge: true },
-  )
-  await setDoc(
-    doc(db, 'restaurants', tenant, 'integracoes', 'rappi'),
-    { provedor: 'rappi', status: 'conectando', pedidosUltimoDia: 9, faturamentoUltimoDia: 186.4 },
-    { merge: true },
-  )
-
-  // Rede de demonstração — garantida à parte, pelo mesmo motivo das
-  // integrações: independe do estado do tenant matriz.
+  // Rede de demonstração — garantida à parte: independe do estado do tenant
+  // matriz.
   await seedRedeDemo()
 
   // Sobe a versão sempre que os dados da demo mudarem de forma (aqui: plano de

@@ -9,7 +9,7 @@ import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useReceitaDia, useRestaurante, VENDA_APP_DEMO } from '@/data/hooks'
+import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useReceitaDia, useRestaurante } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
@@ -71,7 +71,7 @@ function chipDoPagamento(forma: DespesaDoc['formaPagamento'], status: DespesaDoc
  * Chip escolhido → como isso é gravado (forma + situação andam juntas).
  *
  * Numa correção, o chip que não foi mexido devolve a forma ORIGINAL: sem isso
- * o lançamento que o iFood mandou como 'automatico' virava 'pix' só por passar
+ * o lançamento gravado como 'automatico' virava 'pix' só por passar
  * pela gaveta, porque a tela não tem chip pra 'automatico'.
  */
 function pagamentoParaDoc(chip: string, original?: { formaPagamento: DespesaDoc['formaPagamento']; status: DespesaDoc['status'] }) {
@@ -198,7 +198,7 @@ export function GavetaHost() {
   const [despesa, setDespesa] = useState(DESPESA_VAZIA)
   const [nota, setNota] = useState(NOTA_VAZIA)
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', delivery: '', outras: '' })
+  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', apps: '', delivery: '', outras: '' })
   const [estoque, setEstoque] = useState({ tipo: MOVIMENTOS[0] as string, produtoId: '', quantidade: '', obs: '' })
   /** Campos que vieram da leitura da foto — ficam destacados pra conferência. */
   const [iaPreencheu, setIaPreencheu] = useState<string[]>([])
@@ -311,12 +311,16 @@ export function GavetaHost() {
     .filter((i) => i.produto && soNum(i.quantidade) > 0)
   const totalNota = itensValidos.reduce((s2, i) => s2 + soNum(i.quantidade) * soNum(i.preco), 0)
 
-  /** Trava o "Continuar": nota sem item e movimento sem produto não existem. */
+  const totalFechamento =
+    soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro) + soNum(fecha.apps) + soNum(fecha.delivery) + soNum(fecha.outras)
+
+  /** Trava o "Continuar": nota sem item, movimento sem produto e dia sem venda não existem. */
   const podeAvancar =
     gaveta === 'compra' ? itensValidos.length > 0 && totalNota > 0 && (nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
     : gaveta === 'despesa' ? despesa.pagamento !== 'Ainda vou pagar' || !!despesa.vencimento
     : gaveta === 'produto' ? produto.nome.trim().length > 0
     : gaveta === 'estoque' ? !!estoque.produtoId && soNum(estoque.quantidade) > 0
+    : gaveta === 'fechamento' ? totalFechamento > 0
     : true
 
   const resumo = montarResumo()
@@ -347,14 +351,13 @@ export function GavetaHost() {
         { rot: 'Custo', val: brl(soNum(produto.custo)) + ' / ' + produto.unidade },
       ]
     if (gaveta === 'fechamento') {
-      const apps = VENDA_APP_DEMO.ifood.bruto + VENDA_APP_DEMO.rappi.bruto
       const loja = soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro)
       return [
-        { rot: 'Vendas delivery', val: brl(apps) },
         { rot: 'Vendas loja própria', val: brl(loja) },
+        { rot: 'Vendas delivery (apps)', val: brl(soNum(fecha.apps)) },
         { rot: 'Venda delivery próprio', val: brl(soNum(fecha.delivery)) },
         { rot: 'Outras receitas', val: brl(soNum(fecha.outras)) },
-        { rot: 'Total do dia', val: brl(apps + loja + soNum(fecha.delivery) + soNum(fecha.outras)) },
+        { rot: 'Total do dia', val: brl(totalFechamento) },
       ]
     }
     const doEstoque = porId.get(estoque.produtoId)
@@ -572,6 +575,7 @@ export function GavetaHost() {
         pix: soNum(fecha.pix),
         cartao: soNum(fecha.cartao),
         dinheiro: soNum(fecha.dinheiro),
+        apps: soNum(fecha.apps),
         delivery: soNum(fecha.delivery),
         outras: soNum(fecha.outras),
       })
@@ -857,23 +861,20 @@ export function GavetaHost() {
                   <strong className="font-bold">O PDV já fechou as vendas de hoje ({brl(receitaPdvHoje.totalDia)}).</strong> Se lançar aqui também, a mesma venda entra duas vezes no DRE — use só pra o que o PDV não registra.
                 </div>
               )}
-              <div className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-4">
-                <span className="rotulo text-tinta-4">Vendas delivery · já veio das plataformas</span>
-                <div className="mt-2 flex items-center justify-between text-sm"><span className="text-tinta-2">iFood · {VENDA_APP_DEMO.ifood.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.ifood.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.ifood.bruto)}</span></div>
-                <div className="mt-1 flex items-center justify-between text-sm"><span className="text-tinta-2">Rappi · {VENDA_APP_DEMO.rappi.pedidos} pedidos · taxa {brl(VENDA_APP_DEMO.rappi.taxa)}</span><span className="mono font-bold">{brl(VENDA_APP_DEMO.rappi.bruto)}</span></div>
-              </div>
               <span className="rotulo text-tinta-4">Vendas loja própria · o que você recebeu no balcão</span>
               <div className="grid grid-cols-3 gap-3">
                 <Campo rotulo="Pix" inputMode="decimal" value={fecha.pix} onChange={(e) => setFecha({ ...fecha, pix: e.target.value })} />
                 <Campo rotulo="Cartão" inputMode="decimal" value={fecha.cartao} onChange={(e) => setFecha({ ...fecha, cartao: e.target.value })} />
                 <Campo rotulo="Dinheiro" inputMode="decimal" value={fecha.dinheiro} onChange={(e) => setFecha({ ...fecha, dinheiro: e.target.value })} />
               </div>
+              <span className="rotulo text-tinta-4">Delivery e outras vendas</span>
+              <Campo rotulo="Apps de delivery" placeholder="total bruto vendido nos apps hoje" inputMode="decimal" value={fecha.apps} onChange={(e) => setFecha({ ...fecha, apps: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Delivery próprio" placeholder="WhatsApp, telefone" inputMode="decimal" value={fecha.delivery} onChange={(e) => setFecha({ ...fecha, delivery: e.target.value })} />
                 <Campo rotulo="Outras receitas" placeholder="evento, buffet" inputMode="decimal" value={fecha.outras} onChange={(e) => setFecha({ ...fecha, outras: e.target.value })} />
               </div>
               <p className="text-xs text-tinta-4">
-                Cada campo aqui é uma linha da receita bruta do DRE. As taxas dos apps entram sozinhas como dedução sobre venda.
+                Cada campo aqui é uma linha da receita bruta do DRE. A comissão dos apps você lança como despesa, na conta de comissão de apps.
               </p>
             </div>
           )}

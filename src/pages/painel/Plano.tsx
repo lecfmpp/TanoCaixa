@@ -47,7 +47,7 @@ const PLANOS: PlanoCard[] = [
       'Gestão completa de operações',
       'Análise por filial',
       'Gerenciamento avançado de equipe',
-      'Integrações prioritárias',
+      'Integrações prioritárias (em breve)',
       'Suporte dedicado',
     ],
   },

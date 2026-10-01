@@ -103,7 +103,7 @@ export function Inicio() {
       <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie px-6 py-5 cel:flex-row cel:items-center">
         <div>
           <p className="text-[15px] font-bold text-tinta">Lançou as vendas de hoje?</p>
-          <p className="text-sm text-tinta-3">iFood e Rappi já entraram. Falta lançar o que veio de Pix, cartão e dinheiro no balcão.</p>
+          <p className="text-sm text-tinta-3">Lance o que entrou hoje: Pix, cartão e dinheiro no balcão, apps de delivery e delivery próprio.</p>
         </div>
         <button onClick={() => abrirGaveta('fechamento')} className="shrink-0 rounded-botao bg-mar px-5 py-2.5 text-sm font-bold text-creme transition hover:bg-mar-escuro">
           Lançar vendas

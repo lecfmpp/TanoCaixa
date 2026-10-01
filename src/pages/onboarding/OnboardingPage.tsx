@@ -12,22 +12,20 @@ import {
   Passo1Restaurante,
   Passo2Canais,
   Passo3Numeros,
-  Passo4Integracoes,
-  Passo5Equipe,
-  Passo6Metas,
-  Passo7Avisos,
-  Passo8Pronto,
+  Passo4Equipe,
+  Passo5Metas,
+  Passo6Avisos,
+  Passo7Pronto,
 } from './passos'
 
 const PASSOS = [
   { indice: 1, nome: 'O restaurante' },
   { indice: 2, nome: 'Canais de venda' },
   { indice: 3, nome: 'Números de partida' },
-  { indice: 4, nome: 'Integrações' },
-  { indice: 5, nome: 'Sua equipe' },
-  { indice: 6, nome: 'Metas' },
-  { indice: 7, nome: 'Avisos' },
-  { indice: 8, nome: 'Tudo pronto' },
+  { indice: 4, nome: 'Sua equipe' },
+  { indice: 5, nome: 'Metas' },
+  { indice: 6, nome: 'Avisos' },
+  { indice: 7, nome: 'Tudo pronto' },
 ]
 
 /** Dados de exemplo pra demonstração (sem sessão real = tenant demo). */
@@ -42,7 +40,7 @@ const RESPOSTAS_DEMO: RespostasOnboarding = {
   operacao: 'Delivery + salão',
   cozinha: 'Árabe',
   cnpj: '',
-  canais: ['ifood', 'rappi', 'balcao'],
+  canais: ['apps', 'balcao'],
   ticket: '68',
   pedidos: '48',
   horarios: HORARIO_PADRAO,
@@ -143,7 +141,7 @@ export function OnboardingPage() {
             className="mt-8 text-creme"
             style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}
           >
-            Oito perguntas e seu painel fica pronto
+            Sete perguntas e seu painel fica pronto
           </h1>
           <p className="pretty mt-2 text-sm text-creme/85">
             Dá pra mudar tudo depois. O que você não souber agora, deixa em branco.
@@ -222,10 +220,9 @@ export function OnboardingPage() {
                 onPessoas={(v) => upd({ pessoas: v })}
               />
             )}
-            {passo === 4 && <Passo4Integracoes />}
-            {passo === 5 && <Passo5Equipe nomeDono={sessao?.usuario.nome.split(' ')[0]} />}
-            {passo === 6 && (
-              <Passo6Metas
+            {passo === 4 && <Passo4Equipe nomeDono={sessao?.usuario.nome.split(' ')[0]} />}
+            {passo === 5 && (
+              <Passo5Metas
                 meta={r.meta}
                 onMeta={(v) => upd({ meta: v })}
                 contasFixas={r.contasFixas}
@@ -238,8 +235,8 @@ export function OnboardingPage() {
                 sobraReais={sobraReais}
               />
             )}
-            {passo === 7 && <Passo7Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
-            {passo === 8 && <Passo8Pronto />}
+            {passo === 6 && <Passo6Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
+            {passo === 7 && <Passo7Pronto r={r} />}
           </div>
         </div>
 

@@ -51,7 +51,7 @@ function Hero() {
           Saber se sobrou dinheiro não pode dar trabalho
         </h1>
         <p className="pretty mt-5 max-w-md text-lg text-tinta-2">
-          Foto da nota, iFood e maquininha entrando sozinhos e um recado toda segunda com o que fazer. Zero planilha.
+          Foto da nota, fechamento do dia em um minuto e um recado toda segunda com o que fazer. Zero planilha.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link to="/criar" className="rounded-botao bg-telhado px-5 py-3 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">
@@ -143,7 +143,7 @@ function Problema() {
 
 function ComoFunciona() {
   const passos = [
-    ['Conecta uma vez', 'iFood, Rappi, maquininha e PDV. Depois disso o faturamento entra sozinho todo dia às 6 da manhã.'],
+    ['Lança o dia em um minuto', 'Pix, cartão, dinheiro e apps de delivery num formulário só. Integração automática com apps e maquininha: em breve.'],
     ['Tira foto da nota', 'Fornecedor, itens, preços e categoria saem prontos em 5 segundos. Você só confere e confirma.'],
     ['Olha o painel em 3 segundos', 'Entrou, saiu, sobrou e quanto falta pro ponto de equilíbrio. Sem relatório pra rodar.'],
     ['Recebe o recado de segunda', 'Um e-mail curto com o que mudou na semana e uma coisa só pra fazer. No WhatsApp quando estoura um teto.'],
@@ -152,7 +152,7 @@ function ComoFunciona() {
     <section id="como" className="mx-auto max-w-6xl px-5 py-16">
       <span className="rotulo text-telhado">Como funciona</span>
       <h2 className="pretty mt-2 max-w-2xl" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>
-        Três coisas acontecem sozinhas. A quarta leva 40 segundos.
+        Quatro passos curtos. Nenhum vira planilha.
       </h2>
       <div className="mt-10 grid gap-4 tab:grid-cols-4">
         {passos.map(([t, d], i) => (
@@ -282,10 +282,10 @@ function Preco() {
 function FAQ() {
   const qs = [
     ['Preciso saber de contabilidade?', 'Não. A gente traduz tudo pra linguagem de balcão: entrou, saiu, sobrou. Jargão só na página de DRE, pro seu contador.'],
-    ['E se eu não conectar o iFood?', 'Funciona mesmo assim. Você tira foto das notas e digita o fechamento do dia. Conectar só tira o trabalho.'],
+    ['Precisa conectar o iFood?', 'Não. Você tira foto das notas e digita o fechamento do dia, apps incluídos. A integração automática com os apps está chegando.'],
     ['Minha equipe vê meu lucro?', 'Só quem você deixar. O gerente vê o CMV e o estoque, mas não vê o lucro, a folha nem o faturamento total.'],
     ['Meus dados ficam seguros?', 'Ficam criptografados e são seus. Cancela quando quiser e leva tudo junto. Seguimos a LGPD.'],
-    ['Quanto tempo leva pra configurar?', '40 segundos pro cadastro. O resto o app puxa sozinho das integrações ou você resolve com uma foto.'],
+    ['Quanto tempo leva pra configurar?', '40 segundos pro cadastro. O resto você resolve com uma foto ou importando a sua planilha.'],
   ]
   return (
     <section id="duvidas" className="border-y border-divisoria bg-superficie/60">
