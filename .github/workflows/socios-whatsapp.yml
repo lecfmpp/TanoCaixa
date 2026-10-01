@@ -1,0 +1,68 @@
+# Sócios no WhatsApp: lê a conversa Leandro ↔ Fernando (Green-API, o mesmo provedor do
+# RetroFoot), lista pendências / combinados / onde paramos e monta os lembretes dos dois.
+#
+# PADRÃO = RASCUNHO. O relatório e os rascunhos aparecem no resumo da execução (Actions ->
+# esta execução -> Summary). NADA é enviado, a menos que:
+#   1) a variável do repositório SOCIO_WHATSAPP_ENVIAR seja "sim"  (decisão do Leandro), E
+#   2) a execução manual marque "enviar" = true.
+# O agendamento abaixo fica COMENTADO até o Leandro escolher o horário; e mesmo agendado,
+# sem o passo 1 continua só rascunho.
+#
+# SETUP (uma vez, pelo Leandro) — ver ops/socio-whatsapp/README.md:
+#   secrets: GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN, SOCIO_CHAT, SOCIO_CHAT_FERNANDO,
+#            SOCIO_CHAT_LEANDRO, (opcional) GEMINI_API_KEY
+#   variável: SOCIO_WHATSAPP_ENVIAR = sim (só quando quiser ligar o envio)
+name: Sócios no WhatsApp
+
+on:
+  # schedule:
+  #   - cron: '0 12 * * 1,4'   # seg e qui 09:00 (Brasília) — só ligar após aprovação
+  workflow_dispatch:
+    inputs:
+      enviar:
+        description: 'Enviar os lembretes de verdade (exige a variável SOCIO_WHATSAPP_ENVIAR=sim)'
+        type: boolean
+        default: false
+      listar_chats:
+        description: 'Só listar os chats do WhatsApp conectado (para achar o chatId)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: socios-whatsapp
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GREEN_API_URL: ${{ secrets.GREEN_API_URL }}
+      GREEN_API_ID: ${{ secrets.GREEN_API_ID }}
+      GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
+      SOCIO_CHAT: ${{ secrets.SOCIO_CHAT }}
+      SOCIO_CHAT_FERNANDO: ${{ secrets.SOCIO_CHAT_FERNANDO }}
+      SOCIO_CHAT_LEANDRO: ${{ secrets.SOCIO_CHAT_LEANDRO }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SOCIO_WHATSAPP_ENVIAR: ${{ vars.SOCIO_WHATSAPP_ENVIAR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes da lógica
+        run: node --test ops/socio-whatsapp/analise.test.mjs
+      - name: Listar chats (setup)
+        if: ${{ inputs.listar_chats }}
+        run: node ops/socio-whatsapp/rodar.mjs --listar-chats
+      - name: Relatório e lembretes
+        if: ${{ !inputs.listar_chats }}
+        run: |
+          if [ "${{ inputs.enviar }}" = "true" ]; then
+            node ops/socio-whatsapp/rodar.mjs --enviar
+          else
+            node ops/socio-whatsapp/rodar.mjs
+          fi
