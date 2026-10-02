@@ -87,7 +87,7 @@ function respostasIniciais(sessao: ReturnType<typeof useAuth>['sessao']): Respos
 
 export function OnboardingPage() {
   const navegar = useNavigate()
-  const { entrarDemo, sessao } = useAuth()
+  const { entrarDemo, sessao, sair } = useAuth()
   const persistir = usePersistirOnboarding()
   const [passo, setPasso] = useState(1)
   const [r, setR] = useState<RespostasOnboarding>(() => respostasIniciais(sessao))
@@ -180,7 +180,12 @@ export function OnboardingPage() {
         </div>
 
         <button
-          onClick={() => navegar('/entrar')}
+          // Só navegar pro /entrar não basta: com a sessão ainda ativa, o
+          // /entrar manda de volta pro /onboarding. Desloga antes.
+          onClick={async () => {
+            await sair()
+            navegar('/entrar')
+          }}
           className="relative z-10 text-left text-sm text-creme/70 transition hover:text-creme"
         >
           Sair do cadastro
