@@ -165,3 +165,40 @@ redirecionado para `checkout.stripe.com` (hosted, feito pelo Stripe).
 - **Portal**: `portalAssinatura` abre `billing.stripe.com` — cliente gerencia
   upgrade/downgrade/cancelamento/pagamento. Depende da config do portal estar
   ativa (passo 4).
+
+## Avisos no WhatsApp (Green-API)
+
+Avisa o grupo do Tá no Caixa — mesma instância Green-API do RetroFoot (plano
+Developer, até 3 conversas; este grupo é a 2ª). Código em `src/whatsapp.ts`.
+
+| Função | Gatilho | Mensagem |
+|---|---|---|
+| `avisoAtividade` | cria doc em `restaurants/{id}/atividades` | nota fiscal lançada · contagem de estoque feita · vendas do dia lançadas (fluxo de caixa) · caixa do PDV fechado |
+| `resumoDoDia` | cron 21:30 (São Paulo) | por restaurante: nº de vendas no PDV, entrada do fluxo de caixa, notas/despesas do dia; lista quem não lançou nada |
+| `lembretes` | cron 09:00 (São Paulo) | contagem de estoque nos dias 1 e 28; dica de uso toda segunda |
+
+Contas `demo-*` / `rede-demo*` e atividades de integração (iFood/Rappi) não geram aviso.
+
+### Configurar (uma vez)
+
+Os segredos do **Firebase** são separados dos do GitHub — as Cloud Functions não leem
+os secrets do repositório. Os valores vêm de console.green-api.com → instância → `apiUrl`,
+`idInstance`, `apiTokenInstance`:
+
+```bash
+firebase functions:secrets:set GREEN_API_URL
+firebase functions:secrets:set GREEN_API_ID
+firebase functions:secrets:set GREEN_API_TOKEN
+```
+
+O `chatId` do grupo (termina em `@g.us`) vai em `functions/.env` (não é segredo):
+
+```
+WHATSAPP_GRUPO=1203630xxxxxxxxx@g.us
+```
+
+Para descobrir o chatId, com a instância já no grupo:
+`curl "$GREEN_API_URL/waInstance$GREEN_API_ID/getContacts/$GREEN_API_TOKEN"` e procure o
+item com `"type":"group"` e o nome do grupo.
+Depois: `firebase deploy --only functions`. Sem segredos ou sem grupo, a função só
+escreve no log e não envia nada.

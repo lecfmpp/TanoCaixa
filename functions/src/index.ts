@@ -306,3 +306,6 @@ export { analisarFoto, perguntarEstoque } from './gemini'
 
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'
+
+/* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
+export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'
