@@ -58,3 +58,16 @@ firebase deploy --only hosting
 - `npm run build` — build de produção (`dist/`)
 - `npm run preview` — pré-visualização do build
 - `npm run lint` — lint
+
+## Publicar pela nuvem
+
+Publicar não depende do computador de ninguém: abra o GitHub -> aba **Actions** -> escolha o workflow -> **Run workflow**. Nunca roda sozinho por push.
+
+- **Publicar o site** (`deploy-hosting.yml`): build + `firebase deploy --only hosting`.
+- **Publicar function boasVindas** (`deploy-functions.yml`): build, testes, grava `RESEND_API_KEY` no Firebase e faz deploy só de `functions:boasVindas`.
+
+Configuração única (GitHub -> Settings -> Secrets and variables -> Actions):
+
+1. **Variables** (valores do Console do Firebase -> app Web): `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`. Sem elas o build falha de propósito (evita a tela branca).
+2. **Secret** `FIREBASE_SERVICE_ACCOUNT`: conteúdo inteiro do JSON de uma conta de serviço do projeto `tanocaixa` com os papéis Firebase Admin (ou Firebase Hosting Admin + Cloud Functions Admin + Service Account User + Secret Manager Admin). Se a organização bloquear chaves JSON, use Workload Identity Federation: crie as **Variables** `GCP_WIF_PROVIDER` e `GCP_SERVICE_ACCOUNT` (mesmo padrão do repositório wiseleads) e dispense o secret.
+3. **Secret** `RESEND_API_KEY`: a chave da API do Resend (só para o workflow das functions).
