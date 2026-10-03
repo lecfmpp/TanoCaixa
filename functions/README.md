@@ -160,3 +160,29 @@ redirecionado para `checkout.stripe.com` (hosted, feito pelo Stripe).
 - **Portal**: `portalAssinatura` abre `billing.stripe.com` — cliente gerencia
   upgrade/downgrade/cancelamento/pagamento. Depende da config do portal estar
   ativa (passo 4).
+
+## E-mail de boas-vindas (Resend)
+
+`boasVindas` (`src/boasVindasTrigger.ts`) é um gatilho Firestore em `users/{uid}`
+(criado uma única vez, no fim do primeiro cadastro) que envia o e-mail de
+boas-vindas por `https://api.resend.com/emails`, remetente
+`Tá no Caixa <ola@tanocaixa.com>`. Idempotência: documento
+`emails_enviados/{uid}_boas_vindas` (criado com `create()`) + `Idempotency-Key`
+no Resend. Se o Resend falhar, o cadeado é liberado (não há retry automático).
+
+Segredo (nunca no código): `firebase functions:secrets:set RESEND_API_KEY`
+
+Teste sem rede: `cd functions && npm test` (fetch e Firestore simulados).
+
+## Publicar pela nuvem
+
+Publicar não depende do computador de ninguém: abra o GitHub -> aba **Actions** -> escolha o workflow -> **Run workflow**. Nunca roda sozinho por push.
+
+- **Publicar o site** (`deploy-hosting.yml`): build + `firebase deploy --only hosting`.
+- **Publicar function boasVindas** (`deploy-functions.yml`): build, testes, grava `RESEND_API_KEY` no Firebase e faz deploy só de `functions:boasVindas`.
+
+Configuração única (GitHub -> Settings -> Secrets and variables -> Actions):
+
+1. **Variables** (valores do Console do Firebase -> app Web): `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`. Sem elas o build falha de propósito (evita a tela branca).
+2. **Secret** `FIREBASE_SERVICE_ACCOUNT`: conteúdo inteiro do JSON de uma conta de serviço do projeto `tanocaixa` com os papéis Firebase Admin (ou Firebase Hosting Admin + Cloud Functions Admin + Service Account User + Secret Manager Admin). Se a organização bloquear chaves JSON, use Workload Identity Federation: crie as **Variables** `GCP_WIF_PROVIDER` e `GCP_SERVICE_ACCOUNT` (mesmo padrão do repositório wiseleads) e dispense o secret.
+3. **Secret** `RESEND_API_KEY`: a chave da API do Resend (só para o workflow das functions).

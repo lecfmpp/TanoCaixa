@@ -25,5 +25,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+      <script>
+      // Se o app não montar (ex.: erro de configuração), mostra um aviso em vez de tela branca.
+      setTimeout(function () {
+        var r = document.getElementById('root')
+        if (r && !r.children.length) {
+          r.innerHTML = '<p style="font-family:system-ui,sans-serif;padding:24px;text-align:center">Não foi possível carregar o Tá no Caixa agora. Atualize a página em instantes.</p>'
+        }
+      }, 8000)
+    </script>
   </body>
 </html>
