@@ -9,7 +9,7 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { mensagemDeErro } from '@/lib/erros'
-import { HOJE } from '@/data/derive'
+import { agora } from '@/data/derive'
 import { useProdutos } from '@/data/hooks'
 import { useCaixasPdv, useFecharCaixa, useMovimentoCaixa, usePedidosPdv } from '@/data/pdvHooks'
 import { FORMAS, ROTULO_FORMA, resumoDoCaixa } from '@/data/pdv'
@@ -45,7 +45,7 @@ export function CaixaPdv() {
                 <h2 className="text-[16px] font-bold text-tinta">Caixa #{aberto.numero} aberto</h2>
               </div>
               <p className="text-sm text-tinta-3">
-                {aberto.abertoPorNome} · {quando(new Date(aberto.abertoEm), HOJE)} · fundo {brl(aberto.fundo)}
+                {aberto.abertoPorNome} · {quando(new Date(aberto.abertoEm), agora())} · fundo {brl(aberto.fundo)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -104,8 +104,8 @@ export function CaixaPdv() {
                   <Fragment key={c.id}>
                     <tr className="border-b border-divisoria last:border-0">
                       <td className="mono px-4 py-3 font-bold text-tinta">#{c.numero}</td>
-                      <td className="px-4 py-3 text-tinta-2">{quando(new Date(c.abertoEm), HOJE)}</td>
-                      <td className="px-4 py-3 text-tinta-2">{c.fechadoEm ? quando(new Date(c.fechadoEm), HOJE) : '—'}</td>
+                      <td className="px-4 py-3 text-tinta-2">{quando(new Date(c.abertoEm), agora())}</td>
+                      <td className="px-4 py-3 text-tinta-2">{c.fechadoEm ? quando(new Date(c.fechadoEm), agora()) : '—'}</td>
                       <td className="px-4 py-3 text-tinta-2">{c.abertoPorNome}</td>
                       <td className={cn('mono px-4 py-3 text-right font-bold', (c.diferenca ?? 0) === 0 ? 'text-mata' : 'text-telha-alerta')}>
                         {(c.diferenca ?? 0) === 0 ? 'bateu' : `${(c.diferenca ?? 0) > 0 ? '+' : '−'} ${brl(Math.abs(c.diferenca ?? 0))}`}

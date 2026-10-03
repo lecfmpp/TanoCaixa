@@ -11,7 +11,8 @@ import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import type { Periodo } from '@/types'
 import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
-import { resumoInicio, diaDeHoje, HOJE } from '@/data/derive'
+import { resumoInicio, periodoAnterior, diaDeHoje, diasRestantesNoMes, agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { lembretes, type Vencimento } from '@/data/vencimentos'
 import { mensagemDeErro } from '@/lib/erros'
 
@@ -19,9 +20,25 @@ const COR_MAR = '#2E5F73'
 const COR_TELHADO = '#C05437'
 
 type Tom = 'positivo' | 'negativo' | 'neutro'
-const DELTAS: Record<Periodo, { entrou: [string, Tom]; saiu: [string, Tom]; ponto: [string, Tom] }> = {
-  mes: { entrou: ['+8% vs. junho', 'positivo'], saiu: ['+11% vs. junho', 'negativo'], ponto: ['virou no dia 21', 'positivo'] },
-  semana: { entrou: ['+6% vs. semana passada', 'positivo'], saiu: ['+3% vs. semana passada', 'negativo'], ponto: ['virou na quinta', 'positivo'] },
+
+/**
+ * "+8% vs. setembro": compara com a MESMA janela do período anterior (o mês
+ * passado até o dia de hoje; a semana anterior). Sem lançamento lá, não
+ * inventa percentual. `subirEhBom` diz a cor: entrar mais é bom, gastar mais não.
+ */
+function delta(atual: number, antes: number, temBase: boolean, contra: string, subirEhBom: boolean): [string, Tom] {
+  if (!temBase || antes <= 0) return [atual > 0 ? `sem base em ${contra} pra comparar` : 'nada lançado ainda', 'neutro']
+  const v = Math.round(((atual - antes) / antes) * 100)
+  if (v === 0) return [`igual a ${contra}`, 'neutro']
+  const subiu = v > 0
+  return [`${subiu ? '+' : ''}${v}% vs. ${contra}`, subiu === subirEhBom ? 'positivo' : 'negativo']
+}
+
+/** Ponto de equilíbrio: já passou ou quanto falta, com o que foi lançado. */
+function deltaPonto(entrou: number, ponto: number): [string, Tom] {
+  if (ponto <= 0) return ['lance as contas fixas pra calcular', 'neutro']
+  if (entrou >= ponto) return ['já passou, daqui pra frente é sobra', 'positivo']
+  return [`faltam ${brlInteiro(ponto - entrou)} de venda`, 'neutro']
 }
 
 export function Inicio() {
@@ -35,10 +52,19 @@ export function Inicio() {
   const insights = useInsights()
 
   const r = resumoInicio(ctx, periodo)
-  const d = DELTAS[periodo]
+  const antes = periodoAnterior(ctx, periodo)
+  const contra = periodo === 'mes' ? nomeDoMes(antes.mes).split(' de ')[0] : 'semana passada'
+  const d = {
+    entrou: delta(r.entrou, antes.entrou, antes.temBase, contra, true),
+    saiu: delta(r.saiu, antes.saiu, antes.temBase, contra, false),
+    ponto: deltaPonto(r.entrou, r.pontoEquilibrio),
+  }
   const cfg = restaurante.data
+  const faltam = diasRestantesNoMes()
   const sub = cfg
-    ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}${periodo === 'mes' ? ', faltam 4 dias' : ''}`
+    ? `${[cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ')}${
+        periodo === 'mes' ? (faltam === 0 ? ', último dia' : `, faltam ${faltam} ${faltam === 1 ? 'dia' : 'dias'}`) : ''
+      }`
     : 'Carregando…'
 
   const feed = [...(atividades.data ?? [])]
@@ -103,7 +129,7 @@ export function Inicio() {
       <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie px-6 py-5 cel:flex-row cel:items-center">
         <div>
           <p className="text-[15px] font-bold text-tinta">Lançou as vendas de hoje?</p>
-          <p className="text-sm text-tinta-3">iFood e Rappi já entraram. Falta lançar o que veio de Pix, cartão e dinheiro no balcão.</p>
+          <p className="text-sm text-tinta-3">Lance o que entrou hoje: Pix, cartão e dinheiro no balcão, apps de delivery e delivery próprio.</p>
         </div>
         <button onClick={() => abrirGaveta('fechamento')} className="shrink-0 rounded-botao bg-mar px-5 py-2.5 text-sm font-bold text-creme transition hover:bg-mar-escuro">
           Lançar vendas
@@ -205,7 +231,7 @@ function PedidosDaFranqueadora() {
               <p className="text-[15px] font-bold text-tinta">{p.titulo}</p>
               {p.detalhe && <p className="pretty text-sm text-tinta-3">{p.detalhe}</p>}
               <p className="mt-0.5 text-xs text-tinta-4">
-                {p.rede} · pedido por {p.pedidoPorNome} · {quando(new Date(p.criadoEm), HOJE)}
+                {p.rede} · pedido por {p.pedidoPorNome} · {quando(new Date(p.criadoEm), agora())}
               </p>
             </div>
             <button
@@ -319,13 +345,18 @@ function QuemMexeu({ feed }: { feed: { id: string; quem: string; quemInicial: st
         <h2 className="text-[15px] font-bold text-tinta">Quem mexeu no quê</h2>
         <Link to="/painel/ajustes#historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>
       </div>
+      {feed.length === 0 && (
+        <p className="py-3 text-sm text-tinta-4">
+          Nada lançado ainda. Cada nota, venda e contagem aparece aqui com quem fez e quando.
+        </p>
+      )}
       <ul className="flex flex-col">
         {feed.map((a, i) => (
           <li key={a.id} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-divisoria')}>
             <Avatar inicial={a.quemInicial} cor={a.quemCor} tamanho={32} />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-tinta"><span className="font-bold">{a.quem}</span> <span className="text-tinta-2">{a.acao}</span> <span className="font-semibold text-tinta">{a.entidade}</span></p>
-              <p className="mt-0.5 text-xs text-tinta-4">{quando(new Date(a.criadoEm), HOJE)}</p>
+              <p className="mt-0.5 text-xs text-tinta-4">{quando(new Date(a.criadoEm), agora())}</p>
             </div>
             {a.valor != null && <span className="mono shrink-0 text-sm font-medium text-tinta">{brl(a.valor)}</span>}
           </li>

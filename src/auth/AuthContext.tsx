@@ -23,7 +23,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { auth, db, functions } from '@/lib/firebase'
 import { DEMO_TENANT } from '@/data/tenant'
-import { ajustarDataDeReferencia } from '@/data/derive'
+import { ajustarDataDeReferencia, virouODia } from '@/data/derive'
+import { nomeDoMesAtual } from '@/data/planoMes'
 import { TETOS_PADRAO } from '@/data/planoContas'
 import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
@@ -77,9 +78,11 @@ async function provisionarRestaurante(user: User, dados?: DadosCadastro): Promis
       cnpj: '',
       regimeTributario: 'simples',
       aliquotaImposto: 0.06,
-      metaFaturamento: 50000,
+      // Conta nova começa sem meta (0 = "sem meta"): o onboarding pergunta.
+      metaFaturamento: 0,
       tetos: TETOS_PADRAO,
-      aberturaMes: 'julho de 2026',
+      // Mês em que a conta foi aberta — o de verdade, não o da demonstração.
+      aberturaMes: nomeDoMesAtual(),
       // O onboarding refina isso; loja única é o padrão seguro (sem linha de
       // franqueadora no DRE, sem visão de rede).
       tipoNegocio: 'loja_unica',
@@ -195,6 +198,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setSessao = useCallback((s: Sessao | null) => {
     ajustarDataDeReferencia(s?.demo ?? false)
     setSessaoState(s)
+  }, [])
+
+  // App aberto de um dia pro outro (caixa que fica ligado): a conta real passa
+  // pro dia novo sozinha. Recria a sessão só pra re-renderizar o painel.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (virouODia()) setSessaoState((s) => (s ? { ...s } : s))
+    }, 60_000)
+    return () => clearInterval(id)
   }, [])
 
   useEffect(() => {

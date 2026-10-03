@@ -14,7 +14,11 @@ import type { ContagemDoc, DespesaDoc, ReceitaDiaDoc, RestauranteDoc } from './t
 /** "Hoje" da demonstração — os dados de exemplo são todos de julho de 2026. */
 const HOJE_DEMO = new Date(2026, 6, 28)
 
-/** Chave de sessão que marca a demonstração (espelha o AuthContext). */
+/**
+ * Chave de sessão que marca a demonstração (espelha o AuthContext). Só é
+ * gravada quando alguém clica em "Ver demonstração" (ou volta com o login
+ * anônimo que esse botão cria). Conta real apaga a chave ao entrar.
+ */
 const CHAVE_DEMO = 'tanocaixa:demo'
 
 function ehDemo(): boolean {
@@ -25,13 +29,14 @@ function ehDemo(): boolean {
   }
 }
 
+let modoDemo = ehDemo()
+
 /**
- * "Hoje" de referência do painel. Na conta real é o dia de verdade — era uma
- * data fixa de julho, e por isso o que o dono lançava em outro mês sumia das
- * telas (Despesas, DRE, Início). Só a demonstração continua parada em julho,
+ * "Hoje" de referência do painel. Na conta real é o dia de verdade (e anda com
+ * o relógio: ver `virouODia`). Só a demonstração fica parada em 28/07/2026,
  * que é quando estão os dados de exemplo.
  */
-export let HOJE = ehDemo() ? HOJE_DEMO : new Date()
+export let HOJE = modoDemo ? HOJE_DEMO : new Date()
 
 export interface Contexto {
   despesas: DespesaDoc[]
@@ -46,9 +51,14 @@ const MC_PADRAO = 0.415
 /** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
 export let MES_REF = mesDe(HOJE)
 
+/** Dia em 'YYYY-MM-DD' pelo calendário LOCAL (toISOString usa UTC e, à noite no Brasil, já é amanhã). */
+export function isoDoDia(d: Date): string {
+  return `${mesDe(d)}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /** Hoje em 'YYYY-MM-DD', pelo calendário local e pela data de referência. */
 export function diaDeHoje(): string {
-  return `${mesDe(HOJE)}-${String(HOJE.getDate()).padStart(2, '0')}`
+  return isoDoDia(HOJE)
 }
 
 function mesDe(d: Date): string {
@@ -56,12 +66,40 @@ function mesDe(d: Date): string {
 }
 
 /**
+ * Agora, pra comparar horários ("hoje, 14:03", "ontem…"). Na conta real é o
+ * relógio; na demonstração, o dia de exemplo.
+ */
+export function agora(): Date {
+  return modoDemo ? HOJE : new Date()
+}
+
+/** Quantos dias faltam pro mês de referência acabar (0 no último dia). */
+export function diasRestantesNoMes(): number {
+  const ultimo = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
+  return ultimo - HOJE.getDate()
+}
+
+/**
  * Fixa a data de referência quando a sessão é resolvida: demonstração fica em
  * julho de 2026, conta real anda com o relógio.
  */
 export function ajustarDataDeReferencia(demo: boolean): void {
+  modoDemo = demo
   HOJE = demo ? HOJE_DEMO : new Date()
   MES_REF = mesDe(HOJE)
+}
+
+/**
+ * Conta real com o app aberto de um dia pro outro: avança HOJE/MES_REF pro dia
+ * novo. Devolve true quando mudou (quem chama re-renderiza o painel).
+ */
+export function virouODia(): boolean {
+  if (modoDemo) return false
+  const hoje = new Date()
+  if (isoDoDia(hoje) === isoDoDia(HOJE)) return false
+  HOJE = hoje
+  MES_REF = mesDe(HOJE)
+  return true
 }
 
 /** '2026-07' → '2026-06'. */
@@ -525,12 +563,14 @@ export function resumoInicio(ctx: Contexto, periodo: 'semana' | 'mes'): ResumoIn
     }))
   } else {
     const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
-    barras = dias.map((rot, i) => {
+    // Os últimos 7 dias terminando hoje, cada barra com o nome do dia dela
+    // (antes o rótulo era fixo Seg…Dom e não batia com a data da barra).
+    barras = [0, 1, 2, 3, 4, 5, 6].map((i) => {
       const alvo = new Date(HOJE)
       alvo.setDate(HOJE.getDate() - (6 - i))
-      const iso = alvo.toISOString().slice(0, 10)
+      const iso = isoDoDia(alvo)
       return {
-        rotulo: rot,
+        rotulo: i === 6 ? 'Hoje' : dias[(alvo.getDay() + 6) % 7],
         entrou: rec.filter((r) => r.data.slice(0, 10) === iso).reduce((s, r) => s + r.canais.reduce((a, c) => a + c.valorBruto, 0), 0),
         saiu: desp.filter((d) => d.dataCompetencia.slice(0, 10) === iso).reduce((s, d) => s + d.valorTotal, 0),
       }
@@ -552,6 +592,35 @@ export function resumoInicio(ctx: Contexto, periodo: 'semana' | 'mes'): ResumoIn
     impostoEstimado,
     deducoes,
     sobrouFinal,
+  }
+}
+
+/**
+ * Mesma janela no período anterior, pra comparar sem inventar número: no mês,
+ * o mês passado do dia 1 até o dia de hoje; na semana, os 7 dias antes destes.
+ * `temBase` é falso quando não há nada lançado na janela anterior.
+ */
+export function periodoAnterior(ctx: Contexto, periodo: 'semana' | 'mes') {
+  let dentro: (iso: string) => boolean
+  if (periodo === 'mes') {
+    const mes = mesAnterior(MES_REF)
+    const ateDia = HOJE.getDate()
+    dentro = (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
+  } else {
+    const ini = new Date(HOJE)
+    ini.setDate(HOJE.getDate() - 13)
+    const fim = new Date(HOJE)
+    fim.setDate(HOJE.getDate() - 7)
+    const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
+    dentro = (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+  }
+  const rec = ctx.receitaDia.filter((r) => dentro(r.data))
+  const desp = ctx.despesas.filter((d) => dentro(d.dataCompetencia))
+  return {
+    mes: mesAnterior(MES_REF),
+    entrou: faturamento(rec),
+    saiu: desp.reduce((s, d) => s + d.valorTotal, 0),
+    temBase: rec.length > 0 || desp.length > 0,
   }
 }
 

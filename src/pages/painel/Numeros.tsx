@@ -54,7 +54,7 @@ export function Numeros() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Números"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
+        subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''}
         periodo={periodo}
         aoTrocarPeriodo={setPeriodo}
       />
@@ -77,7 +77,7 @@ export function Numeros() {
           rotulo="Taxas sobre venda"
           valor={`${pctv(r.apps).toFixed(1)}%`}
           meta={`meta ${tetoDeducao}%`}
-          texto="iFood, Rappi, maquininha"
+          texto="Comissão de apps e maquininha"
         />
         <CartaoKpi
           rotulo="Ponto de equilíbrio"

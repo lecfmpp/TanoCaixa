@@ -10,6 +10,7 @@
  * ------------------------------------------------------------------ */
 
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore'
+import { nomeDoMesAtual } from './planoMes'
 import { db } from '@/lib/firebase'
 import { TETOS_PADRAO } from './planoContas'
 import type { TipoNegocio } from '@/types'
@@ -102,7 +103,7 @@ export async function abrirLoja(p: {
     aliquotaImposto: p.aliquotaImposto,
     metaFaturamento: p.metaFaturamento,
     tetos: TETOS_PADRAO,
-    aberturaMes: 'julho de 2026',
+    aberturaMes: nomeDoMesAtual(),
     tipoNegocio: p.tipoNegocio,
     redeId: p.rede.id,
     bandeira: p.rede.nome,

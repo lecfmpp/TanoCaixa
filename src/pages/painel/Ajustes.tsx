@@ -9,6 +9,7 @@ import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
+import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -17,12 +18,6 @@ import {
   useMembros,
   useAtividades,
   useRestaurante,
-  useIntegracoes,
-  useConectarIntegracao,
-  useListarLojasIFood,
-  useConectarIFood,
-  useSincronizarIFood,
-  type LojaIFood,
   useSalvarMembro,
   useRemoverMembro,
   useSalvarRestaurante,
@@ -30,9 +25,9 @@ import {
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { functions } from '@/lib/firebase'
-import { HOJE } from '@/data/derive'
+import { agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { PAPEIS, TIPOS_NEGOCIO, rotuloPapel, normalizarPapel, type Papel, type Origem, type TipoNegocio } from '@/types'
-import type { IntegracaoDoc } from '@/data/repo'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
 const criarConviteFn = httpsCallable<{ restauranteId: string; papel: Papel }, { token: string; url: string }>(
@@ -111,7 +106,7 @@ export function Ajustes() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Ajustes"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${cfg.aberturaMes}` : ''}
+        subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''}
       />
 
       {/* Natureza do negócio — governa o DRE e a visão de rede */}
@@ -194,21 +189,18 @@ export function Ajustes() {
   )
 }
 
-const PROVEDOR = {
-  ifood: { nome: 'iFood', cor: '#EA1D2C' },
-  rappi: { nome: 'Rappi', cor: '#FF5A00' },
-} as const
-
-const STATUS_INT: Record<IntegracaoDoc['status'], { txt: string; cls: string }> = {
-  conectado: { txt: 'conectado', cls: 'bg-mata/12 text-mata' },
-  conectando: { txt: 'conectando…', cls: 'bg-sol/20 text-insight-rotulo' },
-  desconectado: { txt: 'conectar', cls: 'bg-preenchimento text-tinta-2' },
-}
-
-const DICA_PROV: Record<string, string> = {
-  maquininha: 'Stone, Cielo, PagSeguro, Mercado Pago',
-  pdv: 'Colibri, Consumer, Goomer…',
-}
+/**
+ * Integrações que ainda não estão no ar. Ficam visíveis pra pessoa saber que
+ * vêm aí, mas sem fluxo de conectar: na versão 1 tudo entra por foto, planilha
+ * ou pelo fechamento do dia. (As Cloud Functions do iFood/Rappi continuam no
+ * repositório, só não são chamadas pelo app.)
+ */
+const INTEGRACOES_EM_BREVE = [
+  { id: 'ifood', nome: 'iFood', sigla: 'iF', cor: '#EA1D2C', dica: 'vendas e taxas do dia' },
+  { id: 'rappi', nome: 'Rappi', sigla: 'Ra', cor: '#FF5A00', dica: 'vendas e taxas do dia' },
+  { id: 'maquininha', nome: 'Maquininha', sigla: 'Ma', cor: '#6A7A7E', dica: 'Stone, Cielo, PagSeguro, Mercado Pago' },
+  { id: 'pdv', nome: 'Sistema de PDV', sigla: 'PD', cor: '#6A7A7E', dica: 'Colibri, Consumer, Goomer…' },
+]
 
 /** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
 function SeuNegocio() {
@@ -296,216 +288,41 @@ function SeuNegocio() {
 }
 
 function Integracoes() {
-  const integracoes = (useIntegracoes().data ?? []) as IntegracaoDoc[]
-  const conectar = useConectarIntegracao()
-  const listarLojas = useListarLojasIFood()
-  const conectarIFood = useConectarIFood()
-  const sincronizarIFood = useSincronizarIFood()
-  const { adicionarToast } = useUI()
-  const conhecidas = ['ifood', 'rappi', 'maquininha', 'pdv']
-  const porId = new Map(integracoes.map((i) => [i.provedor, i]))
-
-  const [abrindo, setAbrindo] = useState<string | null>(null)
-  const [merchantId, setMerchantId] = useState('')
-  const [lojas, setLojas] = useState<LojaIFood[] | null>(null)
-  const [erroLojas, setErroLojas] = useState('')
-
-  /** Abre o painel de conexão. No iFood já vai buscando as lojas do dono. */
-  async function abrirConexao(prov: string) {
-    setAbrindo(prov)
-    setMerchantId('')
-    setLojas(null)
-    setErroLojas('')
-    if (prov !== 'ifood') return
-    try {
-      setLojas(await listarLojas.mutateAsync())
-    } catch (e) {
-      setErroLojas(mensagemDeErro(e, 'Não foi possível falar com o iFood agora.'))
-    }
-  }
-
-  async function escolherLoja(loja: LojaIFood) {
-    try {
-      await conectarIFood.mutateAsync(loja.id)
-      setAbrindo(null)
-      setLojas(null)
-      adicionarToast({
-        tipo: 'sistema',
-        titulo: `${loja.nome} conectada`,
-        texto: 'O faturamento e as taxas entram sozinhos todo dia às 6h.',
-      })
-    } catch (e) {
-      setErroLojas(mensagemDeErro(e, 'Não foi possível conectar essa loja.'))
-    }
-  }
-
-  async function salvarConexao(prov: string) {
-    await conectar.mutateAsync({ provedor: prov, merchantId: merchantId.trim(), status: 'conectando' })
-    setAbrindo(null)
-    setMerchantId('')
-    const nome = PROVEDOR[prov as keyof typeof PROVEDOR]?.nome ?? prov
-    adicionarToast({
-      tipo: 'sistema',
-      titulo: `${nome} conectando…`,
-      texto: 'Assim que o backend entrar no ar, o faturamento entra sozinho todo dia às 6h.',
-    })
-  }
-
-  async function sincronizarAgora(it: IntegracaoDoc) {
-    if (it.provedor !== 'ifood' || !it.merchantId) {
-      adicionarToast({ tipo: 'andamento', titulo: 'Sincronizando…', texto: 'O sync automático roda todo dia às 6h.' })
-      return
-    }
-    adicionarToast({ tipo: 'andamento', titulo: 'Sincronizando com o iFood…', texto: 'Buscando cardápio e situação da loja.' })
-    try {
-      const r = await sincronizarIFood.mutateAsync(it.merchantId)
-      adicionarToast({
-        tipo: 'sistema',
-        titulo: 'iFood sincronizado',
-        texto: `${r.itens} ${r.itens === 1 ? 'item' : 'itens'} de cardápio atualizados.`,
-      })
-    } catch (e) {
-      adicionarToast({
-        tipo: 'sistema',
-        titulo: 'Falha ao sincronizar',
-        texto: mensagemDeErro(e, 'Não foi possível falar com o iFood agora.'),
-      })
-    }
-  }
-
   return (
     <Cartao className="flex flex-col">
-      <h2 className="text-[15px] font-bold text-tinta">Integrações</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-[15px] font-bold text-tinta">Integrações</h2>
+        <SeloEmBreve />
+      </div>
       <p className="mt-1 mb-3 text-sm text-tinta-3">
-        Faturamento, taxas e pedidos entram sozinhos todo dia às 6 da manhã.
+        Por enquanto as vendas entram pelo fechamento do dia (botão "Lançar vendas") e as despesas por foto ou
+        planilha. As conexões automáticas abaixo estão chegando.
       </p>
       <ul className="flex flex-col">
-        {conhecidas.map((prov, i) => {
-          const info = PROVEDOR[prov as keyof typeof PROVEDOR]
-          const it = porId.get(prov)
-          const status = it?.status ?? 'desconectado'
-          const st = STATUS_INT[status]
-          const aberto = abrindo === prov
-          return (
-            <li key={prov} className={cn('py-3', i > 0 && 'border-t border-divisoria')}>
-              <div className="flex items-center gap-3">
-                <span
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-botao text-xs font-bold text-creme"
-                  style={{ background: info?.cor ?? '#6A7A7E' }}
-                >
-                  {(info?.nome ?? prov).slice(0, 2)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-tinta capitalize">{info?.nome ?? prov}</div>
-                  <div className="truncate text-xs text-tinta-4">
-                    {status === 'conectado'
-                      ? [
-                          it?.nomeLoja,
-                          it?.pedidosUltimoDia != null
-                            ? `${it.pedidosUltimoDia} pedidos ontem · ${brl(it.faturamentoUltimoDia ?? 0)}`
-                            : null,
-                          it?.estadoLoja === 'CLOSED' ? 'loja fechada agora' : null,
-                          it?.pausas?.length ? 'loja pausada' : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ') || 'conectado'
-                      : status === 'conectando'
-                        ? 'conectando… entra no ar no próximo sync'
-                        : (DICA_PROV[prov] ?? 'não conectado')}
-                  </div>
-                </div>
-                {status === 'conectado' ? (
-                  <button
-                    onClick={() => it && sincronizarAgora(it)}
-                    disabled={sincronizarIFood.isPending}
-                    className="shrink-0 text-xs font-bold text-mar hover:underline disabled:opacity-50"
-                  >
-                    {sincronizarIFood.isPending ? 'sincronizando…' : 'Sincronizar'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => (aberto ? setAbrindo(null) : abrirConexao(prov))}
-                    className={cn('shrink-0 rounded-chip px-2.5 py-1 text-xs font-bold', st.cls)}
-                  >
-                    {aberto ? 'fechar' : status === 'conectando' ? st.txt : 'conectar'}
-                  </button>
-                )}
-              </div>
-
-              {aberto && prov === 'ifood' && (
-                <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3">
-                  {listarLojas.isPending ? (
-                    <p className="text-sm text-tinta-3">Buscando suas lojas no iFood…</p>
-                  ) : erroLojas ? (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-sm text-tinta-3">{erroLojas}</p>
-                      <button
-                        onClick={() => abrirConexao('ifood')}
-                        className="self-start text-xs font-bold text-mar hover:underline"
-                      >
-                        Tentar de novo
-                      </button>
-                    </div>
-                  ) : lojas && lojas.length === 0 ? (
-                    <p className="text-sm text-tinta-3">
-                      Nenhuma loja liberada para o Tá no Caixa ainda. Autorize o acesso no Portal do Parceiro do iFood e
-                      volte aqui.
-                    </p>
-                  ) : (
-                    <>
-                      <p className="text-xs text-tinta-4">
-                        {lojas?.length === 1 ? 'Sua loja no iFood:' : 'Escolha a loja que você quer acompanhar:'}
-                      </p>
-                      <ul className="flex flex-col gap-1.5">
-                        {(lojas ?? []).map((loja) => (
-                          <li key={loja.id}>
-                            <button
-                              onClick={() => escolherLoja(loja)}
-                              disabled={conectarIFood.isPending}
-                              className="flex w-full items-center gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-left transition hover:border-mar disabled:opacity-50"
-                            >
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-sm font-bold text-tinta">{loja.nome}</span>
-                                {loja.razaoSocial && (
-                                  <span className="block truncate text-xs text-tinta-4">{loja.razaoSocial}</span>
-                                )}
-                              </span>
-                              <span className="shrink-0 text-xs font-bold text-mar">
-                                {conectarIFood.isPending ? '…' : 'conectar'}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {aberto && prov !== 'ifood' && (
-                <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
-                  <input
-                    value={merchantId}
-                    onChange={(e) => setMerchantId(e.target.value)}
-                    placeholder="ID / conta da integração"
-                    className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar"
-                  />
-                  <button
-                    onClick={() => salvarConexao(prov)}
-                    disabled={!merchantId.trim() || conectar.isPending}
-                    className="shrink-0 rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
-                  >
-                    Conectar
-                  </button>
-                </div>
-              )}
-            </li>
-          )
-        })}
+        {INTEGRACOES_EM_BREVE.map((it, i) => (
+          <li
+            key={it.id}
+            aria-disabled
+            className={cn('flex items-center gap-3 py-3 opacity-70', i > 0 && 'border-t border-divisoria')}
+          >
+            <span
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-botao text-xs font-bold text-creme grayscale-[35%]"
+              style={{ background: it.cor }}
+            >
+              {it.sigla}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-tinta">{it.nome}</div>
+              <div className="truncate text-xs text-tinta-4">{it.dica}</div>
+            </div>
+            <SeloEmBreve />
+          </li>
+        ))}
       </ul>
     </Cartao>
   )
 }
+
 function Equipe() {
   const { sessao, permissoes } = useAuth()
   const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
@@ -686,7 +503,7 @@ function LinhaAtividade({ a }: { a: AtividadeDoc }) {
       <td className="mono px-4 py-3 text-right font-medium text-tinta">
         {a.valor != null ? brl(a.valor) : '—'}
       </td>
-      <td className="px-4 py-3 text-tinta-4">{quando(new Date(a.criadoEm), HOJE)}</td>
+      <td className="px-4 py-3 text-tinta-4">{quando(new Date(a.criadoEm), agora())}</td>
     </tr>
   )
 }

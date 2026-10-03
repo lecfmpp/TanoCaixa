@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { Button } from '@/components/ui/Button'
@@ -12,25 +12,23 @@ import {
   Passo1Restaurante,
   Passo2Canais,
   Passo3Numeros,
-  Passo4Integracoes,
-  Passo5Equipe,
-  Passo6Metas,
-  Passo7Avisos,
-  Passo8Pronto,
+  Passo4Equipe,
+  Passo5Metas,
+  Passo6Avisos,
+  Passo7Pronto,
 } from './passos'
 
 const PASSOS = [
   { indice: 1, nome: 'O restaurante' },
   { indice: 2, nome: 'Canais de venda' },
   { indice: 3, nome: 'Números de partida' },
-  { indice: 4, nome: 'Integrações' },
-  { indice: 5, nome: 'Sua equipe' },
-  { indice: 6, nome: 'Metas' },
-  { indice: 7, nome: 'Avisos' },
-  { indice: 8, nome: 'Tudo pronto' },
+  { indice: 4, nome: 'Sua equipe' },
+  { indice: 5, nome: 'Metas' },
+  { indice: 6, nome: 'Avisos' },
+  { indice: 7, nome: 'Tudo pronto' },
 ]
 
-/** Dados de exemplo pra demonstração (sem sessão real = tenant demo). */
+/** Dados de exemplo — só pra quem entrou explicitamente na demonstração. */
 const RESPOSTAS_DEMO: RespostasOnboarding = {
   nome: 'Zaatar Cozinha Árabe',
   bairro: 'Botafogo',
@@ -42,7 +40,7 @@ const RESPOSTAS_DEMO: RespostasOnboarding = {
   operacao: 'Delivery + salão',
   cozinha: 'Árabe',
   cnpj: '',
-  canais: ['ifood', 'rappi', 'balcao'],
+  canais: ['apps', 'balcao'],
   ticket: '68',
   pedidos: '48',
   horarios: HORARIO_PADRAO,
@@ -56,11 +54,11 @@ const RESPOSTAS_DEMO: RespostasOnboarding = {
 }
 
 /** Semeia o onboarding com o que a pessoa já digitou no cadastro (nome do
- * restaurante, bairro) — só cai nos dados de exemplo quando não há sessão
- * real (demo). O resto (números, metas) começa em branco/no padrão, porque
- * o cadastro não pergunta isso — só o onboarding pergunta. */
-function respostasIniciais(sessao: ReturnType<typeof useAuth>['sessao']): RespostasOnboarding {
-  if (!sessao || sessao.demo) return RESPOSTAS_DEMO
+ * restaurante, bairro). Os dados de exemplo só aparecem na demonstração. O
+ * resto (números, metas) começa em branco/no padrão, porque o cadastro não
+ * pergunta isso — só o onboarding pergunta. */
+function respostasIniciais(sessao: NonNullable<ReturnType<typeof useAuth>['sessao']>): RespostasOnboarding {
+  if (sessao.demo) return RESPOSTAS_DEMO
   const rest = sessao.restaurante
   return {
     ...RESPOSTAS_DEMO,
@@ -85,9 +83,29 @@ function respostasIniciais(sessao: ReturnType<typeof useAuth>['sessao']): Respos
   }
 }
 
+/**
+ * Espera a sessão resolver ANTES de montar as respostas: antes, recarregar a
+ * página no meio do onboarding pegava a sessão ainda vazia, caía nos dados de
+ * exemplo (Zaatar, R$ 50 mil…) e, ao terminar, gravava isso na conta real.
+ * Sem login não há onboarding: vai pro cadastro.
+ */
 export function OnboardingPage() {
+  const { sessao, carregando } = useAuth()
+  if (carregando) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-fundo-app">
+        <div className="animate-pulse">
+          <Logo tom="escuro" tamanho={26} />
+        </div>
+      </div>
+    )
+  }
+  if (!sessao) return <Navigate to="/criar" replace />
+  return <FluxoOnboarding key={sessao.usuario.id} sessao={sessao} />
+}
+
+function FluxoOnboarding({ sessao }: { sessao: NonNullable<ReturnType<typeof useAuth>['sessao']> }) {
   const navegar = useNavigate()
-  const { entrarDemo, sessao } = useAuth()
   const persistir = usePersistirOnboarding()
   const [passo, setPasso] = useState(1)
   const [r, setR] = useState<RespostasOnboarding>(() => respostasIniciais(sessao))
@@ -100,22 +118,22 @@ export function OnboardingPage() {
   const sobraPct =
     100 -
     (pctDaMeta(r.contasFixas, r.meta) + pctDaMeta(r.folha, r.meta) + pctDaMeta(r.mercadoria, r.meta) + TAXA_APP_TETO_PADRAO)
-  const sobraReais = Math.round(((Number(r.meta.replace(/\D/g, '')) || 50000) * sobraPct) / 100)
+  // Sem meta digitada não dá pra dizer quanto sobra em reais — só o percentual.
+  const sobraReais = Math.round(((Number(r.meta.replace(/\D/g, '')) || 0) * sobraPct) / 100)
 
   const ehUltimo = passo === PASSOS.length
   const rotuloProximo = ehUltimo ? 'Ver meu painel' : 'Continuar'
 
   async function avancar() {
     if (ehUltimo) {
-      // Conta real: grava as respostas no restaurante dela. Sem sessão: demo.
-      if (sessao && !sessao.demo) {
+      // Conta real: grava as respostas no restaurante dela. A demonstração
+      // não grava nada (o tenant de exemplo é compartilhado).
+      if (!sessao.demo) {
         try {
           await persistir.mutateAsync(r)
         } catch (e) {
           console.warn('persistir onboarding:', e)
         }
-      } else {
-        entrarDemo()
       }
       navegar('/painel')
       return
@@ -143,7 +161,7 @@ export function OnboardingPage() {
             className="mt-8 text-creme"
             style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}
           >
-            Oito perguntas e seu painel fica pronto
+            Sete perguntas e seu painel fica pronto
           </h1>
           <p className="pretty mt-2 text-sm text-creme/85">
             Dá pra mudar tudo depois. O que você não souber agora, deixa em branco.
@@ -222,10 +240,9 @@ export function OnboardingPage() {
                 onPessoas={(v) => upd({ pessoas: v })}
               />
             )}
-            {passo === 4 && <Passo4Integracoes />}
-            {passo === 5 && <Passo5Equipe nomeDono={sessao?.usuario.nome.split(' ')[0]} />}
-            {passo === 6 && (
-              <Passo6Metas
+            {passo === 4 && <Passo4Equipe nomeDono={sessao.usuario.nome.split(' ')[0]} />}
+            {passo === 5 && (
+              <Passo5Metas
                 meta={r.meta}
                 onMeta={(v) => upd({ meta: v })}
                 contasFixas={r.contasFixas}
@@ -238,8 +255,8 @@ export function OnboardingPage() {
                 sobraReais={sobraReais}
               />
             )}
-            {passo === 7 && <Passo7Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
-            {passo === 8 && <Passo8Pronto />}
+            {passo === 6 && <Passo6Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
+            {passo === 7 && <Passo7Pronto r={r} />}
           </div>
         </div>
 

@@ -71,7 +71,7 @@ export function SectionHeader({
           >
             {titulo}
           </h1>
-          <p className="mt-1 truncate text-sm text-creme/85">{subtitulo}</p>
+          <p className="mt-1 text-sm text-creme/85 tab:truncate">{subtitulo}</p>
         </div>
 
         <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">

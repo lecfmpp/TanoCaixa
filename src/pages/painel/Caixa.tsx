@@ -7,7 +7,8 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useReceitaDia, useRestaurante } from '@/data/hooks'
-import { HOJE } from '@/data/derive'
+import { agora } from '@/data/derive'
+import { CANAIS_APPS } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
 const CORES = ['#2E5F73', '#C05437', '#2F6B4A', '#7B6A8C', '#EFAB5C']
@@ -35,12 +36,14 @@ export function Caixa() {
   const [aberto, setAberto] = useState<string | null>(null)
   const receitas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
 
-  const soma = (r: ReceitaDiaDoc, canal: string) =>
-    r.canais.filter((c) => c.canal === canal).reduce((s, c) => s + c.valorBruto, 0)
+  // Apps de delivery: o canal novo ('apps') e os antigos (iFood/Rappi), pra
+  // dia lançado antes continuar somando igual.
+  const apps = (r: ReceitaDiaDoc) =>
+    r.canais.filter((c) => CANAIS_APPS.includes(c.canal)).reduce((s, c) => s + c.valorBruto, 0)
   const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
 
   const hoje = receitas[0]
-  const plataformasHoje = hoje ? soma(hoje, 'ifood') + soma(hoje, 'rappi') : 0
+  const appsHoje = hoje ? apps(hoje) : 0
   const lojaHoje = hoje ? loja(hoje) : 0
 
   return (
@@ -56,7 +59,7 @@ export function Caixa() {
         <div>
           <p className="text-[15px] font-bold text-insight-texto">Lançar as vendas de hoje</p>
           <p className="text-sm text-insight-texto/80">
-            Confirme o que veio do iFood, Rappi e o que entrou de Pix, cartão e dinheiro na loja.
+            Lance o que entrou de Pix, cartão e dinheiro na loja e o total dos apps de delivery.
             Fica registrado quem lançou e quando.
           </p>
         </div>
@@ -71,7 +74,7 @@ export function Caixa() {
       {/* Resumo do caixa de hoje */}
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
-        <CaixaCard rotulo="Plataformas" valor={plataformasHoje} apoio="iFood + Rappi" />
+        <CaixaCard rotulo="Apps de delivery" valor={appsHoje} apoio="total lançado no dia" />
         <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
         <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio="com vendas registradas" contagem />
       </div>
@@ -80,14 +83,14 @@ export function Caixa() {
       <Cartao className="overflow-hidden p-0">
         <div className="flex items-center justify-between px-5 py-3.5">
           <h2 className="text-[15px] font-bold text-tinta">Conciliação dos últimos dias</h2>
-          <span className="text-xs text-tinta-4">plataformas × loja × total</span>
+          <span className="text-xs text-tinta-4">apps × loja × total</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
             <thead>
               <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
                 <Th>Dia</Th>
-                <Th className="text-right">iFood + Rappi</Th>
+                <Th className="text-right">Apps de delivery</Th>
                 <Th className="text-right">Na loja</Th>
                 <Th className="text-right">Total</Th>
                 <Th>Lançado por</Th>
@@ -96,7 +99,7 @@ export function Caixa() {
             </thead>
             <tbody>
               {receitas.map((r) => {
-                const plat = soma(r, 'ifood') + soma(r, 'rappi')
+                const plat = apps(r)
                 const lj = loja(r)
                 const conferido = Math.abs(plat + lj - r.totalDia) < 0.01
                 const lancs = lancamentosDe(r)
@@ -117,7 +120,7 @@ export function Caixa() {
                           <Avatar inicial={(ultimo.porNome || '?')[0]} cor={corNome(ultimo.porNome)} tamanho={26} />
                           <span className="leading-tight">
                             <span className="block text-xs font-semibold text-tinta">{ultimo.porNome}</span>
-                            <span className="block text-[11px] text-tinta-4">{quando(new Date(ultimo.em), HOJE)}</span>
+                            <span className="block text-[11px] text-tinta-4">{quando(new Date(ultimo.em), agora())}</span>
                           </span>
                           {lancs.length > 1 && (
                             <span className="flex items-center gap-0.5 text-[11px] font-bold text-mar">
@@ -141,7 +144,7 @@ export function Caixa() {
                       lancs.map((l, i) => (
                         <tr key={`${r.id}-${i}`} className="border-b border-divisoria bg-preenchimento/30 text-xs">
                           <td className="px-4 py-2 text-tinta-4">{i === 0 ? 'lançou' : 'relançou'}</td>
-                          <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), HOJE)}</td>
+                          <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), agora())}</td>
                           <td className="mono px-4 py-2 text-right font-semibold text-tinta">{brl(l.total)}</td>
                           <td colSpan={2} />
                         </tr>
