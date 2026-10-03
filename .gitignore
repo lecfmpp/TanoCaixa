@@ -37,3 +37,6 @@ functions/lib/
 *.njsproj
 *.sln
 *.sw?
+
+# Prints do teste E2E
+e2e/prints/

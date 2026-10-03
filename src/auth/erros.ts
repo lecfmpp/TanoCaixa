@@ -5,9 +5,13 @@
 const MENSAGENS: Record<string, string> = {
   'auth/email-already-in-use': 'Esse e-mail já tem conta. Tente entrar ou recuperar a senha.',
   'auth/invalid-email': 'Esse e-mail não parece válido. Confere se não faltou algo.',
-  'auth/weak-password': 'A senha é curta demais. Use pelo menos 6 caracteres.',
+  'auth/weak-password': 'A senha é curta demais. Use pelo menos 8 caracteres.',
   'auth/password-does-not-meet-requirements':
-    'A senha não atende às regras do projeto. Use letras, números e pelo menos 6 caracteres.',
+    'A senha não atende às regras do projeto. Use letras, números e pelo menos 8 caracteres.',
+  'auth/missing-email': 'Digite o seu e-mail.',
+  'auth/unauthorized-continue-uri':
+    'Este domínio não está autorizado no Firebase. Adicione em Authentication → Settings → Authorized domains.',
+  'auth/invalid-continue-uri': 'O link de volta pro app está inválido. Avise o suporte.',
   'auth/operation-not-allowed':
     'O cadastro por e-mail e senha está desligado no Firebase. Ative em Authentication → Sign-in method.',
   'auth/admin-restricted-operation':

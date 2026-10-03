@@ -15,6 +15,10 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signInAnonymously,
+  sendEmailVerification,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
   updateProfile,
   signOut,
   type User,
@@ -34,18 +38,41 @@ interface DadosCadastro {
   nome?: string
   restauranteNome?: string
   bairro?: string
+  celularWhatsapp?: string
 }
+
+/** Dados do formulário de criar conta. Só nome, e-mail e senha são
+ * obrigatórios (quem entra por convite não informa restaurante). */
+export interface NovaConta {
+  nome: string
+  email: string
+  senha: string
+  restauranteNome?: string
+  bairro?: string
+  celularWhatsapp?: string
+}
+
+/** Mínimo de caracteres da senha, como a tela de cadastro avisa. */
+export const SENHA_MINIMA = 8
+
+/** Erro ao montar a sessão com uma mensagem pronta pra mostrar ao usuário. */
+class ErroSessao extends Error {}
 
 interface AuthContextValor {
   sessao: Sessao | null
   permissoes: Permissoes | null
   carregando: boolean
+  /** Mensagem quando o login funcionou mas não deu pra montar a sessão
+   * (ler/criar o restaurante, aceitar convite). */
+  erroSessao: string | null
+  /** Tenta montar a sessão de novo depois de um erroSessao. */
+  tentarDeNovo: () => void
   entrarDemo: () => void
   /** Retorna o uid autenticado — use pra saber quando `sessao` passou a
    * refletir ESTE login (e não uma sessão antiga que já estava ativa). */
-  entrarComEmail: (email: string, senha: string) => Promise<string>
-  criarConta: (nome: string, email: string, senha: string, restauranteNome?: string, bairro?: string) => Promise<string>
-  entrarComGoogle: () => Promise<string>
+  entrarComEmail: (email: string, senha: string, lembrar?: boolean) => Promise<string>
+  criarConta: (dados: NovaConta) => Promise<string>
+  entrarComGoogle: (lembrar?: boolean) => Promise<string>
   sair: () => Promise<void>
   atualizarPerfil: (dados: { nome?: string; photoURL?: string }) => Promise<void>
 }
@@ -91,14 +118,15 @@ async function provisionarRestaurante(user: User, dados?: DadosCadastro): Promis
     },
     { merge: true },
   )
+  const celular = dados?.celularWhatsapp || undefined
   await setDoc(
     doc(db, 'restaurants', rid, 'membros', user.uid),
-    { nome, inicial: (nome[0] || 'V').toUpperCase(), cor: '#2E5F73', papel: 'dono', conviteStatus: 'ativo' },
+    { nome, inicial: (nome[0] || 'V').toUpperCase(), cor: '#2E5F73', papel: 'dono', conviteStatus: 'ativo', celular },
     { merge: true },
   )
   await setDoc(
     doc(db, 'users', user.uid),
-    { nome, email: user.email || '', restauranteId: rid },
+    { nome, email: user.email || '', restauranteId: rid, celularWhatsapp: celular },
     { merge: true },
   )
   return rid
@@ -112,22 +140,27 @@ async function construirSessao(user: User): Promise<Sessao> {
   if (!rid) {
     const tokenConvite = sessionStorage.getItem(CHAVE_CONVITE)
     if (tokenConvite) {
-      sessionStorage.removeItem(CHAVE_CONVITE)
+      // Convite que falha NÃO pode virar restaurante novo: quem foi convidado
+      // ficaria num restaurante vazio achando que entrou no do dono. O token
+      // fica guardado pra o "Tentar de novo"; "Sair" é que descarta.
       try {
         const resp = await aceitarConviteFn({ token: tokenConvite, nome: user.displayName ?? undefined })
         rid = resp.data.restauranteId
+        sessionStorage.removeItem(CHAVE_CONVITE)
       } catch (e) {
         console.warn('convite:', e)
+        throw new ErroSessao(mensagemConviteFalhou(e))
       }
-    }
-    if (!rid) {
+    } else {
       // Dados do formulário de cadastro (nome do restaurante, bairro), se
       // vieram de criarConta — ver comentário lá sobre por que não provisiona
       // direto (evita duas escritas concorrentes no mesmo restaurants/{rid}).
+      // Só descarta depois de gravar: se falhar, o "Tentar de novo" ainda
+      // tem os dados e não cria o restaurante com valores padrão.
       const bruto = sessionStorage.getItem(CHAVE_CADASTRO)
-      sessionStorage.removeItem(CHAVE_CADASTRO)
       const dadosCadastro = bruto ? (JSON.parse(bruto) as DadosCadastro) : undefined
       rid = await provisionarRestaurante(user, dadosCadastro)
+      sessionStorage.removeItem(CHAVE_CADASTRO)
     }
   }
 
@@ -147,6 +180,7 @@ async function construirSessao(user: User): Promise<Sessao> {
       avatarInicial: (nome[0] || 'V').toUpperCase(),
       avatarCor: '#2E5F73',
       photoURL: user.photoURL || (uSnap.data()?.photoURL as string) || undefined,
+      celularWhatsapp: (uSnap.data()?.celularWhatsapp as string) || undefined,
       papel,
     },
     restaurante: {
@@ -163,6 +197,18 @@ async function construirSessao(user: User): Promise<Sessao> {
     // `tipoCozinha` preenchido cobre as contas criadas antes desta flag existir.
     precisaOnboarding: papel === 'dono' && !r.onboardingConcluido && !r.tipoCozinha,
   }
+}
+
+/** Mensagem para quando o aceitarConvite falha. Os erros "definitivos" da
+ * Cloud Function (convite inexistente, expirado ou já usado) vêm com texto em
+ * português pronto; os outros são quase sempre rede. */
+function mensagemConviteFalhou(e: unknown): string {
+  const codigo = (e as { code?: string })?.code ?? ''
+  const texto = (e as { message?: string })?.message ?? ''
+  if (['functions/not-found', 'functions/failed-precondition', 'functions/invalid-argument'].includes(codigo)) {
+    return `Não deu pra aceitar o convite: ${texto || 'convite inválido'}. Peça um convite novo a quem te convidou.`
+  }
+  return 'Não deu pra aceitar o convite agora. Confira a internet e tente de novo.'
 }
 
 function sessaoDemo(): Sessao {
@@ -184,12 +230,20 @@ function construirSessaoCacheada(user: User): Promise<Sessao> {
   if (existente) return existente
   const p = construirSessao(user)
   sessaoCache.set(user.uid, p)
+  // Promessa rejeitada não fica no cache: senão o "Tentar de novo" (e todo
+  // disparo seguinte do onAuthStateChanged) devolveria o mesmo erro pra sempre.
+  p.catch(() => {
+    if (sessaoCache.get(user.uid) === p) sessaoCache.delete(user.uid)
+  })
   return p
 }
+
+const MSG_SESSAO_GENERICA = 'Você entrou, mas não deu pra abrir o seu restaurante agora. Confira a internet e tente de novo.'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessaoState] = useState<Sessao | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const [erroSessao, setErroSessao] = useState<string | null>(null)
 
   // A data de referência dos cálculos acompanha a sessão: a demonstração fica
   // parada em julho de 2026 (onde estão os dados de exemplo) e a conta real usa
@@ -228,18 +282,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem(CHAVE_DEMO)
         try {
           setSessao(await construirSessaoCacheada(user))
+          setErroSessao(null)
         } catch (e) {
           console.warn('sessão:', e)
           setSessao(null)
+          setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
         }
       } else if (sessionStorage.getItem(CHAVE_DEMO) === '1') {
         setSessao(sessaoDemo())
       } else {
         setSessao(null)
       }
+      if (!user || user.isAnonymous) setErroSessao(null)
       setCarregando(false)
     })
     return cancelar
+  }, [setSessao])
+
+  const tentarDeNovo = useCallback(() => {
+    const user = auth.currentUser
+    if (!user || user.isAnonymous) {
+      setErroSessao(null)
+      return
+    }
+    setErroSessao(null)
+    setCarregando(true)
+    construirSessaoCacheada(user)
+      .then((s) => setSessao(s))
+      .catch((e) => {
+        console.warn('sessão:', e)
+        setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+      })
+      .finally(() => setCarregando(false))
   }, [setSessao])
 
   const entrarDemo = useCallback(() => {
@@ -253,13 +327,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInAnonymously(auth).catch((e) => console.warn('demo anônima:', e))
   }, [setSessao])
 
-  const entrarComEmail = useCallback(async (email: string, senha: string) => {
+  const entrarComEmail = useCallback(async (email: string, senha: string, lembrar = true) => {
+    // "Continuar conectado" desmarcado: a sessão some ao fechar a aba.
+    await setPersistence(auth, lembrar ? browserLocalPersistence : browserSessionPersistence)
     const cred = await signInWithEmailAndPassword(auth, email, senha)
     return cred.user.uid
   }, [])
 
   const criarConta = useCallback(
-    async (nome: string, email: string, senha: string, restauranteNome?: string, bairro?: string) => {
+    async ({ nome, email, senha, restauranteNome, bairro, celularWhatsapp }: NovaConta) => {
+      if (senha.length < SENHA_MINIMA) {
+        throw Object.assign(new Error('senha curta'), { code: 'auth/weak-password' })
+      }
       // Guarda os dados do formulário ANTES de criar a conta: createUserWithEmailAndPassword
       // já dispara o onAuthStateChanged (que roda construirSessao) antes mesmo
       // de terminarmos esta função — se cada um chamasse provisionarRestaurante
@@ -268,16 +347,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // isso só o construirSessao provisiona; aqui só deixamos os dados prontos
       // pra ele achar (mesmo esquema do CHAVE_CONVITE).
       if (!sessionStorage.getItem(CHAVE_CONVITE)) {
-        sessionStorage.setItem(CHAVE_CADASTRO, JSON.stringify({ nome, restauranteNome, bairro }))
+        sessionStorage.setItem(CHAVE_CADASTRO, JSON.stringify({ nome, restauranteNome, bairro, celularWhatsapp }))
       }
       const cred = await createUserWithEmailAndPassword(auth, email, senha)
       if (nome) await updateProfile(cred.user, { displayName: nome })
+      // Confirmação de e-mail: só envia, não bloqueia o acesso. Falha aqui
+      // (cota, domínio não autorizado) não pode impedir o cadastro.
+      sendEmailVerification(cred.user, { url: `${window.location.origin}/entrar` }).catch((e) =>
+        console.warn('verificação de e-mail:', e),
+      )
       return cred.user.uid
     },
     [],
   )
 
-  const entrarComGoogle = useCallback(async () => {
+  const entrarComGoogle = useCallback(async (lembrar = true) => {
+    await setPersistence(auth, lembrar ? browserLocalPersistence : browserSessionPersistence)
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
     try {
@@ -342,6 +427,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sair = useCallback(async () => {
     sessionStorage.removeItem(CHAVE_DEMO)
+    // Quem desiste depois de um convite que falhou não deve levar o token
+    // pendurado pro próximo login nesta aba.
+    sessionStorage.removeItem(CHAVE_CONVITE)
+    setErroSessao(null)
     // Não deixa a loja escolhida na rede vazar pro próximo login.
     definirLojaAtiva(null)
     if (sessao) sessaoCache.delete(sessao.usuario.id)
@@ -360,6 +449,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessao,
       permissoes: sessao ? permissoesDoPapel(sessao.usuario.papel) : null,
       carregando,
+      erroSessao,
+      tentarDeNovo,
       entrarDemo,
       entrarComEmail,
       criarConta,
@@ -367,7 +458,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sair,
       atualizarPerfil,
     }),
-    [sessao, carregando, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
+    [sessao, carregando, erroSessao, tentarDeNovo, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

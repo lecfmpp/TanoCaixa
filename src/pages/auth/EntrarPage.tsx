@@ -4,15 +4,19 @@ import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { GoogleIcon } from '@/components/ui/GoogleIcon'
+import { getRedirectResult } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { useAuth } from '@/auth/AuthContext'
+import { ErroDeSessao } from '@/auth/ErroDeSessao'
 import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 
 export function EntrarPage() {
-  const { sessao, entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
+  const { sessao, carregando, erroSessao, entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
   const navegar = useNavigate()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrar, setMostrar] = useState(false)
+  const [lembrar, setLembrar] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [uidEsperado, setUidEsperado] = useState<string | null>(null)
@@ -25,18 +29,44 @@ export function EntrarPage() {
   // persistida (outra conta) quando esta página monta.
   // Conta nova pelo Google não passa pelo formulário de cadastro, então é aqui
   // que ela é mandada pro onboarding — senão o painel abre vazio e sem config.
+  //
+  // Sem login em andamento (ex.: volta do redirecionamento do Google, ou quem
+  // já estava logado e abriu /entrar), uma sessão real pronta basta. A demo
+  // não conta: quem está nela pode querer entrar com a conta de verdade.
   useEffect(() => {
-    if (uidEsperado && sessao?.usuario.id === uidEsperado) {
-      navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel')
+    if (!sessao) return
+    if (uidEsperado) {
+      if (sessao.usuario.id === uidEsperado) navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel')
+      return
     }
-  }, [uidEsperado, sessao, navegar])
+    if (!enviando && !carregando && !sessao.demo) {
+      navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel', { replace: true })
+    }
+  }, [uidEsperado, sessao, enviando, carregando, navegar])
+
+  // Erro no login por redirecionamento do Google (domínio não autorizado,
+  // conta já existente com outro método...) só aparece aqui, na volta.
+  useEffect(() => {
+    getRedirectResult(auth).catch((err) => {
+      console.error('Falha no login Google (redirecionamento):', codigoDoErro(err) || err)
+      setErro(mensagemDeErroAuth(err, 'Não deu pra entrar com o Google.'))
+    })
+  }, [])
+
+  // Login ok mas a sessão não montou: solta o botão (o aviso aparece abaixo).
+  useEffect(() => {
+    if (erroSessao) {
+      setEnviando(false)
+      setUidEsperado(null)
+    }
+  }, [erroSessao])
 
   async function aoEnviar(e: FormEvent) {
     e.preventDefault()
     setErro(null)
     setEnviando(true)
     try {
-      const uid = await entrarComEmail(email, senha)
+      const uid = await entrarComEmail(email, senha, lembrar)
       setUidEsperado(uid)
     } catch (err) {
       console.error('Falha ao entrar:', codigoDoErro(err) || err)
@@ -57,7 +87,7 @@ export function EntrarPage() {
           Bom te ver de novo, chefe
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Entra e vê como está o mês.
+          Entre pra ver como está o caixa do seu restaurante.
         </p>
       </div>
 
@@ -67,7 +97,7 @@ export function EntrarPage() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="halim@zaatarrio.com.br"
+          placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -94,13 +124,20 @@ export function EntrarPage() {
 
         <div className="flex items-center justify-between text-sm">
           <label className="flex cursor-pointer items-center gap-2 text-tinta-2">
-            <input type="checkbox" className="accent-mar" defaultChecked />
+            <input
+              type="checkbox"
+              className="accent-mar"
+              checked={lembrar}
+              onChange={(e) => setLembrar(e.target.checked)}
+            />
             Continuar conectado
           </label>
           <Link to="/esqueci" className="font-semibold text-mar hover:underline">
             Esqueci a senha
           </Link>
         </div>
+
+        <ErroDeSessao />
 
         {erro && (
           <p className="rounded-campo border border-telha-alerta/40 bg-telha-alerta/8 px-3 py-2 text-sm text-telha-alerta">
@@ -121,16 +158,21 @@ export function EntrarPage() {
 
       <button
         type="button"
+        disabled={enviando}
         onClick={async () => {
+          setErro(null)
+          setEnviando(true)
           try {
-            const uid = await entrarComGoogle()
-            setUidEsperado(uid)
+            const uid = await entrarComGoogle(lembrar)
+            // '' = foi por redirecionamento; a volta cai no efeito de sessão pronta.
+            if (uid) setUidEsperado(uid)
           } catch (err) {
             console.error('Falha no login Google:', codigoDoErro(err) || err)
+            setEnviando(false)
             setErro(mensagemDeErroAuth(err, 'Não deu pra entrar com o Google.'))
           }
         }}
-        className="flex w-full items-center justify-center gap-3 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-4 py-2.5 text-sm font-bold text-tinta-2 transition hover:bg-preenchimento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mar"
+        className="flex w-full items-center justify-center gap-3 rounded-botao border border-[rgba(46,95,115,0.18)] bg-superficie px-4 py-2.5 text-sm font-bold text-tinta-2 transition hover:bg-preenchimento disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mar"
       >
         <GoogleIcon size={18} />
         Continuar com Google
