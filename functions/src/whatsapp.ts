@@ -27,6 +27,8 @@ const GREEN_API_URL = defineSecret('GREEN_API_URL')
 const GREEN_API_ID = defineSecret('GREEN_API_ID')
 const GREEN_API_TOKEN = defineSecret('GREEN_API_TOKEN')
 const WHATSAPP_GRUPO = defineString('WHATSAPP_GRUPO', { default: '' })
+/** Se preenchido (ex.: "Fernando"), o resumo do dia fala só do que esse usuário fez. Vazio = todos. */
+const RESUMO_USUARIO = defineString('RESUMO_USUARIO', { default: '' })
 const SEGREDOS = [GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN]
 const FUSO = 'America/Sao_Paulo'
 
@@ -105,11 +107,52 @@ interface MovimentoDia {
   totalDespesas: number
 }
 
+/** Resumo do dia só com as ações de um usuário (casa pelo nome gravado em cada atividade). */
+async function resumoDoUsuario(db: FirebaseFirestore.Firestore, hoje: string, usuario: string): Promise<void> {
+  const inicio = new Date(`${hoje}T00:00:00-03:00`).toISOString()
+  const alvo = usuario.toLowerCase()
+  const restaurantes = (await db.collection('restaurants').get()).docs.filter((d) => !ehDemo(d.id))
+
+  for (const r of restaurantes) {
+    const snap = await db.collection('restaurants').doc(r.id).collection('atividades').where('criadoEm', '>=', inicio).get()
+    const minhas = snap.docs
+      .map((d) => d.data())
+      .filter((a) => String(a.criadoPorNome ?? a.quem ?? '').toLowerCase().includes(alvo) && a.origem !== 'integracao')
+    if (!minhas.length) continue
+
+    const conta = (acao: string) => minhas.filter((a) => a.acao === acao)
+    const total = (l: typeof minhas) => l.reduce((s, a) => s + (Number(a.valor) || 0), 0)
+    const notas = conta('lançou a nota do')
+    const despesas = conta('lançou despesa')
+    const contagens = conta('contou')
+    const vendasDia = conta('lançou as vendas de')
+    const pedidos = conta('lançou o pedido')
+    const caixas = conta('fechou o caixa do PDV')
+    const ultima = minhas.map((a) => String(a.criadoEm)).sort().at(-1)!
+
+    const nome = (r.get('nome') as string | undefined) ?? r.id
+    const linhas = [`📊 *Resumo do dia* — ${hoje.split('-').reverse().join('/')}`, `👤 ${usuario} · _${nome}_`, '']
+    if (vendasDia.length) linhas.push(`💵 Vendas lançadas: ${brl(total(vendasDia))}`)
+    if (pedidos.length) linhas.push(`🧾 ${pedidos.length} ${pedidos.length === 1 ? 'pedido' : 'pedidos'} no PDV — ${brl(total(pedidos))}`)
+    if (caixas.length) linhas.push(`🔒 Caixa fechado — faturamento ${brl(total(caixas))}`)
+    if (notas.length) linhas.push(`📥 ${notas.length} ${notas.length === 1 ? 'nota fiscal lançada' : 'notas fiscais lançadas'} — ${brl(total(notas))}`)
+    if (despesas.length) linhas.push(`💸 ${despesas.length} ${despesas.length === 1 ? 'despesa' : 'despesas'} — ${brl(total(despesas))}`)
+    if (contagens.length) linhas.push(`📦 Contagem de estoque feita${total(contagens) ? ` — estoque em ${brl(total(contagens))}` : ''}`)
+    const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(ultima))
+    linhas.push('', `🕘 Última ação às ${hora} (${minhas.length} no total)`)
+    await enviar(linhas.join('\n'))
+  }
+}
+
 export const resumoDoDia = onSchedule(
   { schedule: '30 21 * * *', timeZone: FUSO, secrets: SEGREDOS },
   async () => {
     const db = getFirestore()
     const hoje = diaSP()
+    if (RESUMO_USUARIO.value().trim()) {
+      await resumoDoUsuario(db, hoje, RESUMO_USUARIO.value().trim())
+      return
+    }
     const limiteAtividade = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
     const restaurantes = (await db.collection('restaurants').get()).docs.filter((d) => !ehDemo(d.id))
 
