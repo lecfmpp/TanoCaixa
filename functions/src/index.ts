@@ -291,3 +291,6 @@ export { analisarFoto, perguntarEstoque } from './gemini'
 
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'
+
+/* ----------------------- E-mail de boas-vindas (Resend) ------------------- */
+export { boasVindas } from './boasVindasTrigger'

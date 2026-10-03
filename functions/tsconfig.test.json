@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "outDir": "lib-test", "rootDir": "src", "noEmit": false },
+  "exclude": [],
+  "include": ["src/boasVindas.ts", "src/boasVindas.test.ts"]
+}

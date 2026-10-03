@@ -160,3 +160,16 @@ redirecionado para `checkout.stripe.com` (hosted, feito pelo Stripe).
 - **Portal**: `portalAssinatura` abre `billing.stripe.com` — cliente gerencia
   upgrade/downgrade/cancelamento/pagamento. Depende da config do portal estar
   ativa (passo 4).
+
+## E-mail de boas-vindas (Resend)
+
+`boasVindas` (`src/boasVindasTrigger.ts`) é um gatilho Firestore em `users/{uid}`
+(criado uma única vez, no fim do primeiro cadastro) que envia o e-mail de
+boas-vindas por `https://api.resend.com/emails`, remetente
+`Tá no Caixa <ola@tanocaixa.com>`. Idempotência: documento
+`emails_enviados/{uid}_boas_vindas` (criado com `create()`) + `Idempotency-Key`
+no Resend. Se o Resend falhar, o cadeado é liberado (não há retry automático).
+
+Segredo (nunca no código): `firebase functions:secrets:set RESEND_API_KEY`
+
+Teste sem rede: `cd functions && npm test` (fetch e Firestore simulados).
