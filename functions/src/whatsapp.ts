@@ -96,15 +96,26 @@ export const avisoAtividade = onDocumentCreated(
 
 /* ------------------------------ Resumo do dia ---------------------------- */
 
+interface MovimentoDia {
+  nome: string
+  vendas: number
+  totalPdv: number
+  totalCaixa: number
+  despesas: number
+  totalDespesas: number
+}
+
 export const resumoDoDia = onSchedule(
   { schedule: '30 21 * * *', timeZone: FUSO, secrets: SEGREDOS },
   async () => {
     const db = getFirestore()
     const hoje = diaSP()
+    const limiteAtividade = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
     const restaurantes = (await db.collection('restaurants').get()).docs.filter((d) => !ehDemo(d.id))
 
-    const blocos: string[] = []
+    const comMovimento: MovimentoDia[] = []
     const semMovimento: string[] = []
+    let ativas = 0
     for (const r of restaurantes) {
       const base = db.collection('restaurants').doc(r.id)
       const [pedidos, receita, despesas] = await Promise.all([
@@ -113,29 +124,57 @@ export const resumoDoDia = onSchedule(
         base.collection('despesas').where('dataCompetencia', '==', hoje).get(),
       ])
       const vendas = pedidos.docs.map((p) => p.data()).filter((p) => p.status !== 'cancelado')
-      const totalPdv = vendas.reduce((s, p) => s + (Number(p.total) || 0), 0)
-      const totalCaixa = receita.docs.reduce((s, p) => s + (Number(p.get('totalDia')) || 0), 0)
-      const totalDespesas = despesas.docs.reduce((s, p) => s + (Number(p.get('valorTotal')) || 0), 0)
-      const nome = (r.get('nome') as string | undefined) ?? r.id
-
-      if (!vendas.length && !totalCaixa && !despesas.size) {
-        semMovimento.push(nome)
+      const m: MovimentoDia = {
+        nome: (r.get('nome') as string | undefined) ?? r.id,
+        vendas: vendas.length,
+        totalPdv: vendas.reduce((s, p) => s + (Number(p.total) || 0), 0),
+        totalCaixa: receita.docs.reduce((s, p) => s + (Number(p.get('totalDia')) || 0), 0),
+        despesas: despesas.size,
+        totalDespesas: despesas.docs.reduce((s, p) => s + (Number(p.get('valorTotal')) || 0), 0),
+      }
+      if (m.vendas || m.totalCaixa || m.despesas) {
+        ativas++
+        comMovimento.push(m)
         continue
       }
-      const linhas = [`*${nome}*`]
-      if (vendas.length) linhas.push(`• ${vendas.length} ${vendas.length === 1 ? 'venda' : 'vendas'} no PDV — ${brl(totalPdv)}`)
-      if (totalCaixa) linhas.push(`• Fluxo de caixa: entrou ${brl(totalCaixa)}`)
-      if (despesas.size) linhas.push(`• ${despesas.size} ${despesas.size === 1 ? 'nota/despesa' : 'notas/despesas'} — ${brl(totalDespesas)}`)
-      blocos.push(linhas.join('\n'))
+      // Conta de teste ou abandonada não conta: só quem usou o app na última semana.
+      const recente = await base.collection('atividades').where('criadoEm', '>=', limiteAtividade).limit(1).get()
+      if (!recente.empty) {
+        ativas++
+        semMovimento.push(m.nome)
+      }
+    }
+    if (!ativas) return
+
+    const soma = (f: (m: MovimentoDia) => number) => comMovimento.reduce((s, m) => s + f(m), 0)
+    const pedidos = soma((m) => m.vendas)
+    const entrouCaixa = soma((m) => m.totalCaixa)
+    const notas = soma((m) => m.despesas)
+
+    const linhas = [`📊 *Resumo do dia* — ${hoje.split('-').reverse().join('/')}`, '']
+    linhas.push(`🏪 ${comMovimento.length} de ${ativas} restaurantes lançaram hoje`)
+    if (pedidos) linhas.push(`🧾 ${pedidos} ${pedidos === 1 ? 'venda' : 'vendas'} no PDV — ${brl(soma((m) => m.totalPdv))}`)
+    if (entrouCaixa) linhas.push(`💵 Entrou no caixa: ${brl(entrouCaixa)}`)
+    if (notas) linhas.push(`📥 ${notas} ${notas === 1 ? 'nota/despesa' : 'notas/despesas'} — ${brl(soma((m) => m.totalDespesas))}`)
+
+    // Só os 5 maiores, para a mensagem caber numa tela.
+    const maiores = [...comMovimento]
+      .sort((a, b) => b.totalPdv + b.totalCaixa - (a.totalPdv + a.totalCaixa))
+      .slice(0, 5)
+    if (maiores.length) {
+      linhas.push('', '*Maiores do dia*')
+      for (const m of maiores) {
+        const v = m.totalPdv + m.totalCaixa
+        linhas.push(`• ${m.nome}${v ? ` — ${brl(v)}` : ` — ${m.despesas} ${m.despesas === 1 ? 'nota' : 'notas'}`}`)
+      }
     }
 
-    if (!blocos.length && !semMovimento.length) return
-    const partes = [`📊 *Resumo do dia* — ${hoje.split('-').reverse().join('/')}`]
-    if (blocos.length) partes.push(blocos.join('\n\n'))
     if (semMovimento.length) {
-      partes.push(`Sem lançamentos hoje: ${semMovimento.join(', ')}. Dá tempo de lançar as vendas antes de dormir 😉`)
+      const nomes = [...new Set(semMovimento)]
+      const resto = nomes.length > 3 ? ` e mais ${nomes.length - 3}` : ''
+      linhas.push('', `⏳ ${semMovimento.length} ainda sem lançamento (${nomes.slice(0, 3).join(', ')}${resto}). Dá tempo de lançar antes de dormir 😉`)
     }
-    await enviar(partes.join('\n\n'))
+    await enviar(linhas.join('\n'))
   },
 )
 
