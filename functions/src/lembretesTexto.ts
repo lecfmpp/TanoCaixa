@@ -3,7 +3,7 @@
  * Puro: sem Firebase e sem rede. Formatos: moeda `R$ 1.240,00`, data `dd/mm`,
  * percentual inteiro, locale pt-BR.
  * ------------------------------------------------------------------ */
-import { LEMBRETES, urlDaImagem, type IdLembrete } from './lembretesCatalogo'
+import { LEMBRETES, URL_DO_APP, urlDaImagem, type IdLembrete } from './lembretesCatalogo'
 
 export type Variaveis = Record<string, string | number>
 
@@ -26,16 +26,29 @@ export function preencher(modelo: string, vars: Variaveis): string {
 }
 
 /**
+ * Põe o link do app numa linha própria (o WhatsApp o torna clicável), antes da
+ * assinatura em itálico (`_restaurante_`) quando existe; senão, no fim.
+ */
+export function comLink(legenda: string, url: string): string {
+  const linhas = legenda.split('\n')
+  const linkLinha = `Abrir no app: ${url}`
+  const ultima = linhas[linhas.length - 1]
+  if (/^_.+_$/.test(ultima)) linhas.splice(linhas.length - 1, 0, linkLinha)
+  else linhas.push(linkLinha)
+  return linhas.join('\n')
+}
+
+/**
  * `variante` escolhe uma legenda alternativa da mesma imagem (ex.: ponto de
  * equilíbrio "passou", assinatura "pagamento"). Sem `restaurante` na lista de
  * variáveis, a linha da assinatura (_{restaurante}_) simplesmente não existe no
  * modelo — cadastro e assinatura não levam restaurante.
  */
 export function montarLembrete(id: IdLembrete, vars: Variaveis, variante?: string): LembretePronto {
-  const l: { arquivo: string; token: string; corpo: string; variantes?: Record<string, string> } = LEMBRETES[id]
+  const l: { arquivo: string; token: string; link: string; corpo: string; variantes?: Record<string, string> } = LEMBRETES[id]
   const modelo = variante ? l.variantes?.[variante] : l.corpo
   if (!modelo) throw new Error(`lembrete ${id}: variante "${variante}" não existe`)
-  return { legenda: preencher(modelo, vars), imagemUrl: urlDaImagem(l), arquivo: l.arquivo }
+  return { legenda: comLink(preencher(modelo, vars), `${URL_DO_APP}${l.link}`), imagemUrl: urlDaImagem(l), arquivo: l.arquivo }
 }
 
 /** Vencimentos: o título concorda com a quantidade e cada item vira uma linha. */

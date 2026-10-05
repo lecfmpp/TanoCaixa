@@ -23,7 +23,7 @@ test('URL da imagem aponta para o bucket do Storage com token', () => {
 
 test('legenda preenche as variáveis e mantém o formato', () => {
   const r = montarLembrete('vendas_do_dia', { restaurante: 'Zaatar' })
-  assert.equal(r.legenda, '💵 *Hoje ainda não há vendas lançadas*\nQuando fizer sentido, abra o Caixa e registre o total do dia. Com isso o fluxo de caixa fica certo e o resumo de amanhã sai fiel.\n_Zaatar_')
+  assert.equal(r.legenda, '💵 *Hoje ainda não há vendas lançadas*\nQuando fizer sentido, abra o Caixa e registre o total do dia. Com isso o fluxo de caixa fica certo e o resumo de amanhã sai fiel.\nAbrir no app: https://tanocaixa.com/painel/caixa?acao=fechamento\n_Zaatar_')
   assert.equal(r.arquivo, '01-vendas-do-dia.png')
 })
 
@@ -49,4 +49,18 @@ test('vencimentos: título no singular/plural e uma linha por item', () => {
   assert.equal(dois.titulo, '2 vencimentos pedem atenção')
   const m = montarLembrete('vencimentos', dois).legenda
   assert.match(m, /^⏰ \*2 vencimentos pedem atenção\*\n• A: R\$ 1,00, hoje\n• B: R\$ 2,00, vencido há 2 dias\nAo pagar/)
+})
+
+test('todo lembrete tem link para uma página do app, na própria linha', () => {
+  const vars = new Proxy({}, { get: () => 'x' })
+  for (const id of Object.keys(LEMBRETES)) {
+    assert.match(LEMBRETES[id].link, /^\/(painel|onboarding)/)
+    const legenda = montarLembrete(id, vars).legenda
+    assert.ok(legenda.split('\n').includes(`Abrir no app: https://tanocaixa.com${LEMBRETES[id].link}`), id)
+  }
+})
+
+test('sem assinatura (cadastro), o link vai no fim; com assinatura, antes dela', () => {
+  assert.match(montarLembrete('terminar_cadastro', { passo: 4 }).legenda, /\nAbrir no app: https:\/\/tanocaixa\.com\/onboarding$/)
+  assert.match(montarLembrete('notas_do_dia', { restaurante: 'Z' }).legenda, /\nAbrir no app: https:\/\/tanocaixa\.com\/painel\/compras\?acao=compra\n_Z_$/)
 })
