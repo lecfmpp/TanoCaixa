@@ -37,6 +37,16 @@ test('vendas do dia: só com hábito e nada lançado hoje', () => {
   assert.match(legenda('vendas_do_dia', r(ctx())), /Hoje ainda não há vendas lançadas/)
 })
 
+test('vendas do dia: reconhece o hábito pelos textos antigos do app (fechou o caixa de…)', () => {
+  const r = REGRAS.vendas_do_dia.detectar
+  const so = (acao) => ctx({ atividades: [{ acao, criadoEm: '2026-09-29T21:00:00.000Z' }] })
+  assert.ok(r(so('fechou o caixa de')))
+  assert.ok(r(so('lançou as vendas dos')))
+  assert.ok(r(so('fechou o caixa do PDV')))
+  assert.equal(r(so('lançou a nota do')), null)
+  assert.equal(r(so('cadastrou o produto')), null)
+})
+
 test('caixa aberto: só de dia anterior; mostra número e quando abriu', () => {
   const r = REGRAS.caixa_aberto.detectar
   assert.equal(r(ctx({ caixasAbertos: [{ numero: 3, dia: '2026-10-05', abertoEm: '2026-10-05T12:00:00.000Z' }] })), null)

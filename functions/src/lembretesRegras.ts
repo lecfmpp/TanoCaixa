@@ -102,8 +102,13 @@ export function deveLembrarNotasDoDia(atividades: AtividadeMin[], inicioDoDia: s
 
 type Detector = (c: Ctx) => Disparo | null
 
-const temHabitoDeVendas = (c: Ctx) =>
-  c.atividades.some((a) => ['lançou as vendas de', 'lançou o pedido', 'fechou o caixa do PDV'].includes(a.acao) && a.origem !== 'integracao')
+/**
+ * Atividade de venda, inclusive os textos de versões antigas do app
+ * ("fechou o caixa de…", "lançou as vendas dos…"): por prefixo, não por igualdade.
+ */
+export const ehAtividadeDeVenda = (acao: string) => /^(lançou as vendas|fechou o caixa|lançou o pedido)/.test(acao)
+
+const temHabitoDeVendas = (c: Ctx) => c.atividades.some((a) => ehAtividadeDeVenda(a.acao) && a.origem !== 'integracao')
 
 const vendasDoDia: Detector = (c) =>
   temHabitoDeVendas(c) && c.receitaHoje === 0 && c.pedidosPdvHoje === 0 ? { vars: { restaurante: c.restaurante } } : null
