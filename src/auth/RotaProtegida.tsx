@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { Logo } from '@/components/ui/Logo'
 import { ErroDeSessao } from './ErroDeSessao'
@@ -7,6 +7,7 @@ import { ErroDeSessao } from './ErroDeSessao'
 /** Só deixa passar quem tem sessão; senão manda pro login. */
 export function RotaProtegida({ children }: { children: ReactNode }) {
   const { sessao, carregando, erroSessao } = useAuth()
+  const local = useLocation()
 
   if (carregando) {
     return (
@@ -31,7 +32,7 @@ export function RotaProtegida({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!sessao) return <Navigate to="/entrar" replace />
+  if (!sessao) return <Navigate to="/entrar" replace state={{ voltar: local.pathname + local.search }} />
 
   return <>{children}</>
 }

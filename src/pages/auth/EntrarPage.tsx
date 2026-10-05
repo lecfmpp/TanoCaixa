@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +13,9 @@ import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 export function EntrarPage() {
   const { sessao, carregando, erroSessao, entrarComEmail, entrarDemo, entrarComGoogle } = useAuth()
   const navegar = useNavigate()
+  // Link de lembrete (WhatsApp): quem não estava logado volta para a tela do link depois de entrar.
+  const voltar = (useLocation().state as { voltar?: unknown } | null)?.voltar
+  const destino = typeof voltar === 'string' && voltar.startsWith('/painel') ? voltar : '/painel'
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrar, setMostrar] = useState(false)
@@ -36,13 +39,13 @@ export function EntrarPage() {
   useEffect(() => {
     if (!sessao) return
     if (uidEsperado) {
-      if (sessao.usuario.id === uidEsperado) navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel')
+      if (sessao.usuario.id === uidEsperado) navegar(sessao.precisaOnboarding ? '/onboarding' : destino)
       return
     }
     if (!enviando && !carregando && !sessao.demo) {
-      navegar(sessao.precisaOnboarding ? '/onboarding' : '/painel', { replace: true })
+      navegar(sessao.precisaOnboarding ? '/onboarding' : destino, { replace: true })
     }
-  }, [uidEsperado, sessao, enviando, carregando, navegar])
+  }, [uidEsperado, sessao, enviando, carregando, navegar, destino])
 
   // Erro no login por redirecionamento do Google (domínio não autorizado,
   // conta já existente com outro método...) só aparece aqui, na volta.
