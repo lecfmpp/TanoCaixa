@@ -22,6 +22,15 @@ import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { defineSecret, defineString } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
+import {
+  LEMBRETE_FIM_DO_MES,
+  LEMBRETE_INICIO_DO_MES,
+  textoAviso,
+  textoDica,
+  textoResumoGeral,
+  textoResumoUsuario,
+  type MovimentoDia,
+} from './whatsappTexto'
 
 const GREEN_API_URL = defineSecret('GREEN_API_URL')
 const GREEN_API_ID = defineSecret('GREEN_API_ID')
@@ -31,8 +40,6 @@ const WHATSAPP_GRUPO = defineString('WHATSAPP_GRUPO', { default: '' })
 const RESUMO_USUARIO = defineString('RESUMO_USUARIO', { default: '' })
 const SEGREDOS = [GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN]
 const FUSO = 'America/Sao_Paulo'
-
-const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 /** Best-effort: falhar aqui nunca pode derrubar a função que chamou. */
 async function enviar(texto: string): Promise<void> {
@@ -76,36 +83,19 @@ export const avisoAtividade = onDocumentCreated(
     const a = event.data?.data()
     if (!a || ehDemo(rid) || a.origem === 'integracao') return
 
-    const acao = String(a.acao ?? '')
-    const entidade = String(a.entidade ?? '')
-    const quem = String(a.quem || a.criadoPorNome || 'Alguém')
-    const valor = typeof a.valor === 'number' ? a.valor : undefined
-
-    let msg: string | null = null
-    if (acao === 'lançou a nota do') {
-      msg = `🧾 *Nota fiscal lançada*\n${quem} lançou a nota do ${entidade}${valor ? ` — ${brl(valor)}` : ''}.`
-    } else if (acao === 'contou') {
-      msg = `📦 *Contagem de estoque feita*\n${quem} contou ${entidade}${valor ? ` — estoque em ${brl(valor)}` : ''}.`
-    } else if (acao === 'lançou as vendas de') {
-      msg = `💵 *Vendas do dia lançadas*\n${quem} lançou as vendas de ${entidade}${valor ? `: ${brl(valor)}` : ''}.`
-    } else if (acao === 'fechou o caixa do PDV') {
-      msg = `🔒 *Caixa fechado* (${entidade})\n${quem} fechou o caixa${valor !== undefined ? ` — faturamento ${brl(valor)}` : ''}.`
-    }
-    if (!msg) return
-    await enviar(`${msg}\n_${await nomeDoRestaurante(rid)}_`)
+    const msg = textoAviso({
+      acao: String(a.acao ?? ''),
+      entidade: String(a.entidade ?? ''),
+      quem: String(a.quem || a.criadoPorNome || 'Alguém'),
+      valor: typeof a.valor === 'number' ? a.valor : undefined,
+      detalhes: a.detalhes,
+      restaurante: await nomeDoRestaurante(rid),
+    })
+    if (msg) await enviar(msg)
   },
 )
 
 /* ------------------------------ Resumo do dia ---------------------------- */
-
-interface MovimentoDia {
-  nome: string
-  vendas: number
-  totalPdv: number
-  totalCaixa: number
-  despesas: number
-  totalDespesas: number
-}
 
 /** Resumo do dia só com as ações de um usuário (casa pelo nome gravado em cada atividade). */
 async function resumoDoUsuario(db: FirebaseFirestore.Firestore, hoje: string, usuario: string): Promise<void> {
@@ -121,26 +111,24 @@ async function resumoDoUsuario(db: FirebaseFirestore.Firestore, hoje: string, us
     if (!minhas.length) continue
 
     const conta = (acao: string) => minhas.filter((a) => a.acao === acao)
-    const total = (l: typeof minhas) => l.reduce((s, a) => s + (Number(a.valor) || 0), 0)
-    const notas = conta('lançou a nota do')
-    const despesas = conta('lançou despesa')
-    const contagens = conta('contou')
-    const vendasDia = conta('lançou as vendas de')
-    const pedidos = conta('lançou o pedido')
-    const caixas = conta('fechou o caixa do PDV')
+    const soma = (l: typeof minhas) => ({ qtd: l.length, total: l.reduce((t, a) => t + (Number(a.valor) || 0), 0) })
     const ultima = minhas.map((a) => String(a.criadoEm)).sort().at(-1)!
+    const ultimaHora = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(ultima))
 
-    const nome = (r.get('nome') as string | undefined) ?? r.id
-    const linhas = [`📊 *Resumo do dia* — ${hoje.split('-').reverse().join('/')}`, `👤 ${usuario} · _${nome}_`, '']
-    if (vendasDia.length) linhas.push(`💵 Vendas lançadas: ${brl(total(vendasDia))}`)
-    if (pedidos.length) linhas.push(`🧾 ${pedidos.length} ${pedidos.length === 1 ? 'pedido' : 'pedidos'} no PDV — ${brl(total(pedidos))}`)
-    if (caixas.length) linhas.push(`🔒 Caixa fechado — faturamento ${brl(total(caixas))}`)
-    if (notas.length) linhas.push(`📥 ${notas.length} ${notas.length === 1 ? 'nota fiscal lançada' : 'notas fiscais lançadas'} — ${brl(total(notas))}`)
-    if (despesas.length) linhas.push(`💸 ${despesas.length} ${despesas.length === 1 ? 'despesa' : 'despesas'} — ${brl(total(despesas))}`)
-    if (contagens.length) linhas.push(`📦 Contagem de estoque feita${total(contagens) ? ` — estoque em ${brl(total(contagens))}` : ''}`)
-    const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit' }).format(new Date(ultima))
-    linhas.push('', `🕘 Última ação às ${hora} (${minhas.length} no total)`)
-    await enviar(linhas.join('\n'))
+    await enviar(
+      textoResumoUsuario({
+        dia: hoje,
+        usuario,
+        restaurante: (r.get('nome') as string | undefined) ?? r.id,
+        vendasDia: soma(conta('lançou as vendas de')).total,
+        pedidos: soma(conta('lançou o pedido')),
+        caixa: soma(conta('fechou o caixa do PDV')),
+        notas: soma(conta('lançou a nota do')),
+        despesas: soma(conta('lançou despesa')),
+        contagem: soma(conta('contou')),
+        ultimaHora,
+      }),
+    )
   }
 }
 
@@ -189,49 +177,11 @@ export const resumoDoDia = onSchedule(
     }
     if (!ativas) return
 
-    const soma = (f: (m: MovimentoDia) => number) => comMovimento.reduce((s, m) => s + f(m), 0)
-    const pedidos = soma((m) => m.vendas)
-    const entrouCaixa = soma((m) => m.totalCaixa)
-    const notas = soma((m) => m.despesas)
-
-    const linhas = [`📊 *Resumo do dia* — ${hoje.split('-').reverse().join('/')}`, '']
-    linhas.push(`🏪 ${comMovimento.length} de ${ativas} restaurantes lançaram hoje`)
-    if (pedidos) linhas.push(`🧾 ${pedidos} ${pedidos === 1 ? 'venda' : 'vendas'} no PDV — ${brl(soma((m) => m.totalPdv))}`)
-    if (entrouCaixa) linhas.push(`💵 Entrou no caixa: ${brl(entrouCaixa)}`)
-    if (notas) linhas.push(`📥 ${notas} ${notas === 1 ? 'nota/despesa' : 'notas/despesas'} — ${brl(soma((m) => m.totalDespesas))}`)
-
-    // Só os 5 maiores, para a mensagem caber numa tela.
-    const maiores = [...comMovimento]
-      .sort((a, b) => b.totalPdv + b.totalCaixa - (a.totalPdv + a.totalCaixa))
-      .slice(0, 5)
-    if (maiores.length) {
-      linhas.push('', '*Maiores do dia*')
-      for (const m of maiores) {
-        const v = m.totalPdv + m.totalCaixa
-        linhas.push(`• ${m.nome}${v ? ` — ${brl(v)}` : ` — ${m.despesas} ${m.despesas === 1 ? 'nota' : 'notas'}`}`)
-      }
-    }
-
-    if (semMovimento.length) {
-      const nomes = [...new Set(semMovimento)]
-      const resto = nomes.length > 3 ? ` e mais ${nomes.length - 3}` : ''
-      linhas.push('', `⏳ ${semMovimento.length} ainda sem lançamento (${nomes.slice(0, 3).join(', ')}${resto}). Dá tempo de lançar antes de dormir 😉`)
-    }
-    await enviar(linhas.join('\n'))
+    await enviar(textoResumoGeral(hoje, comMovimento, semMovimento))
   },
 )
 
 /* -------------------------------- Lembretes ------------------------------ */
-
-/** Dicas de uso, uma por segunda-feira, em rodízio. Tom positivo e com o próximo passo. */
-const DICAS = [
-  '💡 *Dica da semana*: lance as vendas todo dia, no fim do expediente. Em 1 minuto o fluxo de caixa fica certo e o resumo da segunda sai fiel.',
-  '💡 *Dica da semana*: fotografou a nota? Confira os itens e o preço antes de confirmar — é assim que o app avisa quando um fornecedor aumentou o preço.',
-  '💡 *Dica da semana*: faça a contagem de estoque sempre com a loja fechada. Contar com o movimento rolando bagunça o que saiu de verdade.',
-  '💡 *Dica da semana*: use o PDV para vender — cada pedido já baixa o estoque pela ficha técnica e fecha a receita do dia sozinho.',
-  '💡 *Dica da semana*: lance a nota no dia em que ela chega. Nota acumulada vira conta esquecida e CMV errado.',
-  '💡 *Dica da semana*: dê uma olhada no plano do mês — ele mostra se mercadoria, pessoal e taxas estão dentro do teto antes de estourar.',
-]
 
 export const lembretes = onSchedule(
   { schedule: '0 9 * * *', timeZone: FUSO, secrets: SEGREDOS },
@@ -239,16 +189,10 @@ export const lembretes = onSchedule(
     const [ano, mes, dia] = diaSP().split('-').map(Number)
     const diaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay() // 1 = segunda
 
-    if (dia === 1 || dia === 28) {
-      await enviar(
-        dia === 1
-          ? '📦 *Dia de contar o estoque!* Começou o mês: faça a contagem com a loja fechada e o app calcula o que saiu e o CMV certinho.'
-          : '📦 *Lembrete*: o mês está acabando. Reserve um tempinho para contar o estoque até o dia 1 — assim o CMV do mês fecha certo.',
-      )
-    }
+    if (dia === 1 || dia === 28) await enviar(dia === 1 ? LEMBRETE_INICIO_DO_MES : LEMBRETE_FIM_DO_MES)
     if (diaSemana === 1) {
       const semana = Math.floor(Date.UTC(ano, mes - 1, dia) / (7 * 24 * 3600 * 1000))
-      await enviar(DICAS[semana % DICAS.length])
+      await enviar(textoDica(semana))
     }
   },
 )

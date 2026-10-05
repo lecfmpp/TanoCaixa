@@ -160,6 +160,13 @@ export interface AtividadeDoc extends Autoria {
   entidade: string
   tipo: string // Despesa, Produto, Estoque, Fechamento...
   valor?: number
+  /** Dados extras que o aviso de WhatsApp mostra (hoje: nota fiscal). */
+  detalhes?: {
+    vencimento?: string // YYYY-MM-DD
+    formaPagamento?: string
+    status?: string
+    itens?: number
+  }
 }
 
 export interface InsightDoc {
