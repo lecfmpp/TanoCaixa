@@ -309,4 +309,4 @@ export { criarConvite, verConvite, aceitarConvite } from './convites'
 
 /* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
 export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'
-export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhatsappSalvar } from './lembretesEngine'
+export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhatsappSalvar, lembretesWhatsappGrupo } from './lembretesEngine'

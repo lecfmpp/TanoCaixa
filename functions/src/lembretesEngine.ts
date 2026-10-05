@@ -162,20 +162,23 @@ const TITULOS: Record<IdLembrete, string> = {
   ifood_parado: 'Integração com o iFood',
 }
 
-async function exigirGestao(uid: string | undefined, restauranteId: string | undefined): Promise<string> {
+async function exigirGestao(uid: string | undefined, restauranteId: string | undefined): Promise<{ rid: string; papel: 'dono' | 'gestao' }> {
   if (!uid) throw new HttpsError('unauthenticated', 'Faça login primeiro')
   if (!restauranteId) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
   const membro = await db.doc(`restaurants/${restauranteId}/membros/${uid}`).get()
   const papel = normalizarPapel(membro.data()?.papel as string | undefined)
   if (!membro.exists || (papel !== 'dono' && papel !== 'gestao')) throw new HttpsError('permission-denied', 'Só dono ou gestão')
-  return restauranteId
+  return { rid: restauranteId, papel }
 }
 
-async function configDoRestaurante(rid: string) {
+async function configDoRestaurante(rid: string, papel: 'dono' | 'gestao') {
   const snap = await db.doc(`whatsapp_grupos/${rid}`).get()
   const cfg = (snap.data() ?? {}) as GrupoDoc
   return {
     temGrupo: !!cfg.grupoId,
+    grupoId: cfg.grupoId ?? '',
+    /** Só o dono troca o grupo (a gestão liga e desliga lembretes). */
+    podeEditarGrupo: papel === 'dono',
     lembretes: (Object.keys(LEMBRETES) as IdLembrete[]).map((id) => ({
       id,
       titulo: TITULOS[id],
@@ -189,19 +192,35 @@ async function configDoRestaurante(rid: string) {
 
 /** Estado do dashboard: tem grupo? e quais lembretes estão ligados. Sem grupo, o app esconde a seção. */
 export const lembretesWhatsappConfig = onCall(async (req) => {
-  const rid = await exigirGestao(req.auth?.uid, (req.data as { restauranteId?: string } | undefined)?.restauranteId)
-  return configDoRestaurante(rid)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, (req.data as { restauranteId?: string } | undefined)?.restauranteId)
+  return configDoRestaurante(rid, papel)
 })
 
 /** Liga ou desliga um lembrete. Só vale se o restaurante tem grupo e o lembrete já está disponível. */
 export const lembretesWhatsappSalvar = onCall(async (req) => {
   const { restauranteId, id, ativo } = (req.data ?? {}) as { restauranteId?: string; id?: string; ativo?: boolean }
-  const rid = await exigirGestao(req.auth?.uid, restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
   if (!id || !(id in LEMBRETES) || typeof ativo !== 'boolean') throw new HttpsError('invalid-argument', 'id e ativo obrigatórios')
   if (EM_BREVE.includes(id as IdLembrete)) throw new HttpsError('failed-precondition', 'Esse lembrete ainda não está disponível')
   const ref = db.doc(`whatsapp_grupos/${rid}`)
   const snap = await ref.get()
   if (!snap.get('grupoId')) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem grupo de WhatsApp')
   await ref.set({ ativos: { [id]: ativo } }, { merge: true })
-  return configDoRestaurante(rid)
+  return configDoRestaurante(rid, papel)
+})
+
+/** ID de grupo do WhatsApp: dígitos (e hífen) + @g.us. Conversas individuais não valem. */
+export const ehIdDeGrupo = (v: string) => /^\d{8,}(-\d+)?@g\.us$/.test(v)
+
+/** Troca o grupo do restaurante (migração do grupo de teste para o grupo do cliente). Só o dono. */
+export const lembretesWhatsappGrupo = onCall(async (req) => {
+  const { restauranteId, grupoId } = (req.data ?? {}) as { restauranteId?: string; grupoId?: string }
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
+  if (papel !== 'dono') throw new HttpsError('permission-denied', 'Só o dono troca o grupo')
+  const novo = (grupoId ?? '').trim()
+  if (!ehIdDeGrupo(novo)) throw new HttpsError('invalid-argument', 'ID de grupo inválido. Ele termina em @g.us (ex.: 120363012345678901@g.us).')
+  const ref = db.doc(`whatsapp_grupos/${rid}`)
+  if (!(await ref.get()).exists) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem grupo de WhatsApp')
+  await ref.set({ grupoId: novo, grupoTrocadoEm: new Date().toISOString(), grupoTrocadoPor: req.auth!.uid }, { merge: true })
+  return configDoRestaurante(rid, papel)
 })
