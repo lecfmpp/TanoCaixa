@@ -77,6 +77,7 @@ export const LEMBRETES = {
     gatilho: "Início do mês (relatório do mês anterior)",
     link: "/painel/compras",
     corpo: "🛒 *{mes}: {total} em {n_notas} notas*\nMaior fornecedor: {fornecedor} ({valor}, {pct}%). Maior alta de preço: {item}, +{pct_alta}%.\nO relatório por fornecedor está em Compras e dá para exportar em CSV.\n_{restaurante}_",
+    variantes: {"sem_alta":"🛒 *{mes}: {total} em {n_notas} notas*\nMaior fornecedor: {fornecedor} ({valor}, {pct}%).\nO relatório por fornecedor está em Compras e dá para exportar em CSV.\n_{restaurante}_"},
   },
   contagem_estoque: {
     arquivo: "07-contagem-de-estoque.png",
@@ -134,6 +135,7 @@ export const LEMBRETES = {
     gatilho: "Pratos sem ficha técnica",
     link: "/painel/pdv/cardapio",
     corpo: "🍽️ *{n} pratos ainda sem ficha: {prato_1}, {prato_2}, {prato_3} e mais {resto}*\nCom a ficha, o app calcula o custo e o CMV de cada prato e baixa o estoque a cada venda no PDV.\n_{restaurante}_",
+    variantes: {"curto":"🍽️ *{n} {pratos} ainda sem ficha: {lista}*\nCom a ficha, o app calcula o custo e o CMV de cada prato e baixa o estoque a cada venda no PDV.\n_{restaurante}_"},
   },
   terminar_cadastro: {
     arquivo: "14-terminar-cadastro.png",

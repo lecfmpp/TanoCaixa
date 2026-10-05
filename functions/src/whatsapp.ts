@@ -33,7 +33,6 @@ import {
 } from './whatsappTexto'
 import type { IdLembrete } from './lembretesCatalogo'
 import { montarLembrete, type Variaveis } from './lembretesTexto'
-import { deveLembrarNotasDoDia, type AtividadeMin } from './lembretesRegras'
 
 const GREEN_API_URL = defineSecret('GREEN_API_URL')
 const GREEN_API_ID = defineSecret('GREEN_API_ID')
@@ -41,10 +40,8 @@ const GREEN_API_TOKEN = defineSecret('GREEN_API_TOKEN')
 const WHATSAPP_GRUPO = defineString('WHATSAPP_GRUPO', { default: '' })
 /** Se preenchido (ex.: "Fernando"), o resumo do dia fala só do que esse usuário fez. Vazio = todos. */
 const RESUMO_USUARIO = defineString('RESUMO_USUARIO', { default: '' })
-/** Liga o lembrete "Notas do dia". Começa desligado: só envia com LEMBRETE_NOTAS_ATIVO=sim. */
-const LEMBRETE_NOTAS_ATIVO = defineString('LEMBRETE_NOTAS_ATIVO', { default: 'nao' })
-const SEGREDOS = [GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN]
-const FUSO = 'America/Sao_Paulo'
+export const SEGREDOS = [GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN]
+export const FUSO = 'America/Sao_Paulo'
 
 /** Best-effort: falhar aqui nunca pode derrubar a função que chamou. */
 async function chamar(metodo: 'sendMessage' | 'sendFileByUrl', corpo: Record<string, unknown>): Promise<boolean> {
@@ -68,8 +65,8 @@ async function chamar(metodo: 'sendMessage' | 'sendFileByUrl', corpo: Record<str
  * Envia texto ou, com `imagem`, a imagem com o texto como legenda (sendFileByUrl).
  * Se a imagem falhar, o texto vai sozinho: o lembrete nunca se perde por causa dela.
  */
-export async function enviar(texto: string, imagem?: { url: string; arquivo: string }): Promise<void> {
-  const grupo = WHATSAPP_GRUPO.value()
+export async function enviar(texto: string, imagem?: { url: string; arquivo: string }, chatId?: string): Promise<void> {
+  const grupo = chatId || WHATSAPP_GRUPO.value()
   if (!grupo || !GREEN_API_URL.value() || !GREEN_API_ID.value() || !GREEN_API_TOKEN.value()) {
     console.log('WhatsApp não configurado — mensagem não enviada:', texto)
     return
@@ -83,15 +80,15 @@ export async function enviar(texto: string, imagem?: { url: string; arquivo: str
 }
 
 /** Lembrete de rotina: imagem fixa do tipo + legenda com os dados do dia. */
-export async function enviarLembrete(id: IdLembrete, vars: Variaveis, variante?: string): Promise<void> {
+export async function enviarLembrete(id: IdLembrete, vars: Variaveis, variante?: string, chatId?: string): Promise<void> {
   const { legenda, imagemUrl, arquivo } = montarLembrete(id, vars, variante)
-  await enviar(legenda, { url: imagemUrl, arquivo })
+  await enviar(legenda, { url: imagemUrl, arquivo }, chatId)
 }
 
-const ehDemo = (rid: string) => rid.startsWith('demo-') || rid.startsWith('rede-demo')
+export const ehDemo = (rid: string) => rid.startsWith('demo-') || rid.startsWith('rede-demo')
 
 /** 'YYYY-MM-DD' no fuso de São Paulo. */
-function diaSP(d = new Date()): string {
+export function diaSP(d = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(d)
 }
 
@@ -219,43 +216,6 @@ export const lembretes = onSchedule(
     if (diaSemana === 1) {
       const semana = Math.floor(Date.UTC(ano, mes - 1, dia) / (7 * 24 * 3600 * 1000))
       await enviar(textoDica(semana))
-    }
-  },
-)
-
-/* --------------------- Lembrete: notas do dia (18h30) -------------------- */
-
-/**
- * Para cada restaurante (do usuário de RESUMO_USUARIO, se definido) que costuma
- * lançar nota e ainda não lançou hoje, manda UM lembrete com a imagem "Notas do
- * dia". Cada envio fica em `lembretes_enviados/{rid}_{dia}_notas_do_dia`, que
- * também impede repetir no mesmo dia (create falha se o documento já existe).
- */
-export const lembreteNotasDoDia = onSchedule(
-  { schedule: '30 18 * * *', timeZone: FUSO, secrets: SEGREDOS },
-  async () => {
-    if (LEMBRETE_NOTAS_ATIVO.value() !== 'sim') return
-    const db = getFirestore()
-    const hoje = diaSP()
-    const inicioDoDia = new Date(`${hoje}T00:00:00-03:00`).toISOString()
-    const desde = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
-    const alvo = RESUMO_USUARIO.value().trim().toLowerCase()
-    const restaurantes = (await db.collection('restaurants').get()).docs.filter((d) => !ehDemo(d.id))
-
-    for (const r of restaurantes) {
-      const snap = await db.collection('restaurants').doc(r.id).collection('atividades').where('criadoEm', '>=', desde).get()
-      const atividades = snap.docs
-        .map((d) => d.data())
-        .filter((a) => !alvo || String(a.criadoPorNome ?? a.quem ?? '').toLowerCase().includes(alvo))
-        .map((a): AtividadeMin => ({ acao: String(a.acao ?? ''), criadoEm: String(a.criadoEm ?? ''), origem: a.origem }))
-      if (!deveLembrarNotasDoDia(atividades, inicioDoDia)) continue
-
-      try {
-        await db.doc(`lembretes_enviados/${r.id}_${hoje}_notas_do_dia`).create({ restaurante: r.id, lembrete: 'notas_do_dia', dia: hoje, enviadoEm: new Date().toISOString() })
-      } catch {
-        continue // já enviado hoje
-      }
-      await enviarLembrete('notas_do_dia', { restaurante: (r.get('nome') as string | undefined) ?? r.id })
     }
   },
 )

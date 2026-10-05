@@ -308,4 +308,5 @@ export { analisarFoto, perguntarEstoque } from './gemini'
 export { criarConvite, verConvite, aceitarConvite } from './convites'
 
 /* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
-export { avisoAtividade, resumoDoDia, lembretes, lembreteNotasDoDia } from './whatsapp'
+export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'
+export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhatsappSalvar } from './lembretesEngine'
