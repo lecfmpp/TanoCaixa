@@ -1,10 +1,14 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useSearchParams } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
+import { useUI, type TipoGaveta } from '@/ui/UIProvider'
+
+/** Gavetas que um link de lembrete (?acao=…) pode abrir direto. */
+const ACOES_POR_LINK: TipoGaveta[] = ['despesa', 'compra', 'produto', 'estoque', 'fechamento']
 
 /**
  * Estrutura do painel: barra lateral fixa (>1100px) + conteúdo com scroll.
@@ -16,6 +20,18 @@ export function AppShell() {
   // que diz quais contas existem no DRE, nos filtros e nas gavetas.
   usePlanoContas()
   const [gaveta, setGaveta] = useState(false)
+
+  // Link do lembrete de WhatsApp: /painel/compras?acao=compra abre a tela com a gaveta já aberta.
+  const { abrirGaveta } = useUI()
+  const [busca, setBusca] = useSearchParams()
+  const acao = busca.get('acao')
+  useEffect(() => {
+    if (!acao) return
+    if ((ACOES_POR_LINK as string[]).includes(acao)) abrirGaveta(acao as TipoGaveta)
+    const resto = new URLSearchParams(busca)
+    resto.delete('acao')
+    setBusca(resto, { replace: true })
+  }, [acao, abrirGaveta, busca, setBusca])
 
   return (
     <div className="flex h-dvh overflow-hidden bg-fundo-app">
