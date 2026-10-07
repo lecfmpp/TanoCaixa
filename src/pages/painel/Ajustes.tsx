@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { mensagemDeErro } from '@/lib/erros'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { SectionHeader } from '@/components/layout/SectionHeader'
@@ -124,6 +124,15 @@ export function Ajustes() {
         <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
         <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
         <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
+      </Cartao>
+
+      {/* Assinatura */}
+      <Cartao className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-[15px] font-bold text-tinta">Assinatura</h2>
+          <p className="mt-0.5 text-sm text-tinta-3">Plano único de R$ 149/mês por restaurante. Veja a situação e gerencie o pagamento.</p>
+        </div>
+        <Link to="/painel/assinatura" className="shrink-0 text-sm font-bold text-mar hover:underline">Abrir</Link>
       </Cartao>
 
       {/* Integrações */}
