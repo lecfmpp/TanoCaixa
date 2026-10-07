@@ -52,114 +52,85 @@ Registre a URL de `ifoodWebhook` no Portal do iFood para receber eventos.
 > Os nomes de campo foram modelados a partir da doc pública; confira contra o
 > payload real na homologação e ajuste em `src/ifood/mapper.ts`.
 
-## Stripe (assinaturas)
+## Stripe (assinatura: plano único de R$ 149/mês)
 
-`src/stripe.ts` expõe `criarCheckoutAssinatura`, `portalAssinatura` e
-`stripeWebhook`. Usa Billing (subscriptions), Tax (automatic_tax) e Customer
-Portal. Integração multi-tenant: cada restaurante é um customer Stripe.
+Um plano só, **R$ 149/mês por restaurante**. O teste é de **14 dias sem cartão**
+(promessa da landing), contado pela criação do restaurante; o Stripe só entra
+quando a pessoa decide assinar.
+
+`src/stripe.ts` expõe quatro funções (regras puras em `src/assinatura.ts`):
+
+| Função | O que faz |
+|---|---|
+| `criarCheckoutAssinatura` | callable (dono/gestão): abre o Stripe Checkout do plano único |
+| `portalAssinatura` | callable (dono/gestão): abre o portal (cartão, faturas, cancelar). O cliente do Stripe vem do servidor |
+| `statusAssinatura` | callable (dono/gestão): `em_teste` (dias restantes), `teste_encerrado`, `ativa`, `pagamento_falhou`, `pendente`, `cancelada` |
+| `stripeWebhook` | HTTP: recebe os eventos e grava a situação em `assinaturas/{restauranteId}` |
+
+`assinaturas/*` é coleção **só do servidor** (nenhuma regra do Firestore a libera
+ao app): ninguém grava "ativa" no próprio restaurante. As URLs de retorno só
+aceitam o nosso site (`tanocaixa.com`, `tanocaixa.web.app`).
+
+> Hoje **nada bloqueia o uso** por falta de assinatura: a tela só informa a
+> situação. Bloquear exige decidir o que fazer com os restaurantes que já existem.
 
 ### Setup passo a passo
 
-#### 1. Criar Products e Prices (modo test primeiro)
+#### 1. Criar o Product e o Price (modo test primeiro)
 
-Acesse [dashboard.stripe.com](https://dashboard.stripe.com) → modo test.
+[dashboard.stripe.com](https://dashboard.stripe.com) → modo test → Products →
+**New** → "Tá no Caixa" → Pricing **Recurring**, mensal, **R$ 149,00 BRL**.
+Copie o Price ID (`price_…`). Em BRL, a assinatura aceita cartão.
 
-**Produto 1: Cozinha só**
-- Dashboard → Products → **New** → "Cozinha só"
-- Pricing → **Recurring** → Monthly, R$ 79,00 BRL
-- Copie o Price ID (`price_xxx`).
+#### 2. Guardar as chaves (secrets)
 
-**Produto 2: Casa cheia**
-- Dashboard → Products → **New** → "Casa cheia"
-- Pricing → **Recurring** → Monthly, R$ 149,00 BRL
-- Copie o Price ID.
-
-**Produto 3: Mais de uma casa**
-- Dashboard → Products → **New** → "Mais de uma casa"
-- Pricing → **Recurring** → Monthly, R$ 299,00 BRL
-- Copie o Price ID.
-
-#### 2. Guardar as chaves do Stripe
-
-Você precisa de:
-- **STRIPE_SECRET_KEY**: Dashboard → Developers → API Keys → Secret key (começa com `sk_test_` em test, `sk_live_` em produção)
-- **STRIPE_WEBHOOK_SECRET**: gerado após registrar webhook (próximo passo)
-- **STRIPE_PRICE_COZINHA**: `price_xxx` do primeiro produto
-- **STRIPE_PRICE_CASA**: `price_xxx` do segundo
-- **STRIPE_PRICE_REDE**: `price_xxx` do terceiro
-
-Rodando **localmente** (para testar antes de deploy):
 ```bash
-firebase functions:secrets:set STRIPE_SECRET_KEY
-firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
-firebase functions:secrets:set STRIPE_PRICE_COZINHA
-firebase functions:secrets:set STRIPE_PRICE_CASA
-firebase functions:secrets:set STRIPE_PRICE_REDE
+firebase functions:secrets:set STRIPE_SECRET_KEY --project tanocaixa     # sk_test_… (ou sk_live_…)
+firebase functions:secrets:set STRIPE_PRICE_UNICO --project tanocaixa    # price_… do passo 1
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET --project tanocaixa # whsec_… do passo 4
 ```
 
-Depois do deploy para produção, você pode editar via:
+`STRIPE_SECRET_KEY` pode ser uma chave de organização: nesse caso `STRIPE_ACCOUNT_ID`
+(em `src/stripe.ts`) precisa ser a conta do Tá no Caixa. **Confira esse ID.**
+
+#### 3. Publicar
+
 ```bash
-firebase functions:secrets:set STRIPE_SECRET_KEY --project tanocaixa
+firebase deploy --only functions:criarCheckoutAssinatura,functions:portalAssinatura,functions:statusAssinatura,functions:stripeWebhook --project tanocaixa
 ```
 
-#### 3. Registrar o Webhook
+#### 4. Registrar o webhook
 
-Após fazer `firebase deploy --only functions`, copie a URL de `stripeWebhook`:
-```
-https://us-central1-tanocaixa.cloudfunctions.net/stripeWebhook
-```
-
-Dashboard → Developers → Webhooks → **Add endpoint** →
+Dashboard → Developers → Webhooks → **Add endpoint**:
 - URL: `https://us-central1-tanocaixa.cloudfunctions.net/stripeWebhook`
-- Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`
-- Copie o **Signing secret** (começa com `whsec_`) e salve como `STRIPE_WEBHOOK_SECRET`
+- Eventos: `checkout.session.completed`, `customer.subscription.created`,
+  `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`,
+  `invoice.payment_failed`
+- Copie o **Signing secret** (`whsec_…`) para `STRIPE_WEBHOOK_SECRET` (passo 2) e
+  republique `stripeWebhook`.
 
-#### 4. Configurar o Customer Portal
+#### 5. Customer Portal
 
-Dashboard → Settings → Billing Portal → **Activate portal**
-- Selecione que clientes podem fazer upgrade/downgrade, cancelar, atualizar
-  pagamento, ver invoices.
-- Use as configurações padrão ou customize com seu branding.
+Dashboard → Settings → Billing → Customer portal → **Activate**: permitir
+atualizar pagamento, ver faturas e cancelar. Sem isso `portalAssinatura` falha.
 
-#### 5. Completar onboarding da conta
+#### 6. Conta Stripe pronta para cobrar
 
-Dashboard → Settings → Account (abas) → **Business profile** →
-- Product description: "SaaS de gestão financeira para restaurantes"
-- Support phone: seu número
-- Support URL: seu site
-- Aceite os termos legais.
+Complete o perfil da empresa e os dados legais; sem isso `charges_enabled` fica
+`false` e não há cobrança real. **Stripe Tax não cobre o Brasil**: o preço já
+sai com imposto embutido e a NFS-e é emitida fora do Stripe.
 
-Sem isso, `charges_enabled` fica `false` e cobranças reais não funcionam.
+### Testar (modo test)
 
-#### 6. Deploy
-
-```bash
-cd functions
-npm install
-firebase deploy --only functions
-```
+Cartão `4242 4242 4242 4242`, qualquer data futura e CVC. Fluxo: Ajustes →
+Assinatura → "Assinar" → pagar → voltar ao app: a situação passa a **Ativa** em
+segundos (via webhook). Falha de pagamento: `4000 0000 0000 0341`.
 
 ### Frontend
 
-A página `/painel/assinatura` mostra os 3 planos. Ao clicar "Contratar", chama
-`criarCheckoutAssinatura` que retorna uma URL Stripe Checkout — o cliente é
-redirecionado para `checkout.stripe.com` (hosted, feito pelo Stripe).
-
-### Notas
-
-- Em **modo test**, use cartões como `4242 4242 4242 4242` para testar.
-- Em **modo live**, ative a chave de live (`sk_live_xxx`) antes de ir para
-  produção; Stripe cobra 2.9% + R$ 0,30 por transação + % de tax/pix.
-- **Tax**: `automatic_tax: { enabled: true }` no checkout — Stripe calcula
-  impostos conforme localização e tipo de serviço. NF-e/NFS-e é externa.
-- **Reconciliação**: webhook grava `restaurants/{id}/faturamento/assinatura`
-  com status, plano, `customerId`, `subscriptionId` — sincroniza em tempo
-  real.
-- **Invoicing**: Stripe emite invoice automaticamente em cada ciclo (grava em
-  `invoice.paid` webhook).
-- **Portal**: `portalAssinatura` abre `billing.stripe.com` — cliente gerencia
-  upgrade/downgrade/cancelamento/pagamento. Depende da config do portal estar
-  ativa (passo 4).
+`/painel/assinatura` mostra o plano único, a situação (teste com dias
+restantes, ativa, pagamento falhou…) e o botão certo (assinar ou gerenciar). Há
+um atalho em Ajustes.
 
 ## E-mail de boas-vindas (Resend)
 
