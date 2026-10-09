@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Inbox, Lock, CheckCircle2, ArrowRight } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
@@ -9,7 +8,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import type { Periodo } from '@/types'
+import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
+import { usePeriodo } from '@/ui/periodo'
 import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
 import { resumoInicio, periodoAnterior, diaDeHoje, diasRestantesNoMes, agora, MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
@@ -45,7 +45,7 @@ export function Inicio() {
   const { permissoes, sessao } = useAuth()
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
   const marcarPago = useMarcarPago()
-  const [periodo, setPeriodo] = useState<Periodo>('mes')
+  const [periodo, setPeriodo] = usePeriodo()
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const atividades = useAtividades()
@@ -119,7 +119,7 @@ export function Inicio() {
         <CartaoValor rotulo="Entrou" valor={r.entrou} delta={d.entrou} visivel={permissoes?.veFaturamentoTotal ?? true} motivo="só o dono vê o faturamento" />
         <CartaoValor rotulo="Saiu" valor={r.saiu} delta={d.saiu} visivel />
         <CartaoSobrou valor={r.sobrouFinal} margem={r.margem} visivel={permissoes?.veLucro ?? true} />
-        <CartaoValor rotulo="Ponto de equilíbrio" valor={r.pontoEquilibrio} delta={d.ponto} visivel />
+        <CartaoValor rotulo="Ponto de equilíbrio" valor={r.pontoEquilibrio} delta={d.ponto} visivel emBreve />
       </div>
 
       <PedidosDaFranqueadora />
@@ -248,16 +248,20 @@ function PedidosDaFranqueadora() {
   )
 }
 
-function CartaoValor({ rotulo, valor, delta, visivel, motivo }: { rotulo: string; valor: number; delta: [string, Tom]; visivel: boolean; motivo?: string }) {
+function CartaoValor({ rotulo, valor, delta, visivel, motivo, emBreve }: { rotulo: string; valor: number; delta: [string, Tom]; visivel: boolean; motivo?: string; emBreve?: boolean }) {
   const cor = delta[1] === 'positivo' ? 'text-mata' : delta[1] === 'negativo' ? 'text-telha-alerta' : 'text-tinta-4'
   return (
     <Cartao className="flex flex-col gap-2">
-      <span className="rotulo text-tinta-4">{rotulo}</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className="rotulo text-tinta-4">{rotulo}</span>
+        {emBreve && <SeloEmBreve />}
+      </span>
       {visivel ? (
-        <>
+        // Em breve: o número fica borrado e fora do alcance de seleção/leitor.
+        <div className={cn('flex flex-col gap-2', emBreve && 'pointer-events-none select-none opacity-60 blur-[5px]')} aria-hidden={emBreve}>
           <span className="mono text-tinta" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em' }}>{brlInteiro(valor)}</span>
           <span className={cn('text-sm font-bold', cor)}>{delta[0]}</span>
-        </>
+        </div>
       ) : (
         <div className="flex items-center gap-2 py-2 text-tinta-4"><Lock size={16} /><span className="text-xs">{motivo}</span></div>
       )}

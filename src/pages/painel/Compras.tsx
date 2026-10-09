@@ -9,7 +9,8 @@ import { brl, brlInteiro, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
 import { useDespesas, useMarcarPago, useRestaurante } from '@/data/hooks'
-import { MES_REF, diaDeHoje } from '@/data/derive'
+import { MES_REF, diaDeHoje, noPeriodo } from '@/data/derive'
+import { usePeriodo } from '@/ui/periodo'
 import { nomeDoMes } from '@/data/planoMes'
 import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra, type Nota } from '@/data/compras'
 import { diasAte, lembretes } from '@/data/vencimentos'
@@ -30,13 +31,14 @@ export function Compras() {
   const cfg = useRestaurante().data
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
   const marcarPago = useMarcarPago()
+  const [periodo, setPeriodo] = usePeriodo()
   const [aba, setAba] = useState<Aba>('notas')
   const [aberta, setAberta] = useState<string | null>(null)
 
   const todas = useMemo(() => despesas.data ?? [], [despesas.data])
   // Histórico de preço olha TODAS as compras (é o que dá a comparação com a
   // compra anterior); os números do mês olham só o mês corrente.
-  const doMes = useMemo(() => todas.filter((d) => d.dataCompetencia.slice(0, 7) === MES_REF), [todas])
+  const doMes = useMemo(() => todas.filter((d) => noPeriodo(d.dataCompetencia, periodo)), [todas, periodo])
 
   const notasDoMes = useMemo(() => agruparEmNotas(doMes), [doMes])
   const precos = useMemo(() => precosPorItem(todas), [todas])
@@ -97,7 +99,7 @@ export function Compras() {
         : [[n.data.slice(0, 10).split('-').reverse().join('/'), n.fornecedor, '—', '', '', '', n.valorTotal.toFixed(2).replace('.', ','), n.status]],
     )
     baixarCSV(
-      `compras-${MES_REF}-${arquivoDe(cfg?.nome)}`,
+      `compras-${periodo === 'semana' ? 'semana' : MES_REF}-${arquivoDe(cfg?.nome)}`,
       gerarCSV(['Data', 'Fornecedor', 'Produto', 'Quantidade', 'Unidade', 'Preço unitário (R$)', 'Total (R$)', 'Situação'], linhas),
     )
   }
@@ -107,11 +109,13 @@ export function Compras() {
       <SectionHeader
         titulo="Compras"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''}
+        periodo={periodo}
+        aoTrocarPeriodo={setPeriodo}
         aoExportar={notasDoMes.length ? exportar : undefined}
       />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
-        <Mini rotulo="Comprado no mês" valor={brlInteiro(compradoNoMes)} apoio={`${notasDoMes.length} ${notasDoMes.length === 1 ? 'nota' : 'notas'}`} />
+        <Mini rotulo={periodo === 'semana' ? 'Comprado na semana' : 'Comprado no mês'} valor={brlInteiro(compradoNoMes)} apoio={`${notasDoMes.length} ${notasDoMes.length === 1 ? 'nota' : 'notas'}`} />
         <Mini rotulo="Ainda a pagar" valor={brlInteiro(aPagar)} apoio={aPagar > 0 ? 'boletos em aberto' : 'tudo pago'} tom={aPagar > 0 ? 'telha' : undefined} />
         <Mini rotulo="Fornecedores" valor={String(fornecedores.length)} apoio={fornecedores[0] ? `maior: ${fornecedores[0].fornecedor}` : '—'} />
         <Mini
@@ -166,7 +170,7 @@ export function Compras() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          <Chip rotulo="Notas do mês" selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
+          <Chip rotulo={periodo === 'semana' ? 'Notas da semana' : 'Notas do mês'} selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
           <Chip rotulo="Preço por item" selecionado={aba === 'precos'} aoClicar={() => setAba('precos')} />
           <Chip rotulo="Fornecedores" selecionado={aba === 'fornecedores'} aoClicar={() => setAba('fornecedores')} />
         </div>
@@ -177,7 +181,7 @@ export function Compras() {
         <Cartao className="overflow-hidden p-0">
           {notasDoMes.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-tinta-4">
-              Nenhuma compra neste mês. Lance a nota do fornecedor: cada item vira entrada de estoque e atualiza o
+              Nenhuma compra no período. Lance a nota do fornecedor: cada item vira entrada de estoque e atualiza o
               custo do produto.
             </p>
           ) : (
@@ -198,7 +202,7 @@ export function Compras() {
                     <span className="flex-1">
                       <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
                       <span className="block text-xs text-tinta-4">
-                        {dataCurta(dataDoDia(n.data))} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
+                        {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                       </span>
                     </span>
                     {pago ? (
@@ -241,6 +245,12 @@ export function Compras() {
                           <span className="mono font-bold text-tinta">{brl(i.quantidade * i.precoUnitario)}</span>
                         </div>
                       ))}
+                      {(n.desconto > 0 || n.acrescimo > 0) && (
+                        <div className="mono flex flex-col items-end gap-0.5 pt-2 text-xs text-tinta-3">
+                          {n.desconto > 0 && <span>descontos − {brl(n.desconto)}</span>}
+                          {n.acrescimo > 0 && <span>acréscimos + {brl(n.acrescimo)}</span>}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

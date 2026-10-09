@@ -11,6 +11,7 @@ export interface ItemNav {
 
 /** Itens do menu, cada um atrelado a uma permissão de seção. */
 export const itensNav: ItemNav[] = [
+  { para: '/painel/numeros', rotulo: 'Dashboard', chave: 'veNumeros' },
   { para: '/painel', rotulo: 'Início', chave: 'veInicio' },
   { para: '/painel/caixa', rotulo: 'Caixa', chave: 'veFechamento' },
   { para: '/painel/despesas', rotulo: 'Despesas', chave: 'veDespesas' },
@@ -18,10 +19,8 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/produtos', rotulo: 'Produtos', chave: 'veProdutos' },
   { para: '/painel/estoque', rotulo: 'Estoque', chave: 'veEstoque' },
   { para: '/painel/pdv', rotulo: 'PDV', chave: 'veInicio', recurso: 'pdv' },
-  { para: '/painel/plano', rotulo: 'Plano do mês', chave: 'vePlano' },
   { para: '/painel/dre', rotulo: 'DRE', chave: 'veDRE' },
   { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
-  { para: '/painel/numeros', rotulo: 'Números', chave: 'veNumeros' },
   { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]
