@@ -53,7 +53,7 @@ export function Inicio() {
 
   const r = resumoInicio(ctx, periodo)
   const antes = periodoAnterior(ctx, periodo)
-  const contra = periodo === 'mes' ? nomeDoMes(antes.mes).split(' de ')[0] : 'semana passada'
+  const contra = periodo === 'mes' ? nomeDoMes(antes.mes).split(' de ')[0] : periodo === 'semana' ? 'semana passada' : 'período anterior'
   const d = {
     entrou: delta(r.entrou, antes.entrou, antes.temBase, contra, true),
     saiu: delta(r.saiu, antes.saiu, antes.temBase, contra, false),
@@ -138,7 +138,7 @@ export function Inicio() {
 
       <div className="grid grid-cols-1 gap-3.5 tab:grid-cols-12">
         <div className="tab:col-span-7">
-          <GraficoBarras titulo={periodo === 'mes' ? 'Entrou × saiu, semana a semana' : 'Entrou × saiu, dia a dia'} barras={r.barras} />
+          <GraficoBarras titulo={periodo === 'mes' ? 'Entrou × saiu, semana a semana' : periodo === 'semana' ? 'Entrou × saiu, dia a dia' : 'Entrou × saiu no período'} barras={r.barras} />
         </div>
         <div className="flex flex-col gap-3.5 tab:col-span-5">
           {insight && <CartaoInsight texto={insight.texto} />}

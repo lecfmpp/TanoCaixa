@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
 import { useDespesas, useMarcarPago, useRestaurante } from '@/data/hooks'
 import { MES_REF, diaDeHoje, noPeriodo } from '@/data/derive'
-import { usePeriodo } from '@/ui/periodo'
+import { usePeriodo, sufixoDoFiltro } from '@/ui/periodo'
 import { nomeDoMes } from '@/data/planoMes'
 import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra, type Nota } from '@/data/compras'
 import { diasAte, lembretes } from '@/data/vencimentos'
@@ -99,7 +99,7 @@ export function Compras() {
         : [[n.data.slice(0, 10).split('-').reverse().join('/'), n.fornecedor, '—', '', '', '', n.valorTotal.toFixed(2).replace('.', ','), n.status]],
     )
     baixarCSV(
-      `compras-${periodo === 'semana' ? 'semana' : MES_REF}-${arquivoDe(cfg?.nome)}`,
+      `compras-${sufixoDoFiltro(periodo, MES_REF)}-${arquivoDe(cfg?.nome)}`,
       gerarCSV(['Data', 'Fornecedor', 'Produto', 'Quantidade', 'Unidade', 'Preço unitário (R$)', 'Total (R$)', 'Situação'], linhas),
     )
   }
@@ -115,7 +115,7 @@ export function Compras() {
       />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
-        <Mini rotulo={periodo === 'semana' ? 'Comprado na semana' : 'Comprado no mês'} valor={brlInteiro(compradoNoMes)} apoio={`${notasDoMes.length} ${notasDoMes.length === 1 ? 'nota' : 'notas'}`} />
+        <Mini rotulo={periodo === 'mes' ? 'Comprado no mês' : periodo === 'semana' ? 'Comprado na semana' : 'Comprado no período'} valor={brlInteiro(compradoNoMes)} apoio={`${notasDoMes.length} ${notasDoMes.length === 1 ? 'nota' : 'notas'}`} />
         <Mini rotulo="Ainda a pagar" valor={brlInteiro(aPagar)} apoio={aPagar > 0 ? 'boletos em aberto' : 'tudo pago'} tom={aPagar > 0 ? 'telha' : undefined} />
         <Mini rotulo="Fornecedores" valor={String(fornecedores.length)} apoio={fornecedores[0] ? `maior: ${fornecedores[0].fornecedor}` : '—'} />
         <Mini
@@ -170,7 +170,7 @@ export function Compras() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          <Chip rotulo={periodo === 'semana' ? 'Notas da semana' : 'Notas do mês'} selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
+          <Chip rotulo={periodo === 'mes' ? 'Notas do mês' : periodo === 'semana' ? 'Notas da semana' : 'Notas do período'} selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
           <Chip rotulo="Preço por item" selecionado={aba === 'precos'} aoClicar={() => setAba('precos')} />
           <Chip rotulo="Fornecedores" selecionado={aba === 'fornecedores'} aoClicar={() => setAba('fornecedores')} />
         </div>

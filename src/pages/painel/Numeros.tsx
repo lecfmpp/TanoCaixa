@@ -9,7 +9,7 @@ import { usePeriodo } from '@/ui/periodo'
 import { ehCompra } from '@/data/compras'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
-import { HOJE, dreDoMes, mesAnterior, noPeriodo, periodoAnterior, resumoInicio, MES_REF } from '@/data/derive'
+import { HOJE, diasDoFiltro, dreDoMes, mesAnterior, noPeriodo, periodoAnterior, resumoInicio, MES_REF } from '@/data/derive'
 import { tetosNormalizados } from '@/data/planoContas'
 import { nomeDoMes } from '@/data/planoMes'
 
@@ -57,7 +57,7 @@ export function Dashboard() {
   const restaurante = useRestaurante()
   const r = resumoInicio(ctx, periodo)
   const antes = periodoAnterior(ctx, periodo)
-  const contra = periodo === 'mes' ? 'mês passado' : 'semana passada'
+  const contra = periodo === 'mes' ? 'mês passado' : periodo === 'semana' ? 'semana passada' : 'período anterior'
 
   /**
    * Lucro líquido dos últimos 6 meses, calculado pelo mesmo DRE da tela de DRE
@@ -97,10 +97,10 @@ export function Dashboard() {
   const tetoOcupacao = tetos.ocupacao ?? 10
 
   // Meta de faturamento (definida em Metas e números): no mês é a meta inteira;
-  // na semana, a fatia de 7 dias do mês.
+  // na semana ou num intervalo, a fatia dos dias dele.
   const diasNoMes = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
   const metaMes = cfg?.metaFaturamento ?? 0
-  const metaPeriodo = periodo === 'mes' ? metaMes : (metaMes * 7) / diasNoMes
+  const metaPeriodo = periodo === 'mes' ? metaMes : (metaMes * diasDoFiltro(periodo)) / diasNoMes
   const pctMeta = metaPeriodo > 0 ? (r.entrou / metaPeriodo) * 100 : 0
 
   const sobrou = r.sobrouFinal
@@ -147,7 +147,7 @@ export function Dashboard() {
       {veFaturamento && (
         <Cartao className="flex flex-col gap-2.5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[15px] font-bold text-tinta">Meta de faturamento {periodo === 'mes' ? 'do mês' : 'da semana'}</h2>
+            <h2 className="text-[15px] font-bold text-tinta">Meta de faturamento {periodo === 'mes' ? 'do mês' : periodo === 'semana' ? 'da semana' : 'do período'}</h2>
             <Link to="/painel/metas" className="text-sm font-bold text-mar hover:underline">
               {metaPeriodo > 0 ? 'Ajustar meta' : 'Definir meta'}
             </Link>

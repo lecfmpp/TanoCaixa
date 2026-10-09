@@ -62,6 +62,15 @@ export function temRede(t: TipoNegocio | undefined): boolean {
 
 export type Periodo = 'semana' | 'mes'
 
+/** Janela livre escolhida no seletor de datas ('YYYY-MM-DD', as duas pontas incluídas). */
+export interface Intervalo {
+  de: string
+  ate: string
+}
+
+/** O filtro do painel: Semana, Mês ou um intervalo de datas. */
+export type Filtro = Periodo | Intervalo
+
 /* O plano de contas do DRE vive em @/data/planoContas — reexportado aqui
  * porque metade do app importa esses tipos de '@/types'. */
 export type { CategoriaDespesa, CanalVenda, GrupoDRE } from '@/data/planoContas'
