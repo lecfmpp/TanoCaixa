@@ -33,6 +33,17 @@ export interface RestauranteDoc {
   bandeira?: string
   /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
   taxasFranquia?: { royalties: number; fundoPromocao: number }
+  /**
+   * Números de partida do onboarding, editáveis em "Metas e números". Todos em
+   * R$/mês, exceto o que diz o contrário.
+   */
+  faturamentoMensal?: number
+  ticketMedio?: number
+  pedidosDia?: number
+  pessoas?: number
+  folha?: number
+  contasFixas?: number
+  mercadoria?: number
 }
 
 export interface MembroDoc {

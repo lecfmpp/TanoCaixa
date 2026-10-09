@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowDownRight, ArrowUpRight, Lock, Minus, type LucideIcon } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -8,7 +9,7 @@ import { usePeriodo } from '@/ui/periodo'
 import { ehCompra } from '@/data/compras'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
-import { dreDoMes, mesAnterior, noPeriodo, periodoAnterior, resumoInicio, MES_REF } from '@/data/derive'
+import { HOJE, dreDoMes, mesAnterior, noPeriodo, periodoAnterior, resumoInicio, MES_REF } from '@/data/derive'
 import { tetosNormalizados } from '@/data/planoContas'
 import { nomeDoMes } from '@/data/planoMes'
 
@@ -95,6 +96,13 @@ export function Dashboard() {
   const tetoImposto = (cfg?.aliquotaImposto ?? 0.06) * 100
   const tetoOcupacao = tetos.ocupacao ?? 10
 
+  // Meta de faturamento (definida em Metas e números): no mês é a meta inteira;
+  // na semana, a fatia de 7 dias do mês.
+  const diasNoMes = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
+  const metaMes = cfg?.metaFaturamento ?? 0
+  const metaPeriodo = periodo === 'mes' ? metaMes : (metaMes * 7) / diasNoMes
+  const pctMeta = metaPeriodo > 0 ? (r.entrou / metaPeriodo) * 100 : 0
+
   const sobrou = r.sobrouFinal
   const veFaturamento = permissoes?.veFaturamentoTotal ?? true
   const veLucro = permissoes?.veLucro ?? true
@@ -135,6 +143,34 @@ export function Dashboard() {
           motivo="só o dono vê o lucro"
         />
       </div>
+
+      {veFaturamento && (
+        <Cartao className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-[15px] font-bold text-tinta">Meta de faturamento {periodo === 'mes' ? 'do mês' : 'da semana'}</h2>
+            <Link to="/painel/metas" className="text-sm font-bold text-mar hover:underline">
+              {metaPeriodo > 0 ? 'Ajustar meta' : 'Definir meta'}
+            </Link>
+          </div>
+          {metaPeriodo > 0 ? (
+            <>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-trilho" role="img" aria-label={`${pctMeta.toFixed(0)}% da meta`}>
+                <div className={cn('h-full rounded-full', pctMeta >= 100 ? 'bg-mata' : 'bg-mar')} style={{ width: `${Math.min(100, pctMeta)}%` }} />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-tinta-3">
+                <span><span className="mono font-bold text-tinta">{brlInteiro(r.entrou)}</span> de <span className="mono">{brlInteiro(metaPeriodo)}</span></span>
+                <SetaTendencia
+                  icone={pctMeta >= 100 ? ArrowUpRight : Minus}
+                  tom={pctMeta >= 100 ? 'bom' : 'neutro'}
+                  texto={pctMeta >= 100 ? 'meta batida' : `${pctMeta.toFixed(0)}% da meta`}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-tinta-3">Sem meta definida. Defina em Metas e números pra acompanhar aqui.</p>
+          )}
+        </Cartao>
+      )}
 
       <div className="grid grid-cols-1 gap-3.5 cel:grid-cols-2 tab:grid-cols-3">
         <CartaoKpi

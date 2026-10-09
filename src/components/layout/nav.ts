@@ -25,5 +25,6 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/cmv', rotulo: 'CMV', chave: 'veDRE', emBreve: true },
   { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
+  { para: '/painel/metas', rotulo: 'Metas e números', chave: 'veAjustes' },
   { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]
