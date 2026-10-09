@@ -80,6 +80,9 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
               }
             >
               {item.rotulo}
+              {item.emBreve && (
+                <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
+              )}
             </NavLink>
             )}
           </li>

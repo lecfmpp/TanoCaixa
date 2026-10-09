@@ -41,7 +41,7 @@ export function Despesas() {
   const MES_NOME = periodo === 'semana' ? 'a semana' : nomeDoMes(MES_REF).split(' de ')[0]
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
-  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const { confirmar, adicionarToast } = useUI()
   const marcarPago = useMarcarPago()
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
@@ -156,12 +156,6 @@ export function Despesas() {
           <AbaBotao rotulo="Contas da casa" valor={totalContas} ativa={aba === 'casa'} aoClicar={() => { setAba('casa'); setFiltro('todas') }} />
           <AbaBotao rotulo="Compras de mercadoria" valor={totalCompras} ativa={aba === 'compras'} aoClicar={() => { setAba('compras'); setFiltro('todas') }} />
         </div>
-        <button
-          onClick={() => abrirGaveta(aba === 'compras' ? 'compra' : 'despesa')}
-          className="shrink-0 text-sm font-bold text-mar underline underline-offset-2 hover:text-mar-escuro"
-        >
-          {aba === 'compras' ? 'Lançar nota fiscal' : 'Lançar conta da casa'}
-        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
