@@ -7,9 +7,9 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
-import { agora, noPeriodo } from '@/data/derive'
+import { agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
 import { useAuth } from '@/auth/AuthContext'
-import { usePeriodo } from '@/ui/periodo'
 import { mensagemDeErro } from '@/lib/erros'
 import { CANAIS_APPS } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
@@ -38,12 +38,26 @@ export function Caixa() {
   const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
-  const [periodo, setPeriodo] = usePeriodo()
+  // null = automático: o mês corrente se tiver lançamento, senão todos.
+  const [mesEscolhido, setMesEscolhido] = useState<string | null>(null)
   const remover = useRemoverReceitaDia()
   const restaurar = useRestaurarReceitaDia()
   const todas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
-  // Os cartões de "hoje" olham o dia mais recente de todos; a lista, o período escolhido.
-  const receitas = todas.filter((r) => noPeriodo(r.data, periodo))
+  // Os cartões de "hoje" olham o dia mais recente de todos; a lista, o mês escolhido.
+  const meses = [...new Set(todas.map((r) => r.data.slice(0, 7)))] // do mais novo pro mais antigo
+  // Mês escolhido que ficou sem lançamento (apagou o último dele) volta pro automático.
+  const mesAtivo =
+    mesEscolhido && (mesEscolhido === 'todos' || meses.includes(mesEscolhido))
+      ? mesEscolhido
+      : meses.includes(MES_REF) ? MES_REF : 'todos'
+  const receitas = mesAtivo === 'todos' ? todas : todas.filter((r) => r.data.slice(0, 7) === mesAtivo)
+  /** Lançamentos agrupados por mês, com o total de cada um. */
+  const grupos = meses
+    .filter((m) => mesAtivo === 'todos' || m === mesAtivo)
+    .map((mes) => {
+      const itens = receitas.filter((r) => r.data.slice(0, 7) === mes)
+      return { mes, itens, total: itens.reduce((s, r) => s + r.totalDia, 0) }
+    })
   const podeApagar = permissoes?.lancaDespesa ?? false
 
   /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
@@ -96,8 +110,6 @@ export function Caixa() {
         titulo="Caixa"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
-        periodo={periodo}
-        aoTrocarPeriodo={setPeriodo}
       />
 
       {/* Ação principal */}
@@ -122,14 +134,26 @@ export function Caixa() {
         <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
         <CaixaCard rotulo="Apps de delivery" valor={appsHoje} apoio="total lançado no dia" />
         <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
-        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio="com vendas registradas" contagem />
+        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio={mesAtivo === 'todos' ? 'em todos os meses' : `em ${nomeDoMes(mesAtivo).split(' de ')[0]}`} contagem />
       </div>
 
       {/* Conciliação / histórico */}
       <Cartao className="overflow-hidden p-0">
         <div className="flex items-center justify-between px-5 py-3.5">
           <h2 className="text-[15px] font-bold text-tinta">Lançamento de vendas</h2>
-          <span className="text-xs text-tinta-4">apps × loja × total</span>
+          <label className="flex items-center gap-2 text-xs text-tinta-4">
+            Mês
+            <select
+              value={mesAtivo}
+              onChange={(e) => setMesEscolhido(e.target.value)}
+              className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-1.5 text-sm font-semibold text-tinta outline-none focus:border-mar"
+            >
+              <option value="todos">Todos os meses</option>
+              {meses.map((m) => (
+                <option key={m} value={m}>{nomeDoMes(m)}</option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
@@ -145,7 +169,19 @@ export function Caixa() {
               </tr>
             </thead>
             <tbody>
-              {receitas.map((r) => {
+              {grupos.map((g) => (
+                <Fragment key={g.mes}>
+                  <tr className="border-b border-divisoria bg-preenchimento/60">
+                    <td colSpan={podeApagar ? 7 : 6} className="px-4 py-2">
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-bold capitalize text-tinta">{nomeDoMes(g.mes)}</span>
+                        <span className="text-xs text-tinta-3">
+                          {g.itens.length} {g.itens.length === 1 ? 'dia' : 'dias'} · <span className="mono font-bold text-tinta">{brl(g.total)}</span>
+                        </span>
+                      </span>
+                    </td>
+                  </tr>
+              {g.itens.map((r) => {
                 const plat = apps(r)
                 const lj = loja(r)
                 const conferido = Math.abs(plat + lj - r.totalDia) < 0.01
@@ -211,10 +247,12 @@ export function Caixa() {
                   </Fragment>
                 )
               })}
+                </Fragment>
+              ))}
               {receitas.length === 0 && (
                 <tr>
                   <td colSpan={podeApagar ? 7 : 6} className="px-4 py-10 text-center text-sm text-tinta-4">
-                    {todas.length ? `Nenhuma venda lançada ${periodo === 'semana' ? 'nos últimos 7 dias' : 'neste mês'}.` : 'Nenhuma venda lançada ainda. Comece por "Lançar vendas".'}
+                    Nenhuma venda lançada ainda. Comece por "Lançar vendas".
                   </td>
                 </tr>
               )}
