@@ -1512,6 +1512,7 @@ export function usePersistirOnboarding() {
             : null,
         // extras do onboarding (RestauranteDoc tolera campos a mais)
         numLojas: Number(r.lojas) || 1,
+        faturamentoMensal: Number(r.faturamento.replace(/\D/g, '')) || 0,
         ticketMedio: numeroBR(r.ticket),
         pedidosDia: Number(r.pedidos) || 0,
         horarios: r.horarios,

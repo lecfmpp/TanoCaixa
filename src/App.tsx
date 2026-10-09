@@ -23,6 +23,7 @@ import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
 import { DRE } from '@/pages/painel/DRE'
 import { Rede } from '@/pages/painel/Rede'
 import { Franquias } from '@/pages/painel/Franquias'
+import { Metas } from '@/pages/painel/Metas'
 import { Cmv } from '@/pages/painel/Cmv'
 import { Dashboard } from '@/pages/painel/Numeros'
 import { Ajustes } from '@/pages/painel/Ajustes'
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="estoque" element={<ExigePermissao chave="veEstoque"><Estoque /></ExigePermissao>} />
                 <Route path="plano" element={<ExigePermissao chave="vePlano"><PlanoDoMes /></ExigePermissao>} />
                 <Route path="dre" element={<ExigePermissao chave="veDRE"><DRE /></ExigePermissao>} />
+                <Route path="metas" element={<ExigePermissao chave="veAjustes"><Metas /></ExigePermissao>} />
                 <Route path="cmv" element={<ExigePermissao chave="veDRE"><Cmv /></ExigePermissao>} />
                 <Route path="rede" element={<ExigePermissao chave="veRede"><Rede /></ExigePermissao>} />
                 <Route path="franquias" element={<ExigePermissao chave="veRede"><Franquias /></ExigePermissao>} />
