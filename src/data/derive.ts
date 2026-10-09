@@ -108,7 +108,7 @@ export function mesAnterior(mes: string): string {
   return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, '0')}`
 }
 
-function noPeriodo(iso: string, periodo: 'semana' | 'mes'): boolean {
+export function noPeriodo(iso: string, periodo: 'semana' | 'mes'): boolean {
   if (periodo === 'mes') return iso.slice(0, 7) === MES_REF
   // Semana: compara a data (ao meio-dia local, sem deslocar de fuso).
   const d = new Date(iso.slice(0, 10) + 'T12:00:00')

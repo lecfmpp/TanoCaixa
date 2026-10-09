@@ -44,6 +44,11 @@ export interface Nota {
   pagoPorNome?: string
   /** A nota nasceu com id de nota (dá pra refazer item a item) ou é lançamento antigo, avulso. */
   temNotaId: boolean
+  /** Número da nota fiscal impresso pelo fornecedor. */
+  numeroNota?: string
+  /** Desconto e acréscimo da nota inteira; `valorTotal` já os inclui. */
+  desconto: number
+  acrescimo: number
   /** Lançamentos que formam a nota (uma conta de CMV cada). */
   lancamentos: DespesaDoc[]
 }
@@ -82,6 +87,9 @@ export function agruparEmNotas(despesas: DespesaDoc[]): Nota[] {
           : undefined,
         pagoPorNome: lancamentos.find((l) => l.pagoPorNome)?.pagoPorNome,
         temNotaId: !!base.notaId,
+        numeroNota: base.numeroNota,
+        desconto: base.descontoNota ?? 0,
+        acrescimo: base.acrescimoNota ?? 0,
         lancamentos,
       }
     })

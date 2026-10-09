@@ -891,6 +891,41 @@ export function useCriarFechamento() {
   })
 }
 
+/** Apaga o lançamento de vendas de um dia. O documento volta inteiro no "Desfazer". */
+export function useRemoverReceitaDia() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (r: ReceitaDiaDoc) => {
+      await repo.receitaDia.remover(t, r.id)
+      await registrarAtividade(
+        t,
+        { acao: 'apagou o lançamento de vendas de', entidade: r.data.slice(0, 10).split('-').reverse().join('/'), tipo: 'Vendas', valor: r.totalDia, quem: '', quemInicial: '', quemCor: '' },
+        getAutor(),
+      )
+      return r
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Traz de volta o lançamento de vendas apagado (o "Desfazer" do toast). */
+export function useRestaurarReceitaDia() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (r: ReceitaDiaDoc) => {
+      await repo.receitaDia.salvar(t, r.id, r)
+      return r
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'receita_dia'] }),
+  })
+}
+
 export interface ItemDaNota {
   produtoId: string
   quantidade: number
@@ -905,6 +940,11 @@ export interface EntradaNota {
   /** Vencimento do boleto — é ele que gera o lembrete no Início. */
   vencimento?: string
   observacao?: string
+  /** Número impresso na nota do fornecedor. */
+  numeroNota?: string
+  /** Descontos e acréscimos da nota; o total gravado é produtos − descontos + acréscimos. */
+  desconto?: number
+  acrescimo?: number
   itens: ItemDaNota[]
 }
 
@@ -981,9 +1021,17 @@ async function gravarNota(
     ])
   }
 
+  // Desconto e acréscimo valem pela nota inteira: cada conta do DRE leva a sua
+  // parte, proporcional ao que os itens dela pesam nos produtos.
+  const totalProdutos = linhas.reduce((s, l) => s + l.item.quantidade * l.item.precoUnitario, 0)
+  const desconto = Math.max(0, e.desconto ?? 0)
+  const acrescimo = Math.max(0, e.acrescimo ?? 0)
+  const ajuste = acrescimo - desconto
   let valorTotal = 0
   for (const [categoria, itens] of porConta) {
-    const valor = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+    const bruto = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+    const parte = totalProdutos > 0 ? bruto / totalProdutos : 0
+    const valor = Math.round((bruto + ajuste * parte) * 100) / 100
     valorTotal += valor
     const despesaId = novoId('d')
     await repo.despesas.salvar(t, despesaId, {
@@ -1000,6 +1048,9 @@ async function gravarNota(
       tipoLancamento: 'compra',
       notaId,
       itens,
+      ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
+      ...(desconto > 0 ? { descontoNota: desconto } : {}),
+      ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
       ...(e.observacao ? { observacao: e.observacao } : {}),
       ...autoria,
       ...extras,
@@ -1237,6 +1288,9 @@ export function useRestaurarNota() {
           status: nota.status,
           vencimento: nota.vencimento,
           observacao: base?.observacao,
+          numeroNota: nota.numeroNota,
+          desconto: nota.desconto,
+          acrescimo: nota.acrescimo,
           itens: nota.itens.map((i) => ({
             produtoId: i.produtoId,
             quantidade: i.quantidade,

@@ -1,13 +1,16 @@
 import { Fragment, useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useReceitaDia, useRestaurante } from '@/data/hooks'
-import { agora } from '@/data/derive'
+import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
+import { agora, noPeriodo } from '@/data/derive'
+import { useAuth } from '@/auth/AuthContext'
+import { usePeriodo } from '@/ui/periodo'
+import { mensagemDeErro } from '@/lib/erros'
 import { CANAIS_APPS } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
@@ -31,10 +34,51 @@ function lancamentosDe(r: ReceitaDiaDoc): LancamentoDeVendas[] {
 
 /** Página do Caixa: lançar as vendas do dia e conciliar. Sem DRE, gastos ou lucro. */
 export function Caixa() {
-  const { abrirGaveta } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
-  const receitas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
+  const [periodo, setPeriodo] = usePeriodo()
+  const remover = useRemoverReceitaDia()
+  const restaurar = useRestaurarReceitaDia()
+  const todas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
+  // Os cartões de "hoje" olham o dia mais recente de todos; a lista, o período escolhido.
+  const receitas = todas.filter((r) => noPeriodo(r.data, periodo))
+  const podeApagar = permissoes?.lancaDespesa ?? false
+
+  /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
+  function pedirExclusao(r: ReceitaDiaDoc) {
+    const dia = dataCurta(new Date(r.data + 'T12:00:00'))
+    confirmar({
+      gravidade: 'destrutivo',
+      titulo: 'Apagar este lançamento de vendas?',
+      texto: 'O dia deixa de contar no caixa, no Dashboard e no DRE. Dá pra desfazer no aviso que aparece em seguida.',
+      resumo: [
+        { rot: 'Dia', val: dia },
+        { rot: 'Apps de delivery', val: brl(apps(r)) },
+        { rot: 'Na loja', val: brl(loja(r)) },
+        { rot: 'Total', val: brl(r.totalDia) },
+      ],
+      rotuloConfirmar: 'Apagar lançamento',
+      onConfirmar: async () => {
+        try {
+          await remover.mutateAsync(r)
+          adicionarToast({
+            tipo: 'sucesso',
+            titulo: 'Lançamento apagado',
+            texto: `${dia} · ${brl(r.totalDia)} saíram do caixa.`,
+            rotuloAcao: 'Desfazer',
+            onAcao: () => {
+              restaurar.mutate(r)
+              adicionarToast({ tipo: 'sistema', titulo: 'Desfeito', texto: 'O lançamento de vendas voltou.' })
+            },
+          })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra apagar', texto: mensagemDeErro(e, 'O lançamento continua no banco. Tente de novo.') })
+        }
+      },
+    })
+  }
 
   // Apps de delivery: o canal novo ('apps') e os antigos (iFood/Rappi), pra
   // dia lançado antes continuar somando igual.
@@ -42,7 +86,7 @@ export function Caixa() {
     r.canais.filter((c) => CANAIS_APPS.includes(c.canal)).reduce((s, c) => s + c.valorBruto, 0)
   const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
 
-  const hoje = receitas[0]
+  const hoje = todas[0]
   const appsHoje = hoje ? apps(hoje) : 0
   const lojaHoje = hoje ? loja(hoje) : 0
 
@@ -50,8 +94,10 @@ export function Caixa() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Caixa"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · vendas e conciliação` : ''}
+        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
+        periodo={periodo}
+        aoTrocarPeriodo={setPeriodo}
       />
 
       {/* Ação principal */}
@@ -82,7 +128,7 @@ export function Caixa() {
       {/* Conciliação / histórico */}
       <Cartao className="overflow-hidden p-0">
         <div className="flex items-center justify-between px-5 py-3.5">
-          <h2 className="text-[15px] font-bold text-tinta">Conciliação dos últimos dias</h2>
+          <h2 className="text-[15px] font-bold text-tinta">Lançamento de vendas</h2>
           <span className="text-xs text-tinta-4">apps × loja × total</span>
         </div>
         <div className="overflow-x-auto">
@@ -95,6 +141,7 @@ export function Caixa() {
                 <Th className="text-right">Total</Th>
                 <Th>Lançado por</Th>
                 <Th>Situação</Th>
+                {podeApagar && <Th><span className="sr-only">Ações</span></Th>}
               </tr>
             </thead>
             <tbody>
@@ -139,6 +186,18 @@ export function Caixa() {
                           {conferido ? 'conferido' : 'revisar'}
                         </span>
                       </td>
+                      {podeApagar && (
+                        <td className="px-2 py-3">
+                          <button
+                            onClick={() => pedirExclusao(r)}
+                            aria-label={`Apagar lançamento de vendas de ${dataCurta(new Date(r.data + 'T12:00:00'))}`}
+                            title="Apagar lançamento"
+                            className="grid h-8 w-8 place-items-center rounded-botao text-tinta-4 transition hover:bg-telha-alerta/10 hover:text-telha-alerta"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                     {expandido &&
                       lancs.map((l, i) => (
@@ -146,7 +205,7 @@ export function Caixa() {
                           <td className="px-4 py-2 text-tinta-4">{i === 0 ? 'lançou' : 'relançou'}</td>
                           <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), agora())}</td>
                           <td className="mono px-4 py-2 text-right font-semibold text-tinta">{brl(l.total)}</td>
-                          <td colSpan={2} />
+                          <td colSpan={podeApagar ? 3 : 2} />
                         </tr>
                       ))}
                   </Fragment>
@@ -154,8 +213,8 @@ export function Caixa() {
               })}
               {receitas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-tinta-4">
-                    Nenhuma venda lançada ainda. Comece por "Lançar vendas".
+                  <td colSpan={podeApagar ? 7 : 6} className="px-4 py-10 text-center text-sm text-tinta-4">
+                    {todas.length ? `Nenhuma venda lançada ${periodo === 'semana' ? 'nos últimos 7 dias' : 'neste mês'}.` : 'Nenhuma venda lançada ainda. Comece por "Lançar vendas".'}
                   </td>
                 </tr>
               )}

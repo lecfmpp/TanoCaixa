@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { CheckCircle2, Search } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
@@ -7,7 +7,8 @@ import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useMarcarPago, useRestaurante } from '@/data/hooks'
-import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, MES_REF } from '@/data/derive'
+import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, noPeriodo, MES_REF } from '@/data/derive'
+import { usePeriodo } from '@/ui/periodo'
 import { diasAte } from '@/data/vencimentos'
 import { TagVencimento } from '@/components/ui/TagVencimento'
 import { mensagemDeErro } from '@/lib/erros'
@@ -35,8 +36,9 @@ type Aba = 'casa' | 'compras'
 
 export function Despesas() {
   // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
-  /** 'agosto' — o mês que a tela inteira está mostrando. */
-  const MES_NOME = nomeDoMes(MES_REF).split(' de ')[0]
+  const [periodo, setPeriodo] = usePeriodo()
+  /** 'agosto' — o mês que a tela inteira está mostrando (ou 'a semana'). */
+  const MES_NOME = periodo === 'semana' ? 'a semana' : nomeDoMes(MES_REF).split(' de ')[0]
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
@@ -47,11 +49,11 @@ export function Despesas() {
   // um é conta fixa da casa, o outro é estoque virando prato.
   const [aba, setAba] = useState<Aba>('casa')
 
-  // A tela toda fala do mês corrente ("Saiu em agosto"), então os lançamentos
-  // dos meses anteriores ficam de fora — senão os cartões somam o histórico.
+  // A tela toda fala do período escolhido (mês corrente ou últimos 7 dias), então
+  // o que está fora dele fica de fora — senão os cartões somam o histórico.
   const doMes = useMemo(
-    () => ctx.despesas.filter((d) => d.dataCompetencia.slice(0, 7) === MES_REF),
-    [ctx.despesas],
+    () => ctx.despesas.filter((d) => noPeriodo(d.dataCompetencia, periodo)),
+    [ctx.despesas, periodo],
   )
 
   const compras = useMemo(() => doMes.filter(ehCompra), [doMes])
@@ -76,7 +78,7 @@ export function Despesas() {
   const resumo = despesasResumo(daAba)
   const totalCompras = compras.reduce((s, d) => s + d.valorTotal, 0)
   const totalContas = contas.reduce((s, d) => s + d.valorTotal, 0)
-  const fat = resumoInicio(ctx, 'mes').entrou
+  const fat = resumoInicio(ctx, periodo).entrou
   const cats = categoriasResumo(daAba, fat)
   const cfg = restaurante.data
 
@@ -139,14 +141,14 @@ export function Despesas() {
       d.valorTotal.toFixed(2).replace('.', ','),
     ])
     baixarCSV(
-      `${aba === 'compras' ? 'compras' : 'despesas'}-${MES_REF}-${arquivoDe(cfg?.nome)}`,
+      `${aba === 'compras' ? 'compras' : 'despesas'}-${periodo === 'semana' ? 'semana' : MES_REF}-${arquivoDe(cfg?.nome)}`,
       gerarCSV(['Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)'], linhas),
     )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''} aoExportar={lista.length ? exportar : undefined} />
+      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''} periodo={periodo} aoTrocarPeriodo={setPeriodo} aoExportar={lista.length ? exportar : undefined} />
 
       {/* Duas naturezas, duas abas — o DRE e o caixa continuam somando as duas. */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center cel:justify-between">
@@ -164,7 +166,7 @@ export function Despesas() {
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo={`Saiu em ${MES_NOME}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
-        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do mês`} tom="mata" />
+        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do ${periodo === 'semana' ? 'período' : 'mês'}`} tom="mata" />
         <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${daAba.filter((d) => d.status !== 'pago').length} em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>
@@ -173,7 +175,7 @@ export function Despesas() {
       <Cartao>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-tinta">Onde o dinheiro saiu</h2>
-          <span className="text-xs text-tinta-4">% do faturamento do mês</span>
+          <span className="text-xs text-tinta-4">% do faturamento do período</span>
         </div>
         <div className="flex h-3 w-full overflow-hidden rounded-full bg-preenchimento">
           {cats.map((c) => (
@@ -247,8 +249,8 @@ export function Despesas() {
                         ) : (
                           <span className={cn('text-xs font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</span>
                         )}
-                        <button onClick={() => pedirPagamento(d)} className="text-xs font-bold text-mar underline underline-offset-2 hover:text-mar-escuro">
-                          Marcar como pago
+                        <button onClick={() => pedirPagamento(d)} className="inline-flex items-center gap-1 rounded-chip bg-mar px-2.5 py-1 text-xs font-bold text-creme transition hover:bg-mar-escuro">
+                          <CheckCircle2 size={12} /> Marcar como pago
                         </button>
                       </div>
                     )}
@@ -272,8 +274,8 @@ export function Despesas() {
         {lista.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-tinta-4">
             {aba === 'compras'
-              ? 'Nenhuma nota fiscal lançada neste mês. A compra de mercadoria entra item a item, ligada aos seus produtos.'
-              : 'Nenhuma conta da casa lançada neste mês.'}
+              ? 'Nenhuma nota fiscal lançada no período. A compra de mercadoria entra item a item, ligada aos seus produtos.'
+              : 'Nenhuma conta da casa lançada no período.'}
           </p>
         )}
         <div className="flex items-center justify-between border-t border-divisoria bg-preenchimento/40 px-4 py-3 text-sm">

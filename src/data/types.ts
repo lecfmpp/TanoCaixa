@@ -88,6 +88,12 @@ export interface DespesaDoc extends Autoria {
   tipoLancamento?: 'conta' | 'compra'
   /** Agrupa os lançamentos gerados pela mesma nota fiscal. */
   notaId?: string
+  /** Número impresso na nota fiscal (o do fornecedor, não o `notaId` interno). */
+  numeroNota?: string
+  /** Desconto e acréscimo da nota INTEIRA (iguais em todos os lançamentos dela);
+   *  o `valorTotal` de cada lançamento já carrega a sua parte proporcional. */
+  descontoNota?: number
+  acrescimoNota?: number
   /** Última correção do lançamento — quem lançou continua sendo o autor. */
   editadoEm?: string
   editadoPorId?: string
