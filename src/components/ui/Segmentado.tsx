@@ -2,7 +2,8 @@ import type { Periodo } from '@/types'
 import { cn } from '@/lib/cn'
 
 interface SegmentadoProps {
-  valor: Periodo
+  /** Null quando o filtro ativo é um intervalo de datas: nenhum dos dois fica marcado. */
+  valor: Periodo | null
   aoTrocar: (p: Periodo) => void
   /** Sobre foto (claro) ou sobre fundo claro (escuro). */
   tom?: 'claro' | 'escuro'

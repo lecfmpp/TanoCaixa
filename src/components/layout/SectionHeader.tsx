@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Receipt, ScrollText, Package, Boxes, CalendarCheck } from 'lucide-react'
-import type { Periodo } from '@/types'
+import type { Filtro } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
+import { SeletorIntervalo } from '@/components/ui/SeletorIntervalo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
 
@@ -10,8 +11,10 @@ interface SectionHeaderProps {
   titulo: string
   subtitulo: string
   foto?: string
-  periodo?: Periodo
-  aoTrocarPeriodo?: (p: Periodo) => void
+  periodo?: Filtro
+  aoTrocarPeriodo?: (p: Filtro) => void
+  /** Só o seletor de datas, sem o Semana | Mês (páginas que já agrupam por mês). */
+  soData?: boolean
   /** Sem callback, o botão Exportar não aparece — botão que não faz nada
    *  é pior que botão ausente. */
   aoExportar?: () => void
@@ -37,6 +40,7 @@ export function SectionHeader({
   foto = fotos.aerea,
   periodo,
   aoTrocarPeriodo,
+  soData,
   aoExportar,
   lancar = true,
 }: SectionHeaderProps) {
@@ -75,8 +79,15 @@ export function SectionHeader({
         </div>
 
         <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">
+          {periodo && aoTrocarPeriodo && !soData && (
+            <Segmentado valor={typeof periodo === 'string' ? periodo : null} aoTrocar={aoTrocarPeriodo} tom="claro" />
+          )}
           {periodo && aoTrocarPeriodo && (
-            <Segmentado valor={periodo} aoTrocar={aoTrocarPeriodo} tom="claro" />
+            <SeletorIntervalo
+              valor={typeof periodo === 'string' ? null : periodo}
+              aoTrocar={aoTrocarPeriodo}
+              aoLimpar={() => aoTrocarPeriodo('mes')}
+            />
           )}
           {aoExportar && (
             <button

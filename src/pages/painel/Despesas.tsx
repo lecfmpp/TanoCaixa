@@ -8,7 +8,7 @@ import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useMarcarPago, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, noPeriodo, MES_REF } from '@/data/derive'
-import { usePeriodo } from '@/ui/periodo'
+import { usePeriodo, sufixoDoFiltro } from '@/ui/periodo'
 import { diasAte } from '@/data/vencimentos'
 import { TagVencimento } from '@/components/ui/TagVencimento'
 import { mensagemDeErro } from '@/lib/erros'
@@ -38,7 +38,7 @@ export function Despesas() {
   // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
   const [periodo, setPeriodo] = usePeriodo()
   /** 'agosto' — o mês que a tela inteira está mostrando (ou 'a semana'). */
-  const MES_NOME = periodo === 'semana' ? 'a semana' : nomeDoMes(MES_REF).split(' de ')[0]
+  const MES_NOME = periodo === 'mes' ? nomeDoMes(MES_REF).split(' de ')[0] : periodo === 'semana' ? 'a semana' : 'o período'
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const { confirmar, adicionarToast } = useUI()
@@ -141,7 +141,7 @@ export function Despesas() {
       d.valorTotal.toFixed(2).replace('.', ','),
     ])
     baixarCSV(
-      `${aba === 'compras' ? 'compras' : 'despesas'}-${periodo === 'semana' ? 'semana' : MES_REF}-${arquivoDe(cfg?.nome)}`,
+      `${aba === 'compras' ? 'compras' : 'despesas'}-${sufixoDoFiltro(periodo, MES_REF)}-${arquivoDe(cfg?.nome)}`,
       gerarCSV(['Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)'], linhas),
     )
   }
@@ -160,7 +160,7 @@ export function Despesas() {
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <CartaoMini rotulo={`Saiu em ${MES_NOME}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
-        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do ${periodo === 'semana' ? 'período' : 'mês'}`} tom="mata" />
+        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do ${periodo === 'mes' ? 'mês' : 'período'}`} tom="mata" />
         <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${daAba.filter((d) => d.status !== 'pago').length} em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>

@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn'
 import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
 import { agora, MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
+import { usePeriodo } from '@/ui/periodo'
 import { useAuth } from '@/auth/AuthContext'
 import { mensagemDeErro } from '@/lib/erros'
 import { CANAIS_APPS } from '@/data/planoContas'
@@ -38,6 +39,8 @@ export function Caixa() {
   const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
+  const [filtro, setFiltro] = usePeriodo()
+  const intervalo = typeof filtro === 'string' ? null : filtro
   // null = automático: o mês corrente se tiver lançamento, senão todos.
   const [mesEscolhido, setMesEscolhido] = useState<string | null>(null)
   const remover = useRemoverReceitaDia()
@@ -50,10 +53,13 @@ export function Caixa() {
     mesEscolhido && (mesEscolhido === 'todos' || meses.includes(mesEscolhido))
       ? mesEscolhido
       : meses.includes(MES_REF) ? MES_REF : 'todos'
-  const receitas = mesAtivo === 'todos' ? todas : todas.filter((r) => r.data.slice(0, 7) === mesAtivo)
+  // Intervalo de datas escolhido no cabeçalho manda sobre o seletor de mês.
+  const receitas = intervalo
+    ? todas.filter((r) => r.data.slice(0, 10) >= intervalo.de && r.data.slice(0, 10) <= intervalo.ate)
+    : mesAtivo === 'todos' ? todas : todas.filter((r) => r.data.slice(0, 7) === mesAtivo)
   /** Lançamentos agrupados por mês, com o total de cada um. */
   const grupos = meses
-    .filter((m) => mesAtivo === 'todos' || m === mesAtivo)
+    .filter((m) => intervalo || mesAtivo === 'todos' || m === mesAtivo)
     .map((mes) => {
       const itens = receitas.filter((r) => r.data.slice(0, 7) === mes)
       return { mes, itens, total: itens.reduce((s, r) => s + r.totalDia, 0) }
@@ -110,6 +116,9 @@ export function Caixa() {
         titulo="Caixa"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
+        periodo={filtro}
+        aoTrocarPeriodo={setFiltro}
+        soData
       />
 
       {/* Ação principal */}
@@ -134,7 +143,7 @@ export function Caixa() {
         <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
         <CaixaCard rotulo="Apps de delivery" valor={appsHoje} apoio="total lançado no dia" />
         <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
-        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio={mesAtivo === 'todos' ? 'em todos os meses' : `em ${nomeDoMes(mesAtivo).split(' de ')[0]}`} contagem />
+        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio={intervalo ? 'no período escolhido' : mesAtivo === 'todos' ? 'em todos os meses' : `em ${nomeDoMes(mesAtivo).split(' de ')[0]}`} contagem />
       </div>
 
       {/* Conciliação / histórico */}
@@ -144,10 +153,15 @@ export function Caixa() {
           <label className="flex items-center gap-2 text-xs text-tinta-4">
             Mês
             <select
-              value={mesAtivo}
-              onChange={(e) => setMesEscolhido(e.target.value)}
+              value={intervalo ? 'periodo' : mesAtivo}
+              onChange={(e) => {
+                setMesEscolhido(e.target.value)
+                // Escolher um mês tira o intervalo de datas.
+                if (intervalo) setFiltro('mes')
+              }}
               className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-1.5 text-sm font-semibold text-tinta outline-none focus:border-mar"
             >
+              {intervalo && <option value="periodo">Período escolhido</option>}
               <option value="todos">Todos os meses</option>
               {meses.map((m) => (
                 <option key={m} value={m}>{nomeDoMes(m)}</option>
