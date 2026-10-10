@@ -149,7 +149,7 @@ function somaGrupo(despesas: DespesaDoc[], grupo: GrupoDRE): number {
     .reduce((s, d) => s + d.valorTotal, 0)
 }
 
-function faturamento(receita: ReceitaDiaDoc[]): number {
+export function faturamento(receita: ReceitaDiaDoc[]): number {
   return receita.reduce((s, r) => s + r.canais.reduce((a, c) => a + c.valorBruto, 0), 0)
 }
 
@@ -636,8 +636,7 @@ export function resumoInicio(ctx: Contexto, periodo: Filtro): ResumoInicio {
  * o mês passado do dia 1 até o dia de hoje; na semana, os 7 dias antes destes.
  * `temBase` é falso quando não há nada lançado na janela anterior.
  */
-export function periodoAnterior(ctx: Contexto, periodo: Filtro) {
-  let dentro: (iso: string) => boolean
+export function dentroDoPeriodoAnterior(periodo: Filtro): (iso: string) => boolean {
   if (typeof periodo !== 'string') {
     // Intervalo: a janela de mesmo tamanho logo antes dele.
     const n = diasDoIntervalo(periodo).length
@@ -646,19 +645,23 @@ export function periodoAnterior(ctx: Contexto, periodo: Filtro) {
     const ini = new Date(fim)
     ini.setDate(fim.getDate() - (n - 1))
     const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
-    dentro = (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
-  } else if (periodo === 'mes') {
+    return (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+  }
+  if (periodo === 'mes') {
     const mes = mesAnterior(MES_REF)
     const ateDia = HOJE.getDate()
-    dentro = (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
-  } else {
-    const ini = new Date(HOJE)
-    ini.setDate(HOJE.getDate() - 13)
-    const fim = new Date(HOJE)
-    fim.setDate(HOJE.getDate() - 7)
-    const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
-    dentro = (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+    return (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
   }
+  const ini = new Date(HOJE)
+  ini.setDate(HOJE.getDate() - 13)
+  const fim = new Date(HOJE)
+  fim.setDate(HOJE.getDate() - 7)
+  const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
+  return (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+}
+
+export function periodoAnterior(ctx: Contexto, periodo: Filtro) {
+  const dentro = dentroDoPeriodoAnterior(periodo)
   const rec = ctx.receitaDia.filter((r) => dentro(r.data))
   const desp = ctx.despesas.filter((d) => dentro(d.dataCompetencia))
   return {
