@@ -135,16 +135,19 @@ export interface BarraItem {
   destaque?: boolean
 }
 
-export function BarrasVerticais({ itens, fmtEixo, altura = 150, gap = 8 }: {
+export function BarrasVerticais({ itens, fmtEixo, altura = 150, gap = 8, larguraMinima }: {
   itens: BarraItem[]
   fmtEixo?: (n: number) => string
   altura?: number
   gap?: number
+  /** Com muitas barras (12 meses), em tela estreita o gráfico rola na horizontal em vez de espremer os valores. */
+  larguraMinima?: number
 }) {
   const e = escala(Math.min(0, ...itens.map((i) => i.valor)), Math.max(0, ...itens.map((i) => i.valor)))
   const y0 = yPct(0, e)
   return (
-    <div className="mt-5">
+    <div className="mt-1 overflow-x-auto pt-4">
+     <div style={{ minWidth: larguraMinima }}>
       <AreaGrafico altura={altura} e={e} fmt={fmtEixo}>
         <div className="flex h-full" style={{ gap }}>
           {itens.map((i) => {
@@ -178,6 +181,7 @@ export function BarrasVerticais({ itens, fmtEixo, altura = 150, gap = 8 }: {
           <div key={i.rot} className="min-w-0 flex-1 text-center text-xs text-tinta-4">{i.rot}</div>
         ))}
       </div>
+     </div>
     </div>
   )
 }
