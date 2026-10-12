@@ -18,7 +18,7 @@ import { tetosNormalizados } from '@/data/planoContas'
 import { nomeDoMes } from '@/data/planoMes'
 import {
   MATA, MAR, SOL, TELHA,
-  acumuladoDoMes, gastosPorGrupo, historicoCompras, historicoSobrou, leituraAcumulado, leituraBarras, leituraCanais,
+  acumuladoDoMes, gastosPorGrupo, historicoCompras, historicoSobrouAno, leituraAcumulado, leituraBarras, leituraCanais,
   leituraCompras, leituraDias, leituraGastos, mediaPorDiaDaSemana, nomeCurtoDoMes, recDoPeriodo, recDoPeriodoAnterior,
   rotuloDoPeriodo, vendasPorCanal,
 } from '@/data/dashboard'
@@ -136,7 +136,9 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
   const dias = mediaPorDiaDaSemana(ctx.receitaDia)
   const maiores = [...dias].sort((a, b) => b.media - a.media).slice(0, 2).map((d) => d.rot)
   const historicoCmv = historicoCompras(ctx)
-  const historico = historicoSobrou(ctx)
+  const historicoAno = historicoSobrouAno(ctx)
+  // Só os meses com lançamento entram na frase de leitura; o gráfico mostra o ano todo.
+  const historico = historicoAno.filter((h): h is { mes: string; valor: number } => h.valor !== null)
   const maxSobrou = Math.max(...historico.map((h) => Math.abs(h.valor)), 0)
 
   const semDados = ctx.despesas.length === 0 && ctx.receitaDia.length === 0
@@ -357,18 +359,23 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
         </CartaoGrafico>
 
         {/* Quanto sobrou, mês a mês */}
-        <CartaoGrafico className="col-span-full" titulo="Quanto sobrou, mês a mês">
+        <CartaoGrafico className="col-span-full" titulo="Quanto sobrou, mês a mês" sub={`${MES_REF.slice(0, 4)}, janeiro a dezembro`}>
           {historico.length && !semDados ? (
             <>
               <BarrasVerticais
-                gap={10}
-                itens={historico.map<BarraItem>((h, i) => ({
-                  rot: mesCurto(h.mes),
-                  valor: h.valor,
-                  rotValor: maxSobrou >= 1000 ? curtoK(h.valor) : String(Math.round(h.valor)),
-                  cor: h.valor < 0 ? TELHA : i === historico.length - 1 ? MAR : 'rgba(46,95,115,.3)',
-                  destaque: i === historico.length - 1,
-                }))}
+                gap={6}
+                larguraMinima={560}
+                itens={historicoAno.map<BarraItem>((h) => {
+                  const atual = h.mes === MES_REF
+                  return {
+                    rot: mesCurto(h.mes),
+                    valor: h.valor ?? 0,
+                    // Mês sem lançamento fica sem barra e sem valor.
+                    rotValor: h.valor === null ? '' : maxSobrou >= 1000 ? curtoK(h.valor) : String(Math.round(h.valor)),
+                    cor: h.valor === null ? 'transparent' : h.valor < 0 ? TELHA : atual ? MAR : 'rgba(46,95,115,.3)',
+                    destaque: atual,
+                  }
+                })}
               />
               <Leitura>{leituraDoHistorico(historico)}</Leitura>
             </>

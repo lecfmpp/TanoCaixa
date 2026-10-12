@@ -237,11 +237,17 @@ function ultimosSeisMeses(): string[] {
 const temLancamento = (ctx: Contexto, mes: string) =>
   ctx.despesas.some((d) => d.dataCompetencia.slice(0, 7) === mes) || ctx.receitaDia.some((r) => r.data.slice(0, 7) === mes)
 
-/** Lucro líquido dos últimos 6 meses, pelo mesmo DRE da tela de DRE. Meses sem lançamento ficam de fora. */
-export function historicoSobrou(ctx: Contexto): PontoMes[] {
-  return ultimosSeisMeses()
-    .filter((mes) => temLancamento(ctx, mes))
-    .map((mes) => ({ mes, valor: dreDoMes(ctx, mes).lucroLiquido }))
+/**
+ * Lucro líquido de TODOS os meses do ano corrente (janeiro a dezembro), pelo
+ * mesmo DRE da tela de DRE. Mês sem lançamento (ou que ainda não chegou) vem
+ * com valor null: o gráfico mostra o espaço vazio em vez de esconder o mês.
+ */
+export function historicoSobrouAno(ctx: Contexto): { mes: string; valor: number | null }[] {
+  const ano = MES_REF.slice(0, 4)
+  return Array.from({ length: 12 }, (_, i) => {
+    const mes = `${ano}-${String(i + 1).padStart(2, '0')}`
+    return { mes, valor: temLancamento(ctx, mes) ? dreDoMes(ctx, mes).lucroLiquido : null }
+  })
 }
 
 /** Despesas com compras ÷ receita bruta, mês a mês. Mês sem venda não tem % e fica de fora. */
