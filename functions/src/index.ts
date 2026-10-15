@@ -283,6 +283,7 @@ export const ifoodWebhook = onRequest({ secrets: SEGREDOS }, async (req, res) =>
 export {
   criarCheckoutAssinatura,
   portalAssinatura,
+  statusAssinatura,
   stripeWebhook,
 } from './stripe'
 

@@ -251,29 +251,37 @@ function NoBolso() {
 }
 
 function Preco() {
-  const planos = [
-    { titulo: 'Cozinha só', sub: 'Uma loja, você tocando sozinho', valor: '79', cta: 'Começar de graça', destaque: false },
-    { titulo: 'Casa cheia', sub: 'Uma loja com equipe e gerente', valor: '149', cta: 'Testar 14 dias de graça', destaque: true },
-    { titulo: 'Mais de uma casa', sub: 'De 2 a 5 lojas, com visão junta', valor: '299', cta: 'Falar com a gente', destaque: false },
+  const inclui = [
+    'Vendas, caixa e PDV do dia',
+    'Notas fiscais por foto, com custo e preço dos produtos',
+    'Estoque e contagem, com o que saiu de cada item',
+    'DRE, plano do mês e ponto de equilíbrio',
+    'Equipe com permissões por papel',
+    'Lembretes e avisos no WhatsApp do restaurante',
   ]
   return (
     <section id="preco" className="mx-auto max-w-6xl px-5 py-16">
       <span className="rotulo text-telhado">Preço</span>
       <h2 className="mt-2" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>Menos que um dia de faturamento</h2>
       <p className="mt-2 text-tinta-3">14 dias de graça, sem cartão. Cancela quando quiser, leva seus dados junto.</p>
-      <div className="mt-10 grid gap-4 tab:grid-cols-3">
-        {planos.map((p) => (
-          <div key={p.titulo} className={cn('flex flex-col rounded-cartao-g border p-6', p.destaque ? 'border-mar bg-mar text-creme shadow-cartao' : 'border-[rgba(46,95,115,0.12)] bg-superficie')}>
-            {p.destaque && <span className="mb-3 self-start rounded-chip bg-sol px-2.5 py-1 text-xs font-bold text-noite">Mais escolhido</span>}
-            <h3 style={{ fontSize: 20, fontWeight: 800 }}>{p.titulo}</h3>
-            <p className={cn('mt-1 text-sm', p.destaque ? 'text-creme/80' : 'text-tinta-3')}>{p.sub}</p>
-            <div className="mt-5 flex items-end gap-1">
-              <span className="mono" style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ {p.valor}</span>
-              <span className={cn('mb-2 text-sm', p.destaque ? 'text-creme/70' : 'text-tinta-4')}>/mês</span>
-            </div>
-            <Link to="/criar" className={cn('mt-6 rounded-botao px-4 py-2.5 text-center text-sm font-bold transition', p.destaque ? 'bg-sol text-noite hover:brightness-95' : 'bg-mar text-creme hover:bg-mar-escuro')}>{p.cta}</Link>
+      <div className="mt-10 flex justify-center">
+        <div className="flex w-full max-w-md flex-col rounded-cartao-g border border-mar bg-mar p-6 text-creme shadow-cartao">
+          <h3 style={{ fontSize: 20, fontWeight: 800 }}>Tá no Caixa</h3>
+          <p className="mt-1 text-sm text-creme/80">Tudo incluído, um plano só, por restaurante</p>
+          <div className="mt-5 flex items-end gap-1">
+            <span className="mono" style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ 149</span>
+            <span className="mb-2 text-sm text-creme/70">/mês</span>
           </div>
-        ))}
+          <ul className="mt-5 flex flex-col gap-2.5">
+            {inclui.map((x) => (
+              <li key={x} className="flex items-start gap-2.5 text-sm text-creme/90">
+                <Check size={16} className="mt-0.5 shrink-0 text-sol" />
+                {x}
+              </li>
+            ))}
+          </ul>
+          <Link to="/criar" className="mt-6 rounded-botao bg-sol px-4 py-2.5 text-center text-sm font-bold text-noite transition hover:brightness-95">Testar 14 dias de graça</Link>
+        </div>
       </div>
     </section>
   )

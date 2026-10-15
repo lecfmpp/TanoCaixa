@@ -6,13 +6,19 @@
  * habilitar automatic_tax) — os preços dos planos já devem sair com
  * imposto embutido, e NF-e/NFS-e é emitida fora do Stripe (emissor local).
  *
- * Planos do Tá no Caixa: Cozinha só (R$79) · Casa cheia (R$149) · Mais de
- * uma casa (R$299). Crie os Products/Prices no Stripe e coloque os IDs de
- * Price em STRIPE_PRICE_* (secrets/env).
+ * Plano ÚNICO: R$ 149/mês por restaurante (ver assinatura.ts). Crie o Product
+ * "Tá no Caixa" com um Price recorrente mensal de R$ 149,00 (BRL) e coloque o ID
+ * do Price em STRIPE_PRICE_UNICO. Teste de 14 dias sem cartão: contado pela
+ * criação do restaurante, fora do Stripe.
+ *
+ * O status da assinatura fica em `assinaturas/{restauranteId}`, coleção só do
+ * servidor (nenhuma regra do Firestore a libera ao app): o app pergunta pelo
+ * callable `statusAssinatura`. Assim ninguém grava "ativa" no próprio restaurante.
  *
  * PRÉ-REQUISITOS: plano Blaze + segredos (ver functions/README.md):
  *   firebase functions:secrets:set STRIPE_SECRET_KEY
  *   firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+ *   firebase functions:secrets:set STRIPE_PRICE_UNICO     (price_… do plano de R$ 149)
  *
  * Registre o endpoint do webhook (URL do `stripeWebhook` publicado) no
  * Dashboard do Stripe, ouvindo: checkout.session.completed,
@@ -25,12 +31,12 @@ import Stripe from 'stripe'
 import { onRequest, onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
+import { exigirDonoOuGestao } from './acesso'
+import { PLANO_UNICO, estadoDaAssinatura, statusDoStripe, urlSegura } from './assinatura'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
-const STRIPE_PRICE_COZINHA = defineSecret('STRIPE_PRICE_COZINHA')
-const STRIPE_PRICE_CASA = defineSecret('STRIPE_PRICE_CASA')
-const STRIPE_PRICE_REDE = defineSecret('STRIPE_PRICE_REDE')
+const STRIPE_PRICE_UNICO = defineSecret('STRIPE_PRICE_UNICO')
 
 /** STRIPE_SECRET_KEY é uma Organization API key (várias contas na mesma
  * organização Stripe) — toda chamada v1 precisa dizer qual conta é o alvo,
@@ -42,45 +48,61 @@ const comContexto = {
   additionalHeaders: { 'Stripe-Context': STRIPE_ACCOUNT_ID },
 } as unknown as Stripe.RequestOptions
 
-const db = getFirestore()
+// Lazy: o app do Firebase Admin só está inicializado quando uma função roda.
+const db = { doc: (p: string) => getFirestore().doc(p) }
 const cliente = () => new Stripe(STRIPE_SECRET_KEY.value())
 
-function priceDoPlano(plano: string): string {
-  if (plano === 'cozinha') return STRIPE_PRICE_COZINHA.value()
-  if (plano === 'casa') return STRIPE_PRICE_CASA.value()
-  if (plano === 'rede') return STRIPE_PRICE_REDE.value()
-  throw new HttpsError('invalid-argument', `plano inválido: ${plano}`)
-}
+const SITE = 'https://tanocaixa.com'
+const refAssinatura = (rid: string) => db.doc(`assinaturas/${rid}`)
 
-/** Inicia o checkout de assinatura de um plano. Retorna a URL do Stripe. */
-export const criarCheckoutAssinatura = onCall(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_PRICE_COZINHA, STRIPE_PRICE_CASA, STRIPE_PRICE_REDE] },
-  async (req) => {
-    const { restauranteId, plano, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
-    if (!restauranteId || !plano) throw new HttpsError('invalid-argument', 'restauranteId e plano obrigatórios')
-    const s = cliente()
-    const session = await s.checkout.sessions.create({
+/** Inicia o checkout do plano único. Só dono/gestão do restaurante. Retorna a URL do Stripe. */
+export const criarCheckoutAssinatura = onCall({ secrets: [STRIPE_SECRET_KEY, STRIPE_PRICE_UNICO] }, async (req) => {
+  const { restauranteId, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string | undefined>
+  const rid = await exigirDonoOuGestao(req.auth?.uid, restauranteId)
+  const atual = (await refAssinatura(rid).get()).data()
+  if (atual?.status === 'ativa') throw new HttpsError('already-exists', 'Este restaurante já tem assinatura ativa. Use o portal para gerenciar.')
+
+  const session = await cliente().checkout.sessions.create(
+    {
       mode: 'subscription',
-      line_items: [{ price: priceDoPlano(plano), quantity: 1 }],
-      customer_email: email || undefined,
-      subscription_data: { metadata: { restauranteId, plano } },
-      metadata: { restauranteId, plano },
-      success_url: sucessoUrl || 'https://tanocaixa.web.app/painel?assinatura=ok',
-      cancel_url: cancelUrl || 'https://tanocaixa.web.app/painel',
-    }, comContexto)
-    return { url: session.url }
-  },
-)
+      line_items: [{ price: STRIPE_PRICE_UNICO.value(), quantity: 1 }],
+      // O e-mail vem do login, não do que o navegador manda.
+      customer_email: (req.auth?.token.email as string | undefined) || undefined,
+      locale: 'pt-BR',
+      subscription_data: { metadata: { restauranteId: rid, plano: PLANO_UNICO } },
+      metadata: { restauranteId: rid, plano: PLANO_UNICO },
+      success_url: urlSegura(sucessoUrl, `${SITE}/painel/assinatura?assinatura=ok`),
+      cancel_url: urlSegura(cancelUrl, `${SITE}/painel/assinatura`),
+    },
+    comContexto,
+  )
+  return { url: session.url }
+})
 
-/** Abre o portal de cobrança (trocar cartão, ver faturas, cancelar). */
+/** Abre o portal de cobrança (trocar cartão, ver faturas, cancelar). O cliente do Stripe vem do servidor. */
 export const portalAssinatura = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => {
-  const { customerId, returnUrl } = (req.data ?? {}) as Record<string, string>
-  if (!customerId) throw new HttpsError('invalid-argument', 'customerId obrigatório')
-  const portal = await cliente().billingPortal.sessions.create({
-    customer: customerId,
-    return_url: returnUrl || 'https://tanocaixa.web.app/painel',
-  }, comContexto)
+  const { restauranteId, returnUrl } = (req.data ?? {}) as Record<string, string | undefined>
+  const rid = await exigirDonoOuGestao(req.auth?.uid, restauranteId)
+  const customerId = (await refAssinatura(rid).get()).get('customerId') as string | undefined
+  if (!customerId) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem assinatura')
+  const portal = await cliente().billingPortal.sessions.create(
+    { customer: customerId, return_url: urlSegura(returnUrl, `${SITE}/painel/assinatura`) },
+    comContexto,
+  )
   return { url: portal.url }
+})
+
+/** Situação da assinatura para a tela: em teste (dias restantes), teste encerrado, ativa, pagamento falhou… */
+export const statusAssinatura = onCall(async (req) => {
+  const rid = await exigirDonoOuGestao(req.auth?.uid, (req.data as { restauranteId?: string } | undefined)?.restauranteId)
+  const [restaurante, assinatura] = await Promise.all([db.doc(`restaurants/${rid}`).get(), refAssinatura(rid).get()])
+  const criadoEm = restaurante.createTime?.toDate().toISOString() ?? new Date().toISOString()
+  return estadoDaAssinatura({
+    status: assinatura.get('status') as string | undefined,
+    customerId: assinatura.get('customerId') as string | undefined,
+    criadoEm,
+    agora: new Date().toISOString(),
+  })
 })
 
 /** Metadata de `restauranteId` vem no objeto direto (session/subscription) ou,
@@ -94,61 +116,59 @@ function metaDoEvento(tipo: string, obj: Record<string, unknown>): Record<string
   return (obj.metadata ?? {}) as Record<string, string>
 }
 
-/** Webhook do Stripe → grava o status da assinatura no restaurante. */
-export const stripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
-  async (req, res) => {
-    const s = cliente()
-    let evento: Stripe.Event
-    try {
-      evento = s.webhooks.constructEvent(
-        req.rawBody,
-        req.headers['stripe-signature'] as string,
-        STRIPE_WEBHOOK_SECRET.value(),
-      )
-    } catch (e) {
-      res.status(400).send(`Webhook inválido: ${(e as Error).message}`)
-      return
-    }
+const agoraIso = () => new Date().toISOString()
 
-    // Stripe reenvia eventos em retries — evita processar duas vezes.
-    const eventoRef = db.doc(`stripeEventos/${evento.id}`)
-    if ((await eventoRef.get()).exists) {
-      res.status(200).send('ok (duplicado)')
-      return
-    }
+/** Webhook do Stripe → grava a situação da assinatura em `assinaturas/{restauranteId}`. */
+export const stripeWebhook = onRequest({ secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] }, async (req, res) => {
+  const s = cliente()
+  let evento: Stripe.Event
+  try {
+    evento = s.webhooks.constructEvent(req.rawBody, req.headers['stripe-signature'] as string, STRIPE_WEBHOOK_SECRET.value())
+  } catch (e) {
+    res.status(400).send(`Webhook inválido: ${(e as Error).message}`)
+    return
+  }
 
-    const obj = evento.data.object as unknown as Record<string, unknown>
-    const meta = metaDoEvento(evento.type, obj)
-    const restauranteId = meta.restauranteId
+  // Stripe reenvia eventos em retries — evita processar duas vezes.
+  const eventoRef = db.doc(`stripeEventos/${evento.id}`)
+  if ((await eventoRef.get()).exists) {
+    res.status(200).send('ok (duplicado)')
+    return
+  }
 
-    if (restauranteId) {
-      const assinaturaRef = db.doc(`restaurants/${restauranteId}/faturamento/assinatura`)
-      if (evento.type === 'checkout.session.completed' || evento.type.startsWith('customer.subscription')) {
-        await assinaturaRef.set(
-          {
-            status: (obj.status as string) ?? 'ativa',
-            plano: meta.plano ?? null,
-            customerId: (obj.customer as string) ?? null,
-            subscriptionId: (obj.subscription as string) ?? (obj.id as string) ?? null,
-            atualizadoEm: new Date().toISOString(),
-          },
+  const obj = evento.data.object as unknown as Record<string, unknown>
+  const meta = metaDoEvento(evento.type, obj)
+  const restauranteId = meta.restauranteId
+
+  if (restauranteId) {
+    const ref = refAssinatura(restauranteId)
+    // Eventos podem chegar fora de ordem: um "active" atrasado não pode desfazer um "canceled".
+    const ultimo = Number((await ref.get()).get('ultimoEventoEm') ?? 0)
+    const quando = evento.created * 1000
+    if (quando >= ultimo) {
+      const base = { ultimoEventoEm: quando, atualizadoEm: agoraIso(), plano: PLANO_UNICO }
+      if (evento.type === 'checkout.session.completed') {
+        const pago = obj.payment_status === 'paid' || obj.payment_status === 'no_payment_required'
+        await ref.set(
+          { ...base, ...(pago ? { status: 'ativa' } : {}), customerId: (obj.customer as string) ?? null, subscriptionId: (obj.subscription as string) ?? null },
+          { merge: true },
+        )
+      } else if (evento.type.startsWith('customer.subscription.')) {
+        const status = evento.type.endsWith('.deleted') ? 'cancelada' : statusDoStripe(obj.status as string | undefined)
+        await ref.set(
+          { ...base, status, customerId: (obj.customer as string) ?? null, subscriptionId: (obj.id as string) ?? null, cancelaNoFim: obj.cancel_at_period_end === true },
           { merge: true },
         )
       } else if (evento.type === 'invoice.paid') {
-        await assinaturaRef.set(
-          { status: 'ativa', ultimaFaturaPagaEm: new Date().toISOString() },
-          { merge: true },
-        )
+        await ref.set({ ...base, status: 'ativa', ultimaFaturaPagaEm: agoraIso() }, { merge: true })
       } else if (evento.type === 'invoice.payment_failed') {
-        await assinaturaRef.set(
-          { status: 'pagamento_falhou', atualizadoEm: new Date().toISOString() },
-          { merge: true },
-        )
+        await ref.set({ ...base, status: 'pagamento_falhou' }, { merge: true })
       }
     }
+  } else {
+    console.warn(`stripeWebhook: evento ${evento.type} sem restauranteId na metadata`)
+  }
 
-    await eventoRef.set({ tipo: evento.type, recebidoEm: new Date().toISOString() })
-    res.status(200).send('ok')
-  },
-)
+  await eventoRef.set({ tipo: evento.type, recebidoEm: agoraIso() })
+  res.status(200).send('ok')
+})
