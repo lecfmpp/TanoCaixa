@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Camera, ArrowRight, Star } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { fotos } from '@/lib/fotos'
+import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
+import { DESCONTO_LOJA, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
 import { cn } from '@/lib/cn'
 
 /* Landing pública — tanocaixa.com. Fiel ao Landing.dc.html. */
@@ -12,7 +15,7 @@ export function LandingPage() {
       <Hero />
       <Problema />
       <ComoFunciona />
-      <QuatroNumeros />
+      <Funcionalidades />
       <ServePraVoce />
       <NoBolso />
       <Preco />
@@ -30,7 +33,7 @@ function Nav() {
         <Logo tom="escuro" tamanho={18} />
         <nav className="hidden items-center gap-7 text-sm font-semibold text-tinta-2 tab:flex">
           <a href="#como" className="hover:text-tinta">Como funciona</a>
-          <a href="#painel" className="hover:text-tinta">O que você vê</a>
+          <a href="#painel" className="hover:text-tinta">Funcionalidades</a>
           <a href="#preco" className="hover:text-tinta">Preço</a>
           <a href="#duvidas" className="hover:text-tinta">Dúvidas</a>
         </nav>
@@ -58,7 +61,7 @@ function Hero() {
             Começar de graça por 14 dias
           </Link>
           <a href="#painel" className="rounded-botao border border-[rgba(46,95,115,0.2)] bg-superficie px-5 py-3 text-sm font-bold text-tinta-2 transition hover:border-mar/50">
-            Ver o painel por dentro
+            Ver as telas por dentro
           </a>
         </div>
         <div className="mt-9 flex gap-8">
@@ -70,44 +73,26 @@ function Hero() {
           ))}
         </div>
       </div>
-      <PainelMock />
+      <TelaReal src="/landing/dashboard.webp" alt="Dashboard do Tá no Caixa com o resultado do mês, metas e caminho até o ponto de equilíbrio" />
     </section>
   )
 }
 
-/** Mock do painel (prova visual). */
-function PainelMock() {
+/** Print real do app (modo demonstração, restaurante de exemplo) numa moldura de navegador. */
+function TelaReal({ src, alt, prioridade = false }: { src: string; alt: string; prioridade?: boolean }) {
   return (
     <div className="relative">
       <div className="foto-rio absolute -inset-4 -z-10 rounded-[28px] opacity-90" aria-hidden>
         <img src={fotos.cristo} alt="" />
       </div>
-      <div className="rounded-cartao-g border border-[rgba(46,95,115,0.12)] bg-superficie p-5 shadow-cartao">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="rotulo text-tinta-4">Sobrou até agora · julho</div>
-            <div className="text-sm font-bold text-tinta">Zaatar Cozinha Árabe</div>
-          </div>
-          <span className="rounded-chip bg-mata/12 px-2 py-1 text-xs font-bold text-mata">+17,2%</span>
+      <div className="overflow-hidden rounded-cartao-g border border-[rgba(46,95,115,0.12)] bg-superficie shadow-cartao">
+        <div className="flex items-center gap-1.5 border-b border-divisoria bg-preenchimento/60 px-4 py-2.5" aria-hidden>
+          <span className="h-2.5 w-2.5 rounded-full bg-telhado/60" />
+          <span className="h-2.5 w-2.5 rounded-full bg-sol/80" />
+          <span className="h-2.5 w-2.5 rounded-full bg-mata/60" />
+          <span className="mono ml-3 text-[11px] text-tinta-4">app.tanocaixa.com</span>
         </div>
-        <div className="mono mt-3 text-mata" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ 8.140</div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-cartao bg-preenchimento/50 p-3">
-            <div className="rotulo text-tinta-4">Entrou</div>
-            <div className="mono font-bold text-tinta">R$ 47.320</div>
-          </div>
-          <div className="rounded-cartao bg-preenchimento/50 p-3">
-            <div className="rotulo text-tinta-4">Saiu</div>
-            <div className="mono font-bold text-tinta">R$ 39.180</div>
-          </div>
-        </div>
-        <div className="mt-4 flex items-start gap-3 rounded-cartao bg-mar p-3.5 text-creme">
-          <Check size={16} className="mt-0.5 shrink-0" strokeWidth={3} />
-          <div>
-            <div className="text-sm font-bold">Tá no caixa!</div>
-            <div className="text-xs text-creme/80">R$ 486,30 entraram em Mercadoria. <span className="font-bold text-sol">Desfazer</span></div>
-          </div>
-        </div>
+        <img src={src} alt={alt} width={1400} height={Math.round(1400 * 1350 / 1806)} loading={prioridade ? 'eager' : 'lazy'} className="block h-auto w-full" />
       </div>
     </div>
   )
@@ -167,29 +152,67 @@ function ComoFunciona() {
   )
 }
 
-function QuatroNumeros() {
-  const kpis = [
-    ['Custo da comida (CMV)', '30,9%', 'Passou o teto de 30%. Vale rever o hortifrúti.', 'telha'],
-    ['Ponto de equilíbrio', 'R$ 41.400', 'Virou no dia 21. Daqui pra frente é lucro.', 'mata'],
-    ['Peso dos apps', '15,5%', 'R$ 7.340 em taxas. Empurre pedidos pro WhatsApp.', 'sol'],
-    ['Custo da equipe', '23,0%', 'Dentro do combinado, sem hora extra.', 'mata'],
-  ] as const
+const FUNCIONALIDADES = [
+  { id: 'dashboard', nome: 'Dashboard', texto: 'Quanto sobrou, entrou e saiu no mês, metas por categoria e o caminho até o ponto de equilíbrio.', img: 'dashboard' },
+  { id: 'inicio', nome: 'Início', texto: 'Como está o mês num relance: contas vencendo, resumo da semana e uma coisa pra fazer hoje.', img: 'inicio' },
+  { id: 'caixa', nome: 'Caixa', texto: 'Lança as vendas do dia — Pix, cartão, dinheiro e apps de delivery — num formulário só.', img: 'caixa' },
+  { id: 'compras', nome: 'Compras', texto: 'Notas fiscais por foto, preço por item, fornecedores e aviso de nota vencendo.', img: 'compras' },
+  { id: 'despesas', nome: 'Despesas', texto: 'Pra onde o dinheiro foi, por categoria: o que já foi pago, o que falta pagar e o que vence.', img: 'despesas' },
+  { id: 'produtos', nome: 'Produtos', texto: 'Cadastro de insumos com custo atual, fornecedor e quem atualizou por último.', img: 'produtos' },
+  { id: 'estoque', nome: 'Estoque', texto: 'Entradas por nota, contagem e uma pergunta pra IA sobre o que sobrou ou foi embora.', img: 'estoque' },
+  { id: 'dre', nome: 'DRE', texto: 'O resultado do mês no plano de contas, com a explicação do CMV, pronto pra mandar pro contador.', img: 'dre' },
+  { id: 'plano', nome: 'Plano do mês', texto: 'Meta de faturamento e teto de cada gasto, com o realizado ao lado.', img: 'plano-do-mes' },
+  { id: 'franquias', nome: 'Franquias e rede', texto: 'Cada loja com seu resultado e a visão do todo junto, pra quem tem duas casas ou mais.', img: 'franquias' },
+] as const
+
+function Funcionalidades() {
+  const [ativa, setAtiva] = useState<(typeof FUNCIONALIDADES)[number]['id']>('dashboard')
+  const atual = FUNCIONALIDADES.find((f) => f.id === ativa) ?? FUNCIONALIDADES[0]
   return (
     <section id="painel" className="border-y border-divisoria bg-superficie/60">
       <div className="mx-auto max-w-6xl px-5 py-16">
-        <span className="rotulo text-telhado">O que você vê</span>
+        <span className="rotulo text-telhado">Funcionalidades</span>
         <h2 className="pretty mt-2 max-w-2xl" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>
-          Os quatro números que mandam no seu restaurante
+          Tudo isso já funciona hoje
         </h2>
-        <p className="mt-2 max-w-xl text-tinta-3">Sem jargão. A gente escreve do jeito que se fala no balcão e sempre diz o que fazer com o número.</p>
-        <div className="mt-10 grid gap-4 cel:grid-cols-2 tab:grid-cols-4">
-          {kpis.map(([nome, valor, texto, cor]) => (
-            <div key={nome} className="rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie p-5">
-              <div className="rotulo text-tinta-4">{nome}</div>
-              <div className={cn('mono mt-2', cor === 'telha' ? 'text-telha-alerta' : cor === 'mata' ? 'text-mata' : 'text-tinta')} style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em' }}>{valor}</div>
-              <p className="pretty mt-2 text-sm text-tinta-3">{texto}</p>
-            </div>
-          ))}
+        <p className="mt-2 max-w-xl text-tinta-3">Prints reais do app, com os dados de um restaurante de exemplo. Sem jargão: a gente escreve do jeito que se fala no balcão.</p>
+
+        <div className="mt-10 grid items-start gap-8 tab:grid-cols-[260px_1fr]">
+          <div role="tablist" aria-label="Telas do Tá no Caixa" className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 tab:mx-0 tab:flex-col tab:gap-1 tab:overflow-visible tab:px-0">
+            {FUNCIONALIDADES.map((f) => (
+              <button
+                key={f.id}
+                role="tab"
+                aria-selected={f.id === ativa}
+                onClick={() => setAtiva(f.id)}
+                className={cn(
+                  'shrink-0 rounded-botao px-4 py-2.5 text-left text-sm font-bold transition',
+                  f.id === ativa ? 'bg-mar text-creme' : 'bg-superficie text-tinta-2 hover:bg-preenchimento tab:bg-transparent',
+                )}
+              >
+                {f.nome}
+              </button>
+            ))}
+          </div>
+          <div role="tabpanel">
+            <p className="pretty mb-4 max-w-xl text-[15px] text-tinta-2"><span className="font-bold text-tinta">{atual.nome}.</span> {atual.texto}</p>
+            <TelaReal key={atual.id} src={`/landing/${atual.img}.webp`} alt={`Tela ${atual.nome} do Tá no Caixa`} />
+          </div>
+        </div>
+
+        <div className="mt-14">
+          <span className="rotulo text-telhado">Chegando</span>
+          <div className="mt-3 grid gap-4 cel:grid-cols-2">
+            {[
+              ['PDV', 'Frente de caixa pra mesa, balcão e delivery, com tela de cozinha (KDS). As vendas caem direto no caixa do dia.'],
+              ['CMV por ficha técnica', 'Custo de cada prato calculado pelos insumos e pelo preço da última nota. Hoje o CMV já aparece no DRE; a ficha técnica vem aí.'],
+            ].map(([t, d]) => (
+              <div key={t} className="rounded-cartao border border-dashed border-[rgba(46,95,115,0.3)] bg-superficie p-5">
+                <div className="flex items-center gap-2"><h3 className="text-[15px] font-bold text-tinta">{t}</h3><SeloEmBreve /></div>
+                <p className="pretty mt-2 text-sm text-tinta-3">{d}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -251,29 +274,49 @@ function NoBolso() {
 }
 
 function Preco() {
-  const planos = [
-    { titulo: 'Cozinha só', sub: 'Uma loja, você tocando sozinho', valor: '79', cta: 'Começar de graça', destaque: false },
-    { titulo: 'Casa cheia', sub: 'Uma loja com equipe e gerente', valor: '149', cta: 'Testar 14 dias de graça', destaque: true },
-    { titulo: 'Mais de uma casa', sub: 'De 2 a 5 lojas, com visão junta', valor: '299', cta: 'Falar com a gente', destaque: false },
+  const itens = [
+    'Dashboard, metas e caminho até o equilíbrio',
+    'Lançamento do dia e foto da nota com IA',
+    'Compras, despesas, produtos e estoque',
+    'DRE e plano do mês',
+    'Rede e franquias, com a visão de cada loja',
+    'Recado de segunda por e-mail',
+    'Equipe com permissões (o gerente não vê o lucro)',
   ]
   return (
     <section id="preco" className="mx-auto max-w-6xl px-5 py-16">
       <span className="rotulo text-telhado">Preço</span>
-      <h2 className="mt-2" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>Menos que um dia de faturamento</h2>
+      <h2 className="mt-2" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>Um plano só, por loja</h2>
       <p className="mt-2 text-tinta-3">14 dias de graça, sem cartão. Cancela quando quiser, leva seus dados junto.</p>
-      <div className="mt-10 grid gap-4 tab:grid-cols-3">
-        {planos.map((p) => (
-          <div key={p.titulo} className={cn('flex flex-col rounded-cartao-g border p-6', p.destaque ? 'border-mar bg-mar text-creme shadow-cartao' : 'border-[rgba(46,95,115,0.12)] bg-superficie')}>
-            {p.destaque && <span className="mb-3 self-start rounded-chip bg-sol px-2.5 py-1 text-xs font-bold text-noite">Mais escolhido</span>}
-            <h3 style={{ fontSize: 20, fontWeight: 800 }}>{p.titulo}</h3>
-            <p className={cn('mt-1 text-sm', p.destaque ? 'text-creme/80' : 'text-tinta-3')}>{p.sub}</p>
-            <div className="mt-5 flex items-end gap-1">
-              <span className="mono" style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ {p.valor}</span>
-              <span className={cn('mb-2 text-sm', p.destaque ? 'text-creme/70' : 'text-tinta-4')}>/mês</span>
-            </div>
-            <Link to="/criar" className={cn('mt-6 rounded-botao px-4 py-2.5 text-center text-sm font-bold transition', p.destaque ? 'bg-sol text-noite hover:brightness-95' : 'bg-mar text-creme hover:bg-mar-escuro')}>{p.cta}</Link>
+      <div className="mt-10 grid items-stretch gap-4 tab:grid-cols-[1fr_380px]">
+        <div className="rounded-cartao-g border border-[rgba(46,95,115,0.12)] bg-superficie p-6">
+          <h3 className="text-[15px] font-bold text-tinta">O que está incluso</h3>
+          <ul className="mt-4 flex flex-col gap-3">
+            {itens.map((t) => (
+              <li key={t} className="flex items-start gap-3 text-sm text-tinta-2"><Check size={17} className="mt-0.5 shrink-0 text-mata" strokeWidth={2.5} />{t}</li>
+            ))}
+          </ul>
+          <div className="mt-6 border-t border-divisoria pt-5">
+            <div className="rotulo text-tinta-4">Fora do plano, em breve</div>
+            <ul className="mt-3 flex flex-col gap-2 text-sm text-tinta-3">
+              <li className="flex items-center gap-2">PDV <SeloEmBreve /></li>
+              <li className="flex items-center gap-2">CMV por ficha técnica <SeloEmBreve /></li>
+            </ul>
           </div>
-        ))}
+        </div>
+        <div className="flex flex-col rounded-cartao-g border border-mar bg-mar p-6 text-creme shadow-cartao">
+          <span className="mb-3 self-start rounded-chip bg-sol px-2.5 py-1 text-xs font-bold text-noite">R$ {DESCONTO_LOJA} de desconto por enquanto</span>
+          <h3 style={{ fontSize: 20, fontWeight: 800 }}>Por loja</h3>
+          <p className="mt-1 text-sm text-creme/80">Duas lojas? É só multiplicar por dois.</p>
+          <div className="mt-5 flex flex-wrap items-end gap-x-3 gap-y-1">
+            <span className="mono mb-1.5 text-creme/60 line-through" style={{ fontSize: 22 }}>R$ {PRECO_LOJA_CHEIO}</span>
+            <span className="mono" style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ {PRECO_LOJA}</span>
+            <span className="mb-2 text-sm text-creme/70">/loja/mês</span>
+          </div>
+          <p className="mt-2 text-xs text-creme/70">Preço de lançamento. Quem assina agora trava esse valor.</p>
+          <Link to="/criar" className="mt-auto rounded-botao bg-sol px-4 py-3 text-center text-sm font-bold text-noite transition hover:brightness-95" style={{ marginTop: 28 }}>Testar 14 dias de graça</Link>
+          <p className="mt-3 text-center text-xs text-creme/70">Pagamento seguro pelo Stripe, depois do teste.</p>
+        </div>
       </div>
     </section>
   )
@@ -285,6 +328,8 @@ function FAQ() {
     ['Precisa conectar o iFood?', 'Não. Você tira foto das notas e digita o fechamento do dia, apps incluídos. A integração automática com os apps está chegando.'],
     ['Minha equipe vê meu lucro?', 'Só quem você deixar. O gerente vê o CMV e o estoque, mas não vê o lucro, a folha nem o faturamento total.'],
     ['Meus dados ficam seguros?', 'Ficam criptografados e são seus. Cancela quando quiser e leva tudo junto. Seguimos a LGPD.'],
+    ['Quanto custa e como é cobrado?', 'R$ 149 por loja, por mês (de R$ 249, com R$ 100 de desconto por enquanto). Duas lojas, R$ 298. A cobrança é pelo Stripe, só depois dos 14 dias de teste.'],
+    ['E o PDV e o CMV por ficha técnica?', 'Estão em construção e entram como “em breve”, fora do plano de R$ 149. O que está nas telas acima já funciona hoje.'],
     ['Quanto tempo leva pra configurar?', '40 segundos pro cadastro. O resto você resolve com uma foto ou importando a sua planilha.'],
   ]
   return (
@@ -326,7 +371,7 @@ function CTAFinal() {
 
 function Rodape() {
   const cols: [string, string[]][] = [
-    ['Produto', ['Como funciona', 'O que você vê', 'Preço', 'Integrações', 'Pro contador']],
+    ['Produto', ['Como funciona', 'Funcionalidades', 'Preço', 'Pro contador']],
     ['Ajuda', ['Central de dúvidas', 'WhatsApp', 'Status do sistema']],
     ['Legal', ['Termos de uso', 'Privacidade e LGPD', 'Segurança']],
   ]
