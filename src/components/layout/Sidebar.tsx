@@ -108,6 +108,15 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
             </span>
           </NavLink>
         )}
+        <NavLink
+          to="/painel/assinatura"
+          onClick={aoNavegar}
+          className={({ isActive }) =>
+            cn('block px-6 py-2 text-sm text-creme/70 transition hover:text-creme', isActive && 'text-creme')
+          }
+        >
+          Assinatura
+        </NavLink>
         <button
           onClick={sair}
           className="w-full px-6 py-3 text-left text-sm text-creme/70 transition hover:text-creme"
