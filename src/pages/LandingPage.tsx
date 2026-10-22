@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Camera, ArrowRight, Star, Volume2, VolumeX } from 'lucide-react'
+import { Check, ArrowRight, Star, Volume2, VolumeX } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { fotos } from '@/lib/fotos'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
@@ -45,7 +45,7 @@ export function LandingPage() {
       <ComoFunciona />
       <Funcionalidades />
       <ServePraVoce />
-      <NoBolso />
+      <NoCelular />
       <Preco />
       <FAQ />
       <CTAFinal />
@@ -220,7 +220,7 @@ function Problema() {
 
 function ComoFunciona() {
   const passos = [
-    ['Lança o dia em um minuto', 'Pix, cartão, dinheiro e apps de delivery num formulário só. Integração automática com apps e maquininha: em breve.'],
+    ['Lança o dia em um minuto', 'Pix, cartão, dinheiro e apps de delivery num formulário só. Integração automática com iFood, Uber Eats e maquininha: em breve.'],
     ['Tira foto da nota', 'Fornecedor, itens, preços e categoria saem prontos em 5 segundos. Você só confere e confirma.'],
     ['Olha o painel em 3 segundos', 'Entrou, saiu, sobrou e quanto falta pro ponto de equilíbrio. Sem relatório pra rodar.'],
     ['Recebe o recado de segunda', 'Um e-mail curto com o que mudou na semana e uma coisa só pra fazer. No WhatsApp quando estoura um teto.'],
@@ -294,13 +294,16 @@ function Funcionalidades() {
 
         <div className="mt-14">
           <span className="rotulo text-telhado">Chegando</span>
-          <div className="mt-3 grid gap-4 cel:grid-cols-2">
-            {[
-              ['PDV', 'Frente de caixa pra mesa, balcão e delivery, com tela de cozinha (KDS). As vendas caem direto no caixa do dia.'],
-              ['CMV por ficha técnica', 'Custo de cada prato calculado pelos insumos e pelo preço da última nota. Hoje o CMV já aparece no DRE; a ficha técnica vem aí.'],
-            ].map(([t, d]) => (
+          <div className="mt-3 grid gap-4 cel:grid-cols-2 tab:grid-cols-4">
+            {([
+              ['PDV', 'Frente de caixa pra mesa, balcão e delivery, com tela de cozinha (KDS). As vendas caem direto no caixa do dia.', null],
+              ['CMV por ficha técnica', 'Custo de cada prato pelos insumos e pelo preço da última nota. O CMV já aparece no DRE; a ficha técnica vem aí.', null],
+              ['iFood', 'Vendas e taxas do iFood entrando sozinhas no caixa, sem digitar o fechamento dos apps.', { src: '/integracoes/ifood.svg', alt: 'iFood' }],
+              ['Uber Eats', 'Vendas e taxas do Uber Eats entrando sozinhas, junto com o resto do delivery.', { src: '/integracoes/ubereats.svg', alt: 'Uber Eats' }],
+            ] as const).map(([t, d, logo]) => (
               <div key={t} className="rounded-cartao border border-dashed border-[rgba(46,95,115,0.3)] bg-superficie p-5">
-                <div className="flex items-center gap-2"><h3 className="text-[15px] font-bold text-tinta">{t}</h3><SeloEmBreve /></div>
+                {logo && <img src={logo.src} alt={logo.alt} className="mb-3 h-7 w-auto" />}
+                <div className="flex flex-wrap items-center gap-2"><h3 className="text-[15px] font-bold text-tinta">{logo ? `Integração ${t}` : t}</h3><SeloEmBreve /></div>
                 <p className="pretty mt-2 text-sm text-tinta-3">{d}</p>
               </div>
             ))}
@@ -329,9 +332,9 @@ function ServePraVoce() {
             ))}
           </div>
         </div>
-        <div className="foto-rio filtro-sol relative overflow-hidden rounded-cartao-g p-8 text-creme">
-          <img src={fotos.porDoSol} alt="" />
-          <div className="pointer-events-none absolute inset-0 z-[2]" style={{ background: 'linear-gradient(180deg, rgba(22,48,58,.4), rgba(22,48,58,.7))' }} />
+        <div className="foto-rio filtro-sol relative min-h-[380px] overflow-hidden rounded-cartao-g p-8 text-creme">
+          <img src={fotos.cristo} alt="" style={{ objectPosition: '50% 38%' }} />
+          <div className="pointer-events-none absolute inset-0 z-[2]" style={{ background: 'linear-gradient(180deg, rgba(22,48,58,0) 35%, rgba(22,48,58,.78))' }} />
           <div className="relative z-10 flex h-full flex-col justify-end">
             <div className="flex gap-1 text-sol">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} fill="currentColor" />)}</div>
             <p className="pretty mt-3 text-lg font-semibold">“Parei de descobrir o resultado no fim do mês. Agora sei no dia 12 se o hortifrúti tá me comendo.”</p>
@@ -346,20 +349,57 @@ function ServePraVoce() {
   )
 }
 
-function NoBolso() {
+const TELAS_CELULAR = [
+  { id: 'inicio', rotulo: 'Como está o mês', alt: 'Tela Início no celular, com entrou, saiu e sobrou do mês' },
+  { id: 'lancar', rotulo: 'Lançar nota ou despesa', alt: 'Menu de lançamento no celular: nota fiscal, despesa, produto e vendas' },
+  { id: 'notas', rotulo: 'Notas e compras', alt: 'Tela Compras no celular, com notas do mês e fornecedores' },
+  { id: 'despesas', rotulo: 'Despesas', alt: 'Tela Despesas no celular, com o que saiu no mês' },
+  { id: 'caixa', rotulo: 'Fechar o caixa', alt: 'Tela Caixa no celular, para lançar as vendas do dia' },
+  { id: 'dashboard', rotulo: 'Dashboard', alt: 'Dashboard no celular, com sobrou, entrou e saiu' },
+] as const
+
+function NoCelular() {
+  const [ativa, setAtiva] = useState<(typeof TELAS_CELULAR)[number]['id']>('inicio')
+  const atual = TELAS_CELULAR.find((t) => t.id === ativa) ?? TELAS_CELULAR[0]
   return (
-    <section className="border-y border-divisoria bg-mar text-creme">
-      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-5 py-14 tab:flex-row tab:items-center">
-        <div>
-          <span className="rotulo text-sol">No bolso</span>
-          <h2 className="mt-2 max-w-md" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>Baixe o app e lance a nota ali mesmo, no balcão</h2>
-          <p className="pretty mt-2 max-w-md text-sm text-creme/80">Aponta a câmera pra baixar. Prefere não instalar nada? Funciona igual no navegador do celular.</p>
-          <div className="mt-5 flex gap-3">
-            <div className="rounded-botao bg-noite/40 px-4 py-2.5 text-sm"><div className="text-[10px] text-creme/70">Baixe na</div><div className="font-bold">App Store</div></div>
-            <div className="rounded-botao bg-noite/40 px-4 py-2.5 text-sm"><div className="text-[10px] text-creme/70">Disponível no</div><div className="font-bold">Google Play</div></div>
+    <section className="overflow-hidden border-y border-divisoria bg-mar text-creme">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-14 tab:grid-cols-[1fr_auto] tab:gap-16">
+        <div className="pb-2 tab:pb-14">
+          <span className="rotulo text-sol">No celular</span>
+          <h2 className="pretty mt-2 max-w-md" style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.025em' }}>Controle tudo do seu celular</h2>
+          <p className="pretty mt-3 max-w-md text-creme/80">Lança nota, despesa e receita, fecha o caixa e confere o resultado do mês sem sentar no computador. É a mesma tela do painel, no navegador do celular.</p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {TELAS_CELULAR.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setAtiva(t.id)}
+                aria-pressed={t.id === ativa}
+                className={cn(
+                  'rounded-chip px-3.5 py-2 text-sm font-bold transition',
+                  t.id === ativa ? 'bg-sol text-noite' : 'bg-noite/30 text-creme hover:bg-noite/50',
+                )}
+              >
+                {t.rotulo}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="grid h-32 w-32 shrink-0 place-items-center rounded-cartao bg-creme text-mar"><Camera size={44} strokeWidth={1.5} /></div>
+        {/* Só os 70% de cima do iPhone aparecem; o resto fica cortado pela borda da seção. */}
+        <div className="mx-auto h-[459px] w-[316px] overflow-hidden">
+          <div className="relative h-[656px] w-[316px] rounded-[52px] bg-[#16303A] p-[12px] shadow-[0_0_0_2px_#2b4c59,0_30px_60px_rgba(0,0,0,.35)]">
+            <span className="absolute -left-[3px] top-[110px] h-8 w-[3px] rounded-l bg-[#2b4c59]" aria-hidden />
+            <span className="absolute -left-[3px] top-[160px] h-14 w-[3px] rounded-l bg-[#2b4c59]" aria-hidden />
+            <span className="absolute -right-[3px] top-[170px] h-20 w-[3px] rounded-r bg-[#2b4c59]" aria-hidden />
+            <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[40px] bg-fundo-app">
+              <div className="mono flex h-[42px] shrink-0 items-center justify-between px-7 pt-1 text-[12px] font-bold text-tinta" aria-hidden>
+                <span>9:41</span>
+                <span className="tracking-widest">•••</span>
+              </div>
+              <img key={atual.id} src={`/landing/mobile/${atual.id}.webp`} alt={atual.alt} width={780} height={1688} className="block min-h-0 w-full flex-1 object-cover object-top" />
+              <span className="absolute left-1/2 top-[9px] h-[26px] w-[88px] -translate-x-1/2 rounded-full bg-[#0b161b]" aria-hidden />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -417,7 +457,7 @@ function Preco() {
 function FAQ() {
   const qs = [
     ['Preciso saber de contabilidade?', 'Não. A gente traduz tudo pra linguagem de balcão: entrou, saiu, sobrou. Jargão só na página de DRE, pro seu contador.'],
-    ['Precisa conectar o iFood?', 'Não. Você tira foto das notas e digita o fechamento do dia, apps incluídos. A integração automática com os apps está chegando.'],
+    ['Precisa conectar o iFood?', 'Não. Você tira foto das notas e digita o fechamento do dia, apps incluídos. A integração automática com iFood e Uber Eats está chegando.'],
     ['Minha equipe vê meu lucro?', 'Só quem você deixar. O gerente vê o CMV e o estoque, mas não vê o lucro, a folha nem o faturamento total.'],
     ['Meus dados ficam seguros?', 'Ficam criptografados e são seus. Cancela quando quiser e leva tudo junto. Seguimos a LGPD.'],
     ['Quanto custa e como é cobrado?', 'R$ 149 por loja, por mês (de R$ 249, com R$ 100 de desconto por enquanto). Duas lojas, R$ 298. A cobrança é pelo Stripe, só depois dos 14 dias de teste.'],
