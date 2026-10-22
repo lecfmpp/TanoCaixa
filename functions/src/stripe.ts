@@ -70,6 +70,7 @@ export const criarCheckoutAssinatura = onCall(
           product_data: { name: 'Tá no Caixa — por loja', description: 'Gestão financeira do restaurante. Sem PDV e CMV (em breve).' },
         },
       }],
+      allow_promotion_codes: true,
       customer_email: email || undefined,
       subscription_data: { metadata: { restauranteId, plano: 'loja', lojas: String(lojas) } },
       metadata: { restauranteId, plano: 'loja', lojas: String(lojas) },
