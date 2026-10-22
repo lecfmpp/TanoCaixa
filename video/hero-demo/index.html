@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1200" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Archivo";
+        src: url("assets/fonts/Archivo.woff2") format("woff2");
+        font-weight: 400 800;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("assets/fonts/JetBrainsMono.woff2") format("woff2");
+        font-weight: 400 700;
+        font-style: normal;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1200px;
+        overflow: hidden;
+        background: #f0eee2;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #f0eee2;
+        font-family: "Archivo", system-ui, sans-serif;
+      }
+      /* "câmera": tudo que é da tela do app (prints + cursor + destaques) mora aqui e recebe o zoom */
+      #cam {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1200px;
+        transform-origin: 0 0;
+        will-change: transform;
+      }
+      #cam img.shot {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1200px;
+        opacity: 0;
+        display: block;
+      }
+      .hl {
+        position: absolute;
+        opacity: 0;
+        border-radius: 14px;
+        pointer-events: none;
+      }
+      .hl-row {
+        border: 3px solid #efab5c;
+        box-shadow: 0 0 0 6px rgba(239, 171, 92, 0.28), 0 10px 40px rgba(239, 171, 92, 0.45);
+        background: rgba(239, 171, 92, 0.1);
+      }
+      .sheen {
+        position: absolute;
+        opacity: 0;
+        overflow: hidden;
+        border-radius: 14px;
+        pointer-events: none;
+      }
+      .sheen i {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 26%;
+        height: 100%;
+        background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0));
+        transform: skewX(-18deg);
+      }
+      .ripple {
+        position: absolute;
+        width: 70px;
+        height: 70px;
+        margin: -35px 0 0 -35px;
+        border-radius: 50%;
+        border: 3px solid #efab5c;
+        background: rgba(239, 171, 92, 0.28);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 34px;
+        opacity: 0;
+        pointer-events: none;
+        filter: drop-shadow(0 4px 6px rgba(22, 48, 58, 0.45));
+      }
+      #cursor svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform-origin: 3px 3px;
+      }
+      /* números do dashboard (sobrepõem o print com o valor escondido) */
+      .num {
+        position: absolute;
+        white-space: nowrap;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 42.667px;
+        line-height: 46.9px;
+        letter-spacing: -1.28px;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        opacity: 0;
+      }
+      #n-sobrou {
+        left: 378.7px;
+        top: 254px;
+        color: rgb(247, 245, 234);
+      }
+      #n-entrou {
+        left: 896.4px;
+        top: 270.7px;
+        color: rgb(28, 42, 46);
+      }
+      #n-saiu {
+        left: 1412.9px;
+        top: 270.7px;
+        color: rgb(28, 42, 46);
+      }
+      #n-margem {
+        position: absolute;
+        left: 378.7px;
+        top: 311.6px;
+        font-size: 18.667px;
+        line-height: 26.67px;
+        white-space: nowrap;
+        color: rgba(247, 245, 234, 0.8);
+        opacity: 0;
+      }
+      #n-margem b {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 400;
+      }
+      #n-pct {
+        position: absolute;
+        left: 896.4px;
+        top: 365.5px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 21.3px;
+        color: rgb(28, 42, 46);
+        opacity: 0;
+        white-space: nowrap;
+      }
+      #delta {
+        position: absolute;
+        left: 378.7px;
+        top: 352px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 18px 8px 14px;
+        border-radius: 999px;
+        background: #efab5c;
+        color: #16303a;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 24px;
+        letter-spacing: -0.5px;
+        opacity: 0;
+        box-shadow: 0 8px 24px rgba(22, 48, 58, 0.35);
+        transform-origin: 0 50%;
+      }
+      #delta svg {
+        width: 22px;
+        height: 22px;
+      }
+      #glow {
+        position: absolute;
+        left: 346px;
+        top: 188px;
+        width: 509px;
+        height: 232px;
+        border-radius: 28px;
+        border: 3px solid #efab5c;
+        box-shadow: 0 0 0 8px rgba(239, 171, 92, 0.3), 0 0 60px rgba(239, 171, 92, 0.55);
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* legendas fixas (não recebem zoom) */
+      .cap {
+        position: absolute;
+        left: 50%;
+        bottom: 46px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 34px 14px 16px;
+        border-radius: 999px;
+        background: rgba(22, 48, 58, 0.88);
+        color: #f7f5ea;
+        font-weight: 800;
+        font-size: 32px;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        opacity: 0;
+      }
+      .cap em {
+        font-style: normal;
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: #efab5c;
+        color: #16303a;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      /* ===== identidade nova: abertura e fechamento ===== */
+      #scene {
+        position: absolute;
+        inset: 0;
+        clip-path: circle(0% at 50% 50%);
+      }
+      #intro {
+        position: absolute;
+        inset: 0;
+        background: #2e5f73;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .disc {
+        position: absolute;
+        left: -172px;
+        top: -532px;
+        width: 2264px;
+        height: 2264px;
+        border-radius: 50%;
+        transform-origin: 50% 50%;
+      }
+      .sol {
+        background: #efab5c;
+      }
+      .mar {
+        background: #2e5f73;
+      }
+      svg.sig {
+        display: block;
+        width: 1152px;
+        height: 240px;
+        overflow: visible;
+      }
+      svg.sig .stroke {
+        fill: none;
+        stroke: #1e4354;
+        stroke-width: 13;
+        stroke-linecap: round;
+        stroke-dasharray: 1 1;
+        stroke-dashoffset: 1;
+        opacity: 0;
+      }
+      #outro {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      #outro .osun {
+        position: absolute;
+        right: -170px;
+        top: -230px;
+        width: 560px;
+        height: 560px;
+        border-radius: 50%;
+        background: #efab5c;
+      }
+      #outro .stack {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 54px;
+        padding: 0 150px;
+      }
+      #outro .mask {
+        overflow: hidden;
+        padding-bottom: 8px;
+      }
+      #outro .tag {
+        font-weight: 800;
+        font-size: 84px;
+        letter-spacing: -0.035em;
+        color: #f7f5ea;
+        line-height: 1.02;
+      }
+      #outro .tag2 {
+        font-weight: 800;
+        font-size: 84px;
+        letter-spacing: -0.035em;
+        color: #efab5c;
+        line-height: 1.02;
+      }
+      #outro .row {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+      }
+      #outro .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 16px;
+        padding: 22px 38px;
+        border-radius: 16px;
+        background: #c05437;
+        color: #f7f5ea;
+        font-weight: 800;
+        font-size: 34px;
+        letter-spacing: -0.01em;
+      }
+      #outro .filete {
+        width: 120px;
+        height: 8px;
+        border-radius: 4px;
+        background: #efab5c;
+      }
+      #outro .site {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
+        font-size: 34px;
+        color: #f7f5ea;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="34.875" data-width="1920" data-height="1200">
+      <!-- abertura: assinatura horizontal (versão sol, fundo mar) montando o símbolo traço a traço -->
+      <div id="intro">
+        <svg class="sig" id="sigI" viewBox="0 0 480 100"aria-label="Tá no Caixa">
+          <defs><clipPath id="nmI"><rect x="112" y="0" width="368" height="100" /></clipPath></defs>
+          <rect id="sqI" width="100" height="100" rx="30" fill="#EFAB5C" />
+          <path class="stroke" id="bI" pathLength="1" d="M27 24 H73" />
+          <path class="stroke" id="hI" pathLength="1" d="M50 24 V52" />
+          <path class="stroke" id="sI" pathLength="1" d="M33 68 Q50 82 67 68" />
+          <g clip-path="url(#nmI)"><text id="nmtI" x="128" y="68" font-family="Archivo, sans-serif" font-weight="800" font-size="62" letter-spacing="-1.2" fill="#F7F5EA">Tá no Caixa</text></g>
+        </svg>
+      </div>
+      <div class="disc sol" id="sunI"></div>
+      <div class="disc mar" id="marI"></div>
+
+      <div id="scene">
+        <div id="cam"></div>
+        <div class="cap" id="cap1"><em>1</em>Lançou a nota fiscal em segundos</div>
+        <div class="cap" id="cap2"><em>2</em>Registrou a despesa</div>
+        <div class="cap" id="cap3"><em>3</em>Lançou as vendas do dia</div>
+        <div class="cap" id="cap4"><em>4</em>E já vê quanto sobrou</div>
+      </div>
+
+      <!-- fechamento: transição sol -> mar e a mesma assinatura, agora com a chamada -->
+      <div class="disc sol" id="sunO"></div>
+      <div class="disc mar" id="marO"></div>
+      <div id="outro">
+        <div class="osun" id="osun"></div>
+        <div class="stack">
+          <svg class="sig" id="sigO" viewBox="0 0 480 100"aria-label="Tá no Caixa">
+            <defs><clipPath id="nmO"><rect x="112" y="0" width="368" height="100" /></clipPath></defs>
+            <rect id="sqO" width="100" height="100" rx="30" fill="#EFAB5C" />
+            <path class="stroke" id="bO" pathLength="1" d="M27 24 H73" />
+            <path class="stroke" id="hO" pathLength="1" d="M50 24 V52" />
+            <path class="stroke" id="sO" pathLength="1" d="M33 68 Q50 82 67 68" />
+            <g clip-path="url(#nmO)"><text id="nmtO" x="128" y="68" font-family="Archivo, sans-serif" font-weight="800" font-size="62" letter-spacing="-1.2" fill="#F7F5EA">Tá no Caixa</text></g>
+          </svg>
+          <div>
+            <div class="mask"><div class="tag" id="tag1">Saber se sobrou dinheiro</div></div>
+            <div class="mask"><div class="tag2" id="tag2">não pode dar trabalho.</div></div>
+          </div>
+          <div class="row" id="orow">
+            <div class="cta" id="ocTa">Começar de graça por 14 dias <span>→</span></div>
+            <div class="filete" id="ofil"></div>
+            <div class="site" id="osite">tanocaixa.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const K = 1920 / 1440; // CSS px do app -> px do vídeo
+      const W = 1920;
+      const H = 1200;
+      const cam = document.getElementById("cam");
+
+      /* 1) camadas: prints reais do app, na ordem cronológica (a de cima sempre cobre a de baixo) */
+      const SHOTS = [
+        "a0-compras", "a1-gaveta", "a2-forn-t1", "a2-forn-t2", "a2-forn-t3", "a2-forn-t4",
+        "a3-num1", "a3-num2", "a3-prod", "a3-qtd", "a4-itens", "a5-confere", "a6-compras-depois",
+        "b0-despesas", "b1-menu", "b2-gaveta", "b2-forn-t1", "b2-forn-t2", "b2-forn-t3",
+        "b2-val1", "b2-val2", "b3-preenchida", "b4-confere", "b5-despesas-depois",
+        "c0-inicio", "c1-gaveta", "c2-pix", "c2-cartao", "c2-preenchida", "c3-confere",
+        "d1-dash-oculta",
+      ];
+      SHOTS.forEach((id) => {
+        const im = document.createElement("img");
+        im.className = "shot";
+        im.id = "s-" + id;
+        im.src = "assets/shots/" + id + ".jpg";
+        im.decoding = "sync";
+        cam.appendChild(im);
+      });
+
+      /* 2) overlays dentro da câmera */
+      const box = (cls, b, pad = 0) => {
+        const d = document.createElement("div");
+        d.className = cls;
+        d.style.left = (b[0] - pad) * K + "px";
+        d.style.top = (b[1] - pad) * K + "px";
+        d.style.width = (b[2] + pad * 2) * K + "px";
+        d.style.height = (b[3] + pad * 2) * K + "px";
+        cam.appendChild(d);
+        return d;
+      };
+      const hlNota = box("hl hl-row", [285, 451, 1106, 61], 4);
+      const hlKpi1 = box("hl hl-row", [264, 147, 276, 114], 2);
+      const hlTotal = box("hl hl-row", [938, 422, 466, 28], 0);
+      const hlDesp = box("hl hl-row", [285, 720, 1106, 63], 4);
+      const hlKpi2 = box("hl hl-row", [264, 208, 276, 114], 2);
+      const shNota = box("sheen", [285, 451, 1106, 61], 4);
+      shNota.innerHTML = "<i></i>";
+      const shDesp = box("sheen", [285, 720, 1106, 63], 4);
+      shDesp.innerHTML = "<i></i>";
+
+      const num = (id, cls, html) => {
+        const d = document.createElement("div");
+        d.id = id;
+        d.className = cls;
+        d.innerHTML = html;
+        cam.appendChild(d);
+        return d;
+      };
+      const nSobrou = num("n-sobrou", "num", "R$&nbsp;5.006");
+      const nEntrou = num("n-entrou", "num", "R$&nbsp;53.120");
+      const nSaiu = num("n-saiu", "num", "R$&nbsp;48.719");
+      const nMargem = num("n-margem", "", "margem de <b>9,4%</b>");
+      const nPct = num("n-pct", "", "106%");
+      const glow = document.createElement("div");
+      glow.id = "glow";
+      cam.appendChild(glow);
+      const delta = document.createElement("div");
+      delta.id = "delta";
+      delta.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="#16303a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>+R$&nbsp;2.430</span>';
+      cam.appendChild(delta);
+
+      const cursor = document.createElement("div");
+      cursor.id = "cursor";
+      cursor.innerHTML =
+        '<svg viewBox="0 0 34 34"><path d="M3 3 L3 26 L9.2 20.4 L13.6 30.4 L18.4 28.3 L14 18.4 L22.4 18.2 Z" fill="#fff" stroke="#16303a" stroke-width="2" stroke-linejoin="round"/></svg>';
+      cam.appendChild(cursor);
+
+      /* 3) helpers de timeline */
+      const SPEED = 1.35; // ritmo do vídeo: 1.35x mais ágil que a cadência "natural" escrita abaixo
+      const main = gsap.timeline({ paused: true });
+      const tl = gsap.timeline();
+      let t = 0;
+      let cx = 760,
+        cy = 470; // posição do cursor em px CSS do app
+      const ctr = (b) => [b[0] + b[2] / 2, b[1] + b[3] / 2];
+
+      const camMoves = [];
+      const camTo = (at, dur, fx, fy, s, ease = "power3.inOut") => {
+        let x = W / 2 - fx * K * s;
+        let y = H / 2 - fy * K * s;
+        x = Math.min(0, Math.max(W - W * s, x));
+        y = Math.min(0, Math.max(H - H * s, y));
+        camMoves.push({ at, dur, x, y, s, ease });
+      };
+      // uma só câmera: cada movimento termina onde o próximo começa (sem tweens brigando)
+      const buildCam = () => {
+        camMoves.sort((a, b) => a.at - b.at);
+        camMoves.forEach((m, i) => {
+          const nx = camMoves[i + 1];
+          let dur = m.dur;
+          if (nx && m.at + dur > nx.at) dur = nx.at - m.at;
+          if (dur < 0.12) return;
+          tl.to(cam, { x: m.x, y: m.y, scale: m.s, duration: dur, ease: m.ease }, m.at);
+        });
+      };
+      const move = (px, py, dur) => {
+        // x e y com eases diferentes desenham uma curva natural, não uma reta robótica
+        tl.to(cursor, { x: px * K, duration: dur, ease: "sine.inOut" }, t);
+        tl.to(cursor, { y: py * K, duration: dur, ease: "power2.out" }, t);
+        cx = px;
+        cy = py;
+        t += dur;
+      };
+      const moveTo = (b, dur, dx = 0, dy = 0) => {
+        const [px, py] = ctr(b);
+        move(px + dx, py + dy, dur);
+      };
+      const click = () => {
+        const r = document.createElement("div");
+        r.className = "ripple";
+        r.style.left = cx * K + "px";
+        r.style.top = cy * K + "px";
+        cam.insertBefore(r, cursor);
+        tl.fromTo(r, { opacity: 0.9, scale: 0.2 }, { opacity: 0, scale: 1.35, duration: 0.5, ease: "power2.out", immediateRender: false }, t);
+        const svg = cursor.querySelector("svg");
+        tl.to(svg, { scale: 0.82, duration: 0.07, ease: "power2.out" }, t);
+        tl.to(svg, { scale: 1, duration: 0.14, ease: "power2.out" }, t + 0.07);
+        t += 0.13;
+      };
+      const show = (id, at = t, fade = 0) => {
+        const el = document.getElementById("s-" + id);
+        if (fade > 0) tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: fade, ease: "none" }, at);
+        else tl.set(el, { opacity: 1 }, at);
+      };
+      const drawer = (id, at = t) => {
+        const el = document.getElementById("s-" + id);
+        tl.set(el, { opacity: 1 }, at);
+        tl.fromTo(el, { clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0%)", duration: 0.55, ease: "expo.out" }, at);
+      };
+      const typing = (ids, gap) => {
+        ids.forEach((id) => {
+          show(id, t);
+          t += gap;
+        });
+      };
+      const pulse = (el, at, hold = 1.2) => {
+        tl.fromTo(el, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, at);
+        tl.to(el, { opacity: 0, duration: 0.5, ease: "power1.in" }, at + hold);
+      };
+      const sheen = (el, at) => {
+        tl.set(el, { opacity: 1 }, at);
+        tl.fromTo(el.firstChild, { xPercent: -130 }, { xPercent: 430, duration: 0.9, ease: "power2.inOut" }, at);
+        tl.set(el, { opacity: 0 }, at + 0.95);
+      };
+      const cap = (id, inAt, outAt) => {
+        tl.fromTo("#" + id, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, inAt);
+        tl.to("#" + id, { opacity: 0, y: -14, duration: 0.3, ease: "power2.in" }, outAt);
+      };
+
+      /* alvos (px CSS do app, medidos nas telas reais) */
+      const B = {
+        btnNota: [1263, 374, 149, 40],
+        notaForn: [959, 242, 442, 42],
+        notaNum: [959, 326, 442, 42],
+        notaSel: [974, 535, 412, 42],
+        notaQtd: [974, 614, 185, 42],
+        notaPreco: [1201, 614, 185, 42],
+        btnOk: [1318, 844, 98, 40],
+        btnLancar: [1288, 57, 100, 40],
+        menuDespesa: [1165, 198, 106, 20],
+        despForn: [959, 298, 442, 42],
+        despValor: [959, 382, 200, 42],
+        despGas: [1282, 782, 56, 38],
+        btnVendas: [1250, 725, 137, 40],
+        vPix: [959, 195, 119, 42],
+        vCartao: [1120, 195, 119, 42],
+        vDin: [1282, 195, 119, 42],
+        navDespesas: [22, 305, 190, 40],
+        navInicio: [22, 213, 190, 40],
+        navDash: [22, 167, 190, 40],
+      };
+
+      /* ===== A · nota fiscal ===== */
+      tl.set("#s-a0-compras", { opacity: 1 }, 0);
+      tl.set(cursor, { x: cx * K, y: cy * K }, 0);
+      tl.fromTo(cursor, { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0.3);
+      cap("cap1", 0.5, 11.4);
+      t = 0.6;
+      camTo(0.7, 1.3, 1180, 330, 1.55, "power2.inOut");
+      moveTo(B.btnNota, 1.1);
+      t += 0.12;
+      click();
+      drawer("a1-gaveta", t);
+      camTo(t + 0.1, 1.0, 1170, 360, 1.5, "power3.inOut");
+      t += 0.45;
+      moveTo(B.notaForn, 0.7);
+      t += 0.08;
+      click();
+      t += 0.12;
+      typing(["a2-forn-t1", "a2-forn-t2", "a2-forn-t3", "a2-forn-t4"], 0.15);
+      t += 0.2;
+      moveTo(B.notaNum, 0.45);
+      click();
+      t += 0.08;
+      typing(["a3-num1", "a3-num2"], 0.18);
+      t += 0.12;
+      camTo(t, 0.8, 1170, 470, 1.5);
+      moveTo(B.notaSel, 0.5);
+      click();
+      t += 0.1;
+      show("a3-prod", t);
+      t += 0.3;
+      moveTo(B.notaQtd, 0.45);
+      click();
+      t += 0.06;
+      show("a3-qtd", t);
+      t += 0.2;
+      moveTo(B.notaPreco, 0.35);
+      click();
+      t += 0.06;
+      show("a4-itens", t);
+      t += 0.45;
+      camTo(t, 0.9, 1170, 640, 1.2);
+      moveTo(B.btnOk, 0.6);
+      t += 0.1;
+      click();
+      show("a5-confere", t, 0.15);
+      camTo(t + 0.15, 1.0, 1170, 330, 1.55);
+      t += 0.5;
+      tl.fromTo(hlTotal, { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, t);
+      tl.to(hlTotal, { opacity: 0, duration: 0.4 }, t + 1.0);
+      t += 1.1;
+      camTo(t, 0.7, 1170, 640, 1.2);
+      moveTo(B.btnOk, 0.6, 0, 0);
+      t += 0.1;
+      click();
+      show("a6-compras-depois", t, 0.3);
+      const tA6 = t;
+      camTo(tA6 + 0.1, 1.1, 760, 330, 1.35, "power3.inOut");
+      sheen(shNota, tA6 + 0.35);
+      pulse(hlNota, tA6 + 0.3, 1.5);
+      pulse(hlKpi1, tA6 + 0.6, 1.2);
+      moveTo([700, 520, 20, 20], 0.9, 0, 0);
+      t = tA6 + 2.3;
+
+      /* ===== B · despesa ===== */
+      cap("cap2", t - 0.9, t + 7.6);
+      camTo(t - 0.8, 0.9, 720, 450, 1.0);
+      moveTo(B.navDespesas, 0.9);
+      t += 0.08;
+      click();
+      show("b0-despesas", t, 0.25);
+      t += 0.35;
+      camTo(t, 1.0, 1180, 220, 1.55);
+      moveTo(B.btnLancar, 0.9);
+      t += 0.08;
+      click();
+      show("b1-menu", t, 0.18);
+      t += 0.35;
+      moveTo(B.menuDespesa, 0.5);
+      t += 0.06;
+      click();
+      drawer("b2-gaveta", t);
+      camTo(t + 0.1, 1.0, 1170, 380, 1.5);
+      t += 0.45;
+      moveTo(B.despForn, 0.6);
+      click();
+      t += 0.1;
+      typing(["b2-forn-t1", "b2-forn-t2", "b2-forn-t3"], 0.16);
+      t += 0.1;
+      moveTo(B.despValor, 0.45);
+      click();
+      t += 0.06;
+      typing(["b2-val1", "b2-val2"], 0.17);
+      t += 0.1;
+      camTo(t, 0.8, 1170, 520, 1.4);
+      moveTo(B.despGas, 0.6);
+      click();
+      t += 0.05;
+      show("b3-preenchida", t);
+      t += 0.35;
+      camTo(t, 0.8, 1170, 640, 1.2);
+      moveTo(B.btnOk, 0.6);
+      t += 0.06;
+      click();
+      show("b4-confere", t, 0.15);
+      t += 0.5;
+      moveTo(B.btnOk, 0.12);
+      click();
+      show("b5-despesas-depois", t, 0.3);
+      const tB5 = t;
+      camTo(tB5 + 0.05, 1.1, 800, 740, 1.6, "power3.inOut");
+      sheen(shDesp, tB5 + 0.35);
+      pulse(hlDesp, tB5 + 0.3, 1.5);
+      move(760, 650, 0.9);
+      t = tB5 + 2.2;
+
+      /* ===== C · vendas ===== */
+      cap("cap3", t - 0.4, t + 5.6);
+      camTo(t - 0.3, 0.8, 720, 450, 1.0);
+      moveTo(B.navInicio, 0.8);
+      t += 0.06;
+      click();
+      show("c0-inicio", t, 0.25);
+      t += 0.3;
+      camTo(t, 0.9, 1130, 640, 1.55);
+      moveTo(B.btnVendas, 0.8);
+      t += 0.06;
+      click();
+      drawer("c1-gaveta", t);
+      camTo(t + 0.1, 0.9, 1170, 330, 1.55);
+      t += 0.5;
+      moveTo(B.vPix, 0.55);
+      click();
+      t += 0.05;
+      show("c2-pix", t);
+      t += 0.22;
+      moveTo(B.vCartao, 0.32);
+      click();
+      t += 0.05;
+      show("c2-cartao", t);
+      t += 0.22;
+      moveTo(B.vDin, 0.32);
+      click();
+      t += 0.05;
+      show("c2-preenchida", t);
+      t += 0.3;
+      camTo(t, 0.8, 1170, 640, 1.2);
+      moveTo(B.btnOk, 0.6);
+      click();
+      show("c3-confere", t, 0.15);
+      t += 0.45;
+      moveTo(B.btnOk, 0.1);
+      click();
+
+      /* ===== D · dashboard: o lucro cresce ===== */
+      cap("cap4", t, t + 5.6);
+      camTo(t, 0.9, 720, 450, 1.0);
+      moveTo(B.navDash, 0.8);
+      t += 0.06;
+      click();
+      show("d1-dash-oculta", t, 0.3);
+      [nSobrou, nEntrou, nSaiu, nMargem, nPct].forEach((el) => tl.set(el, { opacity: 1 }, t));
+      const tD = t + 0.35;
+      tl.to(cursor, { opacity: 0, duration: 0.4 }, tD + 0.2);
+      camTo(tD, 1.0, 780, 250, 1.5, "power2.inOut");
+      const fmt = (v) => Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      const cnt = { p: 0 };
+      const ents = [53120, 56170],
+        sai = [48719, 49339],
+        sob = [5006, 7436],
+        mar = [9.4, 13.2],
+        pct = [106, 112];
+      const lerp = (a, v) => a[0] + (a[1] - a[0]) * v;
+      tl.to(
+        cnt,
+        {
+          p: 1,
+          duration: 2.4,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            const v = cnt.p;
+            nSobrou.innerHTML = "R$&nbsp;" + fmt(lerp(sob, v));
+            nEntrou.innerHTML = "R$&nbsp;" + fmt(lerp(ents, v));
+            nSaiu.innerHTML = "R$&nbsp;" + fmt(lerp(sai, v));
+            nMargem.innerHTML = "margem de <b>" + lerp(mar, v).toFixed(1).replace(".", ",") + "%</b>";
+            nPct.innerHTML = Math.round(lerp(pct, v)) + "%";
+          },
+        },
+        tD + 0.7,
+      );
+      // empurrão final no card "Sobrou" quando o número chega
+      camTo(tD + 2.2, 1.1, 430, 215, 2.1, "power3.inOut");
+      tl.fromTo(glow, { opacity: 0, scale: 0.98 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, tD + 3.0);
+      tl.fromTo(
+        delta,
+        { opacity: 0, y: 14, scale: 0.7 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2.4)" },
+        tD + 3.15,
+      );
+      tl.to(nSobrou, { scale: 1.06, transformOrigin: "0 50%", duration: 0.25, ease: "power2.out", yoyo: true, repeat: 1 }, tD + 3.1);
+      tl.to(glow, { opacity: 0, duration: 0.5 }, tD + 4.6);
+      camTo(tD + 4.6, 1.0, 720, 450, 1.0, "power3.inOut");
+      const tEnd = tD + 5.7;
+
+      buildCam();
+      tl.timeScale(SPEED);
+      const INTRO = 2.0; // onde o vídeo "de verdade" começa (segundos reais)
+      const TOTAL = 34.875; // 18 compassos da trilha
+      const tOut = INTRO + tl.duration() / SPEED; // quando o fechamento começa
+      main.add(tl, INTRO);
+
+      /* ===== identidade nova (guia de marca): movimento cubic-bezier(.2,.8,.2,1), sem quicar ===== */
+      const OUT = "power4.out"; // ≈ cubic-bezier(.2,.8,.2,1)
+      // monta o símbolo na ordem do guia: quadrado -> barra do T -> haste -> sorriso -> nome entra da esquerda
+      const buildLogo = (sfx, at) => {
+        tl0.fromTo("#sq" + sfx, { opacity: 0, scale: 0.7, svgOrigin: "50 50" }, { opacity: 1, scale: 1, svgOrigin: "50 50", duration: 0.3, ease: OUT }, at);
+        [["b", 0.28], ["h", 0.42], ["s", 0.56]].forEach(([id, off]) => {
+          tl0.set("#" + id + sfx, { opacity: 1 }, at + off);
+          tl0.fromTo("#" + id + sfx, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.22, ease: "power2.out" }, at + off);
+        });
+        tl0.fromTo("#nmt" + sfx, { x: -150, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: OUT }, at + 0.85);
+      };
+      // transição sol: círculo sol cresce do centro, mar cobre
+      const sunCover = (sun, mar, at) => {
+        tl0.fromTo(sun, { scale: 0 }, { scale: 1, duration: 0.5, ease: OUT }, at);
+        tl0.fromTo(mar, { scale: 0 }, { scale: 1, duration: 0.5, ease: OUT }, at + 0.22);
+      };
+      const tl0 = main;
+
+      // abertura
+      buildLogo("I", 0.12);
+      sunCover("#sunI", "#marI", 1.45);
+      tl0.fromTo("#scene", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(80% at 50% 50%)", duration: 0.6, ease: "power3.inOut" }, 1.85);
+
+      // fechamento
+      sunCover("#sunO", "#marO", tOut);
+      tl0.fromTo("#osun", { scale: 0 }, { scale: 1, duration: 0.8, ease: OUT }, tOut + 0.6);
+      buildLogo("O", tOut + 0.6);
+      ["#tag1", "#tag2"].forEach((id, i) =>
+        tl0.fromTo(id, { yPercent: 110 }, { yPercent: 0, duration: 0.55, ease: OUT }, tOut + 2.05 + i * 0.14),
+      );
+      tl0.fromTo("#ocTa", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: OUT }, tOut + 2.55);
+      tl0.fromTo("#ofil", { opacity: 0, scaleX: 0, transformOrigin: "0 50%" }, { opacity: 1, scaleX: 1, duration: 0.5, ease: OUT }, tOut + 2.7);
+      tl0.fromTo("#osite", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.45, ease: OUT }, tOut + 2.8);
+      window.__total = tOut;
+      window.__timelines["main"] = main;
+      main.seek(0);
+    </script>
+  </body>
+</html>

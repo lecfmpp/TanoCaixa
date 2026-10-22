@@ -2,10 +2,15 @@
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "trailingSlash": false,
     "rewrites": [
       {
         "source": "/api/stripe-webhook",
         "function": { "functionId": "stripeWebhook", "region": "us-central1" }
+      },
+      {
+        "source": "/api/lead",
+        "function": { "functionId": "capturarLead", "region": "us-central1" }
       },
       {
         "source": "**",
