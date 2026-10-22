@@ -1,16 +1,44 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Camera, ArrowRight, Star } from 'lucide-react'
+import { Check, Camera, ArrowRight, Star, Volume2, VolumeX } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { fotos } from '@/lib/fotos'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { DESCONTO_LOJA, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
 import { cn } from '@/lib/cn'
 
+/** Demonstração publicada no canal do YouTube (é a mesma que toca no hero). */
+const VIDEO_HERO = {
+  youtubeId: 't0oa-2wGEoo',
+  titulo: 'Software de Gestão para Restaurante e Delivery | Tá no Caixa',
+  descricao:
+    'Software de gestão para restaurante e delivery que mostra quanto sobrou no mês: lance nota fiscal, despesas e vendas e veja o lucro crescer no dashboard.',
+  enviadoEm: '2026-10-21',
+  duracao: 'PT35S',
+} as const
+
 /* Landing pública — tanocaixa.com. Fiel ao Landing.dc.html. */
 export function LandingPage() {
   return (
     <div className="min-h-dvh bg-fundo-app text-tinta">
+      {/* Dados estruturados: o Google associa o vídeo do YouTube a esta página (elegível a resultado em vídeo). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'VideoObject',
+            name: VIDEO_HERO.titulo,
+            description: VIDEO_HERO.descricao,
+            thumbnailUrl: [`https://i.ytimg.com/vi/${VIDEO_HERO.youtubeId}/maxresdefault.jpg`],
+            uploadDate: VIDEO_HERO.enviadoEm,
+            duration: VIDEO_HERO.duracao,
+            contentUrl: `https://www.youtube.com/watch?v=${VIDEO_HERO.youtubeId}`,
+            embedUrl: `https://www.youtube.com/embed/${VIDEO_HERO.youtubeId}`,
+            inLanguage: 'pt-BR',
+          }),
+        }}
+      />
       <Nav />
       <Hero />
       <Problema />
@@ -36,6 +64,7 @@ function Nav() {
           <a href="#painel" className="hover:text-tinta">Funcionalidades</a>
           <a href="#preco" className="hover:text-tinta">Preço</a>
           <a href="#duvidas" className="hover:text-tinta">Dúvidas</a>
+          <a href="/blog" className="hover:text-tinta">Blog</a>
         </nav>
         <div className="flex items-center gap-2.5">
           <Link to="/entrar" className="hidden text-sm font-bold text-tinta-2 hover:text-tinta cel:block">Entrar</Link>
@@ -73,13 +102,36 @@ function Hero() {
           ))}
         </div>
       </div>
-      <TelaReal src="/landing/dashboard.webp" alt="Dashboard do Tá no Caixa com o resultado do mês, metas e caminho até o ponto de equilíbrio" />
+      <TelaReal
+        src="/landing/hero-demo-poster.webp"
+        video="/landing/hero-demo.mp4"
+        youtubeId={VIDEO_HERO.youtubeId}
+        prioridade
+        alt="Demonstração em vídeo: lançar uma nota fiscal e uma despesa no Tá no Caixa e ver o lucro do mês crescer no dashboard"
+      />
     </section>
   )
 }
 
-/** Print real do app (modo demonstração, restaurante de exemplo) numa moldura de navegador. */
-function TelaReal({ src, alt, prioridade = false }: { src: string; alt: string; prioridade?: boolean }) {
+/**
+ * Print real do app (modo demonstração, restaurante de exemplo) numa moldura de navegador.
+ * Com `video`, toca a demonstração animada (feita dos prints reais) em loop; `src` vira o poster.
+ * `youtubeId` é a mesma demonstração publicada no canal: vira um link "Ver no YouTube" na moldura
+ * (o embed do YouTube cobriria a abertura com a barra de título e de canal, por isso o hero toca o MP4).
+ * Quem pede menos movimento no sistema vê só o quadro estático.
+ */
+function TelaReal({ src, alt, prioridade = false, video, youtubeId }: { src: string; alt: string; prioridade?: boolean; video?: string; youtubeId?: string }) {
+  const reduzirMovimento = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [mudo, setMudo] = useState(true)
+  // Navegador só libera autoplay mudo; o som liga num clique (gesto do usuário).
+  function alternarSom() {
+    const v = videoRef.current
+    if (!v) return
+    v.muted = !v.muted
+    setMudo(v.muted)
+    if (!v.muted && v.paused) void v.play()
+  }
   return (
     <div className="relative">
       <div className="foto-rio absolute -inset-4 -z-10 rounded-[28px] opacity-90" aria-hidden>
@@ -92,7 +144,47 @@ function TelaReal({ src, alt, prioridade = false }: { src: string; alt: string; 
           <span className="h-2.5 w-2.5 rounded-full bg-mata/60" />
           <span className="mono ml-3 text-[11px] text-tinta-4">app.tanocaixa.com</span>
         </div>
-        <img src={src} alt={alt} width={1400} height={Math.round(1400 * 1350 / 1806)} loading={prioridade ? 'eager' : 'lazy'} className="block h-auto w-full" />
+        {video && !reduzirMovimento ? (
+          <div className="relative">
+            <video
+              ref={videoRef}
+              src={video}
+              poster={src}
+              role="img"
+              aria-label={alt}
+              width={1280}
+              height={800}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload={prioridade ? 'auto' : 'metadata'}
+              className="block h-auto w-full"
+            />
+            {youtubeId && (
+              <a
+                href={`https://youtu.be/${youtubeId}`}
+                target="_blank"
+                rel="noopener"
+                className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-noite/85 px-3 py-1.5 text-xs font-bold text-creme backdrop-blur transition hover:bg-noite"
+              >
+                Ver no YouTube <ArrowRight size={13} aria-hidden />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={alternarSom}
+              aria-pressed={!mudo}
+              aria-label={mudo ? 'Ligar o som do vídeo' : 'Desligar o som do vídeo'}
+              className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-noite/85 px-3 py-1.5 text-xs font-bold text-creme shadow-cartao backdrop-blur transition hover:bg-noite"
+            >
+              {mudo ? <VolumeX size={14} aria-hidden /> : <Volume2 size={14} aria-hidden />}
+              {mudo ? 'Ligar som' : 'Som ligado'}
+            </button>
+          </div>
+        ) : (
+          <img src={src} alt={alt} width={1400} height={Math.round(1400 * 1350 / 1806)} loading={prioridade ? 'eager' : 'lazy'} className="block h-auto w-full" />
+        )}
       </div>
     </div>
   )
@@ -369,16 +461,25 @@ function CTAFinal() {
   )
 }
 
+const DESTINOS_RODAPE: Record<string, string> = {
+  Blog: '/blog',
+  'Sistema para restaurante': '/blog/sistema-para-restaurante',
+  'Taxa do iFood': '/blog/taxa-do-ifood',
+  'Como calcular o CMV': '/blog/como-calcular-cmv-restaurante',
+  'Materiais grátis': '/recursos',
+}
+
 function Rodape() {
   const cols: [string, string[]][] = [
     ['Produto', ['Como funciona', 'Funcionalidades', 'Preço', 'Pro contador']],
+    ['Aprenda', ['Blog', 'Sistema para restaurante', 'Taxa do iFood', 'Como calcular o CMV', 'Materiais grátis']],
     ['Ajuda', ['Central de dúvidas', 'WhatsApp', 'Status do sistema']],
     ['Legal', ['Termos de uso', 'Privacidade e LGPD', 'Segurança']],
   ]
   return (
     <footer className="border-t border-divisoria bg-fundo-app">
       <div className="mx-auto max-w-6xl px-5 py-12">
-        <div className="grid gap-8 tab:grid-cols-4">
+        <div className="grid gap-8 tab:grid-cols-5">
           <div>
             <Logo tom="escuro" tamanho={18} />
             <p className="pretty mt-3 max-w-[220px] text-sm text-tinta-3">Gestão financeira para quem cozinha.</p>
@@ -387,7 +488,7 @@ function Rodape() {
             <div key={t}>
               <div className="rotulo text-tinta-4">{t}</div>
               <ul className="mt-3 flex flex-col gap-2 text-sm text-tinta-2">
-                {links.map((l) => <li key={l}><a href="#" className="hover:text-tinta">{l}</a></li>)}
+                {links.map((l) => <li key={l}><a href={DESTINOS_RODAPE[l] ?? '#'} className="hover:text-tinta">{l}</a></li>)}
               </ul>
             </div>
           ))}

@@ -294,3 +294,6 @@ export { criarConvite, verConvite, aceitarConvite } from './convites'
 
 /* ----------------------- E-mail de boas-vindas (Resend) ------------------- */
 export { boasVindas } from './boasVindasTrigger'
+
+// Captura de e-mail das iscas digitais do blog (planilhas e checklists)
+export { capturarLead } from './leads'
