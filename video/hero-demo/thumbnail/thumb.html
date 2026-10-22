@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Thumbnail YouTube — hero Tá no Caixa (modelo YT-A)</title>
+    <style>
+      @font-face {
+        font-family: "Archivo";
+        src: url("assets/Archivo.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("assets/JetBrainsMono.woff2") format("woff2");
+        font-weight: 400 700;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        background: #16303a;
+        font-family: "Archivo", sans-serif;
+      }
+      /* Modelo YT-A do pacote de marca (Guia de Marca §11), medidas em px reais de 1280x720 (1cqw = 12.8px) */
+      #thumb {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        background: #16303a;
+        isolation: isolate;
+      }
+      .sol {
+        position: absolute;
+        right: -102.4px;
+        top: -179.2px;
+        width: 588.8px;
+        height: 588.8px;
+        border-radius: 50%;
+        background: #efab5c;
+        z-index: -1;
+      }
+      .col {
+        position: absolute;
+        left: 71.68px;
+        top: 71.68px;
+        bottom: 71.68px;
+        width: 740px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 20.48px;
+      }
+      .logo {
+        position: relative;
+        flex: none;
+        width: 92.16px;
+        height: 92.16px;
+        border-radius: 30%;
+        background: #efab5c;
+      }
+      .logo svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .tag {
+        padding: 11.52px 23.04px;
+        border-radius: 999px;
+        background: #c05437;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26.88px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #f7f5ea;
+        white-space: nowrap;
+      }
+      .label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 35.84px;
+        font-weight: 700;
+        color: #efab5c;
+      }
+      /* Archivo 900 não aguenta o −0,04em do modelo: as letras se encostam e as palavras grudam.
+         Aqui o tracking é mais aberto, há respiro entre as palavras e a entrelinha cobre os ascendentes/descendentes. */
+      .title {
+        font-size: 92px;
+        font-weight: 900;
+        line-height: 1.08;
+        letter-spacing: -0.01em;
+        word-spacing: 0.12em;
+        color: #f7f5ea;
+        margin-top: 18px;
+        text-wrap: balance;
+      }
+      .phone {
+        position: absolute;
+        right: 89.6px;
+        top: 115.2px;
+        width: 307.2px;
+        height: 614.4px;
+        border-radius: 46.08px;
+        background: #0e1f26;
+        padding: 12.8px;
+        box-shadow: 0 25.6px 51.2px rgba(0, 0, 0, 0.4);
+        transform: rotate(6deg);
+      }
+      .screen {
+        width: 100%;
+        height: 100%;
+        border-radius: 35.84px;
+        background: #f0eee2;
+        overflow: hidden;
+      }
+      .screen img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="thumb">
+      <div class="sol"></div>
+      <div class="col">
+        <div class="head">
+          <div class="logo">
+            <svg viewBox="0 0 100 100"><g fill="none" stroke="#1E4354" stroke-width="13" stroke-linecap="round"><path d="M27 24 H73" /><path d="M50 24 V52" /><path d="M33 68 Q50 82 67 68" /></g></svg>
+          </div>
+          <div class="tag">Gestão</div>
+        </div>
+        <div>
+          <div class="label">Gestão de restaurante</div>
+          <div class="title">Quanto sobrou no mês?</div>
+        </div>
+      </div>
+      <div class="phone"><div class="screen"><img src="assets/tela-celular.jpg" alt="Dashboard do Tá no Caixa no celular" /></div></div>
+    </div>
+  </body>
+</html>
