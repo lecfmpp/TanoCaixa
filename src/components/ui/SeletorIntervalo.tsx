@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays } from 'lucide-react'
 import type { Intervalo } from '@/types'
 import { cn } from '@/lib/cn'
@@ -31,6 +32,25 @@ export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervalo
   const [de, setDe] = useState(valor?.de ?? hoje)
   const [ate, setAte] = useState(valor?.ate ?? hoje)
   const ref = useRef<HTMLDivElement>(null)
+  const painelRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+
+  // O painel vai pro <body>: a faixa do cabeçalho tem overflow hidden e cortava
+  // o painel, e nenhum z-index escapa disso. Posição calculada pelo botão.
+  useLayoutEffect(() => {
+    if (!aberto) return
+    const medir = () => {
+      const r = ref.current?.getBoundingClientRect()
+      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
+    }
+    medir()
+    window.addEventListener('resize', medir)
+    window.addEventListener('scroll', medir, true)
+    return () => {
+      window.removeEventListener('resize', medir)
+      window.removeEventListener('scroll', medir, true)
+    }
+  }, [aberto])
 
   // Ao abrir, começa do intervalo ativo (ou de hoje).
   useEffect(() => {
@@ -43,7 +63,8 @@ export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervalo
   useEffect(() => {
     if (!aberto) return
     const fora = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false)
+      const alvo = e.target as Node
+      if (ref.current && !ref.current.contains(alvo) && !painelRef.current?.contains(alvo)) setAberto(false)
     }
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setAberto(false)
     document.addEventListener('mousedown', fora)
@@ -85,11 +106,13 @@ export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervalo
         </button>
       </div>
 
-      {aberto && (
+      {aberto && pos && createPortal(
         <div
+          ref={painelRef}
+          style={{ top: pos.top, right: pos.right }}
           role="dialog"
           aria-label="Escolher período"
-          className="absolute right-0 top-[calc(100%+8px)] z-40 w-72 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-4 text-tinta shadow-cartao"
+          className="fixed z-[70] w-72 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-4 text-tinta shadow-cartao"
         >
           <div className="flex flex-wrap gap-2">
             {atalhos.map((a) => (
@@ -143,7 +166,8 @@ export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervalo
               Aplicar
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
