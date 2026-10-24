@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Plus, Store } from 'lucide-react'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -8,6 +10,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { storage } from '@/lib/firebase'
 import { rotuloPapel } from '@/types'
+import { useRede } from '@/data/hooks'
+import { FormAbrirLoja } from '@/pages/painel/Rede'
 
 export function Perfil() {
   const { sessao, atualizarPerfil } = useAuth()
@@ -18,6 +22,8 @@ export function Perfil() {
   const [nome, setNome] = useState(usuario.nome)
   const [salvandoNome, setSalvandoNome] = useState(false)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
+  const rede = useRede().data
+  const [abrindoLoja, setAbrindoLoja] = useState(false)
   const arquivoRef = useRef<HTMLInputElement>(null)
 
   const nomeMudou = nome.trim() !== usuario.nome && nome.trim().length > 0
@@ -117,6 +123,58 @@ export function Perfil() {
         <p className="mt-1 text-xs text-tinta-4">
           Toda conta no Tá no Caixa está sempre ligada a um restaurante — é por aqui que seus lançamentos e permissões valem.
         </p>
+      </Cartao>
+      <Cartao className="flex flex-col gap-3 !p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
+          <div>
+            <h2 className="text-[15px] font-bold text-tinta">{rede ? `Rede ${rede.nome}` : 'Mais de uma unidade?'}</h2>
+            <p className="text-xs text-tinta-4">
+              {rede
+                ? `${rede.lojas.length} ${rede.lojas.length === 1 ? 'unidade' : 'unidades'} · cada uma com caixa, equipe e DRE próprios`
+                : 'Abra outro restaurante ou franquia sem sair da sua conta.'}
+            </p>
+          </div>
+          {rede ? (
+            !abrindoLoja && (
+              <button
+                onClick={() => setAbrindoLoja(true)}
+                className="flex items-center gap-1.5 rounded-botao bg-mar px-3.5 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                Adicionar restaurante ou franquia
+              </button>
+            )
+          ) : (
+            <Link
+              to="/painel/rede"
+              className="flex items-center gap-1.5 rounded-botao bg-mar px-3.5 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Adicionar restaurante ou franquia
+            </Link>
+          )}
+        </div>
+        {rede && (
+          <ul className="px-5 pb-1">
+            {rede.lojas.map((l) => (
+              <li key={l.restauranteId} className="flex items-center gap-2 border-t border-divisoria py-2.5 text-sm text-tinta-2 first:border-0">
+                <Store size={15} className="shrink-0 text-tinta-4" />
+                <span className="font-semibold text-tinta">{l.nome}</span>
+                {l.bairro && <span className="text-tinta-4">· {l.bairro}</span>}
+                {l.restauranteId === restaurante.id && (
+                  <span className="rounded-chip bg-preenchimento px-2 py-0.5 text-xs font-semibold text-tinta-3">atual</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {rede && abrindoLoja && <FormAbrirLoja aoFechar={() => setAbrindoLoja(false)} />}
+        {!rede && (
+          <p className="px-5 pb-5 text-xs text-tinta-4">
+            Você vai criar a rede (lojas suas ou franquia) e a loja atual entra como primeira unidade.
+          </p>
+        )}
+        {rede && !abrindoLoja && <div className="pb-4" />}
       </Cartao>
     </div>
   )

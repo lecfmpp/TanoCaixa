@@ -57,7 +57,7 @@ export function SectionHeader({
   }, [menuAberto])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-30" ref={ref}>
       {/* Faixa com foto (overflow hidden) */}
       <div className="foto-rio flex min-h-[104px] flex-col items-start justify-center gap-3 rounded-cartao-g px-6 py-5 tab:flex-row tab:items-center tab:justify-between">
         <img src={foto} alt="" aria-hidden />

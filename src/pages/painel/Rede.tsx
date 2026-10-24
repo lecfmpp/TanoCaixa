@@ -226,7 +226,7 @@ function PainelDaRede({
   )
 }
 
-function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
+export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
   const abrir = useAbrirLoja()
   const { adicionarToast } = useUI()
   const [nome, setNome] = useState('')
