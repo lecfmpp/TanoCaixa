@@ -52,7 +52,7 @@ export function Plano() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader titulo="Assinatura" subtitulo="Um plano só, cobrado por loja" />
+      <SectionHeader titulo="Assinatura" subtitulo="Um plano só, cobrado por loja" semMes />
       <Cartao className="mx-auto w-full max-w-xl p-7">
         <div className="flex items-end gap-2">
           <span className="mono text-tinta-4 line-through" style={{ fontSize: 20 }}>R$ {PRECO_LOJA_CHEIO}</span>

@@ -9,8 +9,7 @@ import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useProdutos, usePratos, useRemoverProduto, useRestaurante } from '@/data/hooks'
 import { pratosQueUsam } from '@/data/cardapio'
-import { agora, MES_REF } from '@/data/derive'
-import { nomeDoMes } from '@/data/planoMes'
+import { agora } from '@/data/derive'
 import { CATEGORIAS_PRODUTO as CATEGORIAS, CONTA, contaDeCmvDoProduto } from '@/data/planoContas'
 import { mensagemDeErro } from '@/lib/erros'
 import type { ProdutoDoc } from '@/data/types'
@@ -70,7 +69,7 @@ export function Produtos() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Produtos" subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''} />
+      <SectionHeader titulo="Produtos" subtitulo={cfg ? [cfg.nome, cfg.bairro].filter(Boolean).join(' · ') : ''} semMes />
 
       {/* Busca + filtros */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center">

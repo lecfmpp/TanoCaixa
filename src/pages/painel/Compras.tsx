@@ -202,7 +202,7 @@ export function Compras() {
                     <span className="flex-1">
                       <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
                       <span className="block text-xs text-tinta-4">
-                        {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
+                        {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))}{n.vencimento ? ` · venc. ${n.vencimento.slice(0, 10).split('-').reverse().slice(0, 2).join('/')}` : ''} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                       </span>
                     </span>
                     {pago ? (

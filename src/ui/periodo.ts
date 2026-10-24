@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { Filtro } from '@/types'
+import { MES_REF, assinarMesRef } from '@/data/derive'
 
 /**
  * Semana | Mês | intervalo de datas é UM filtro só pro painel inteiro. Antes
@@ -38,4 +39,9 @@ const curto = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 /** Texto do intervalo pro botão do seletor: '01/09 – 18/09'. */
 export function rotuloIntervalo(i: { de: string; ate: string }): string {
   return i.de === i.ate ? curto(i.de) : `${curto(i.de)} – ${curto(i.ate)}`
+}
+
+/** Mês que o painel inteiro mostra ('YYYY-MM'); re-renderiza quando o usuário troca. */
+export function useMesRef(): string {
+  return useSyncExternalStore(assinarMesRef, () => MES_REF)
 }

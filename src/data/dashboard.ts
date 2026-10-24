@@ -7,7 +7,7 @@
 import type { CanalVenda, Filtro } from '@/types'
 import { CONTA, GRUPO, type GrupoDRE } from './planoContas'
 import { ehCompra } from './compras'
-import { HOJE, MES_REF, dentroDoPeriodoAnterior, dreDoMes, faturamento, isoDoDia, mesAnterior, noPeriodo, type Contexto } from './derive'
+import { HOJE, MES_REF, diaLimiteDoMesRef, diasNoMesRef, dentroDoPeriodoAnterior, dreDoMes, faturamento, isoDoDia, mesAnterior, noPeriodo, type Contexto } from './derive'
 import { nomeDoMes } from './planoMes'
 import type { DespesaDoc, ReceitaDiaDoc } from './types'
 
@@ -134,8 +134,8 @@ export interface Acumulado {
 
 /** Vendas acumuladas do mês corrente, dia a dia, e a projeção pelo ritmo de cada dia da semana. */
 export function acumuladoDoMes(receitaDia: ReceitaDiaDoc[], pontoEquilibrio: number): Acumulado {
-  const ultimoDia = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
-  const hojeDia = HOJE.getDate()
+  const ultimoDia = diasNoMesRef()
+  const hojeDia = diaLimiteDoMesRef()
   const porDia = new Array<number>(ultimoDia).fill(0)
   for (const r of receitaDia) {
     if (r.data.slice(0, 7) !== MES_REF) continue

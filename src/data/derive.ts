@@ -48,8 +48,51 @@ export interface Contexto {
 /** Margem de contribuição de fallback, quando ainda não há venda no mês. */
 const MC_PADRAO = 0.415
 
-/** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
+/** Mês que o usuário escolheu no cabeçalho; null = o mês de hoje. */
+let mesEscolhido: string | null = null
+
+/**
+ * Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). É o mês
+ * que o painel inteiro mostra: o de hoje, ou o que o usuário escolheu.
+ */
 export let MES_REF = mesDe(HOJE)
+
+const ouvintesDoMes = new Set<() => void>()
+
+export function assinarMesRef(fn: () => void): () => void {
+  ouvintesDoMes.add(fn)
+  return () => ouvintesDoMes.delete(fn)
+}
+
+/** Mês de hoje ('YYYY-MM'), independente do mês escolhido. */
+export function mesAtual(): string {
+  return mesDe(HOJE)
+}
+
+/** Troca o mês mostrado no painel; null volta pro mês de hoje. */
+export function escolherMesRef(mes: string | null): void {
+  const novo = mes && mes !== mesDe(HOJE) ? mes : null
+  if (novo === mesEscolhido) return
+  mesEscolhido = novo
+  MES_REF = mesEscolhido ?? mesDe(HOJE)
+  ouvintesDoMes.forEach((fn) => fn())
+}
+
+/** Quantos dias tem o mês de referência. */
+export function diasNoMesRef(): number {
+  const [a, m] = MES_REF.split('-').map(Number)
+  return new Date(a, m, 0).getDate()
+}
+
+/**
+ * Até que dia do mês de referência "já aconteceu": hoje no mês corrente, o mês
+ * inteiro num mês passado, nenhum num mês que ainda não começou.
+ */
+export function diaLimiteDoMesRef(): number {
+  const hoje = mesDe(HOJE)
+  if (MES_REF === hoje) return HOJE.getDate()
+  return MES_REF < hoje ? diasNoMesRef() : 0
+}
 
 /** Dia em 'YYYY-MM-DD' pelo calendário LOCAL (toISOString usa UTC e, à noite no Brasil, já é amanhã). */
 export function isoDoDia(d: Date): string {
@@ -73,10 +116,9 @@ export function agora(): Date {
   return modoDemo ? HOJE : new Date()
 }
 
-/** Quantos dias faltam pro mês de referência acabar (0 no último dia). */
+/** Quantos dias faltam pro mês de referência acabar (0 no último dia; 0 num mês passado). */
 export function diasRestantesNoMes(): number {
-  const ultimo = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
-  return ultimo - HOJE.getDate()
+  return diasNoMesRef() - diaLimiteDoMesRef()
 }
 
 /**
@@ -86,6 +128,7 @@ export function diasRestantesNoMes(): number {
 export function ajustarDataDeReferencia(demo: boolean): void {
   modoDemo = demo
   HOJE = demo ? HOJE_DEMO : new Date()
+  mesEscolhido = null
   MES_REF = mesDe(HOJE)
 }
 
@@ -98,7 +141,7 @@ export function virouODia(): boolean {
   const hoje = new Date()
   if (isoDoDia(hoje) === isoDoDia(HOJE)) return false
   HOJE = hoje
-  MES_REF = mesDe(HOJE)
+  MES_REF = mesEscolhido ?? mesDe(HOJE)
   return true
 }
 
@@ -123,7 +166,7 @@ function diasDoIntervalo(i: Intervalo): string[] {
 /** Quantos dias tem a janela do filtro (mês corrente inteiro, 7, ou o intervalo). */
 export function diasDoFiltro(f: Filtro): number {
   if (typeof f !== 'string') return Math.max(1, diasDoIntervalo(f).length)
-  return f === 'semana' ? 7 : new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
+  return f === 'semana' ? 7 : diasNoMesRef()
 }
 
 export function noPeriodo(iso: string, periodo: Filtro): boolean {
@@ -649,7 +692,7 @@ export function dentroDoPeriodoAnterior(periodo: Filtro): (iso: string) => boole
   }
   if (periodo === 'mes') {
     const mes = mesAnterior(MES_REF)
-    const ateDia = HOJE.getDate()
+    const ateDia = diaLimiteDoMesRef()
     return (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
   }
   const ini = new Date(HOJE)

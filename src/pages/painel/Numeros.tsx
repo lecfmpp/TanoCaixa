@@ -10,7 +10,7 @@ import { useAuth } from '@/auth/AuthContext'
 import { usePeriodo } from '@/ui/periodo'
 import { ehCompra } from '@/data/compras'
 import { useContexto, usePlanoMes, useRestaurante } from '@/data/hooks'
-import { HOJE, MES_REF, diasDoFiltro, noPeriodo, periodoAnterior, resumoInicio, type Contexto } from '@/data/derive'
+import { MES_REF, diasNoMesRef, diasDoFiltro, noPeriodo, periodoAnterior, resumoInicio, type Contexto } from '@/data/derive'
 import type { PlanoMesDoc } from '@/data/planoMes'
 import type { RestauranteDoc } from '@/data/types'
 import type { Filtro, Permissoes } from '@/types'
@@ -119,7 +119,7 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
 
   // Meta de faturamento do mês: a do Plano do mês, se existir; senão a de Metas e números.
   const metaMes = planoDoMes?.metaFaturamento ?? cfg?.metaFaturamento ?? 0
-  const diasNoMes = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
+  const diasNoMes = diasNoMesRef()
   const metaPeriodo = periodo === 'mes' ? metaMes : (metaMes * diasDoFiltro(periodo)) / diasNoMes
   const pctMeta = metaPeriodo > 0 ? Math.round((fat / metaPeriodo) * 100) : 0
 

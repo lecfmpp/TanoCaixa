@@ -52,7 +52,7 @@ export function Caixa() {
   const mesAtivo =
     mesEscolhido && (mesEscolhido === 'todos' || meses.includes(mesEscolhido))
       ? mesEscolhido
-      : meses.includes(MES_REF) ? MES_REF : 'todos'
+      : MES_REF
   // Intervalo de datas escolhido no cabeçalho manda sobre o seletor de mês.
   const receitas = intervalo
     ? todas.filter((r) => r.data.slice(0, 10) >= intervalo.de && r.data.slice(0, 10) <= intervalo.ate)

@@ -25,8 +25,7 @@ import {
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { functions } from '@/lib/firebase'
-import { agora, MES_REF } from '@/data/derive'
-import { nomeDoMes } from '@/data/planoMes'
+import { agora } from '@/data/derive'
 import { PAPEIS, TIPOS_NEGOCIO, rotuloPapel, normalizarPapel, type Papel, type Origem, type TipoNegocio } from '@/types'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
 
@@ -106,7 +105,8 @@ export function Ajustes() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Ajustes"
-        subtitulo={cfg ? [cfg.nome, cfg.bairro, nomeDoMes(MES_REF)].filter(Boolean).join(' · ') : ''}
+        subtitulo={cfg ? [cfg.nome, cfg.bairro].filter(Boolean).join(' · ') : ''}
+        semMes
       />
 
       {/* Natureza do negócio — governa o DRE e a visão de rede */}

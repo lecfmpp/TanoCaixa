@@ -3,6 +3,7 @@ import { Plus, Receipt, ScrollText, Package, Boxes, CalendarCheck } from 'lucide
 import type { Filtro } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
+import { SeletorMes } from '@/components/ui/SeletorMes'
 import { SeletorIntervalo } from '@/components/ui/SeletorIntervalo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
@@ -19,6 +20,8 @@ interface SectionHeaderProps {
    *  é pior que botão ausente. */
   aoExportar?: () => void
   lancar?: boolean
+  /** Esconde o seletor de mês (páginas que não dependem do mês, como Perfil). */
+  semMes?: boolean
 }
 
 const OPCOES_LANCAR: { id: TipoGaveta; rotulo: string; icone: typeof Receipt; dica: string }[] = [
@@ -43,6 +46,7 @@ export function SectionHeader({
   soData,
   aoExportar,
   lancar = true,
+  semMes,
 }: SectionHeaderProps) {
   const [menuAberto, setMenuAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -57,7 +61,7 @@ export function SectionHeader({
   }, [menuAberto])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-30" ref={ref}>
       {/* Faixa com foto (overflow hidden) */}
       <div className="foto-rio flex min-h-[104px] flex-col items-start justify-center gap-3 rounded-cartao-g px-6 py-5 tab:flex-row tab:items-center tab:justify-between">
         <img src={foto} alt="" aria-hidden />
@@ -79,6 +83,12 @@ export function SectionHeader({
         </div>
 
         <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">
+          {!semMes && (
+            <SeletorMes
+              ativo={periodo === undefined || periodo === 'mes'}
+              aoEscolher={periodo !== undefined && periodo !== 'mes' && aoTrocarPeriodo ? () => aoTrocarPeriodo('mes') : undefined}
+            />
+          )}
           {periodo && aoTrocarPeriodo && !soData && (
             <Segmentado valor={typeof periodo === 'string' ? periodo : null} aoTrocar={aoTrocarPeriodo} tom="claro" />
           )}
