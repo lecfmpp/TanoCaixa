@@ -69,7 +69,7 @@ export function Perfil() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Perfil" subtitulo="Seus dados e o restaurante conectado" lancar={false} />
+      <SectionHeader titulo="Perfil" subtitulo="Seus dados e o restaurante conectado" lancar={false} semMes />
 
       <Cartao className="flex flex-col gap-5">
         <div className="flex items-center gap-4">

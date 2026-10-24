@@ -14,6 +14,7 @@ export function Cmv() {
         titulo="CMV"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''}
         lancar={false}
+        semMes
       />
       <Cartao className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <SeloEmBreve />
