@@ -9,7 +9,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { compacto } from '@/components/dashboard/graficos'
+import { compacto } from '@/components/dashboard/escala'
+import { MAR, TELHA } from '@/data/dashboard'
 import { useLargura } from '@/components/dashboard/useLargura'
 import { layoutBarras, visivelNoPasso, type ModoValores } from '@/components/dashboard/layoutBarras'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
@@ -20,8 +21,6 @@ import { nomeDoMes } from '@/data/planoMes'
 import { lembretes, type Vencimento } from '@/data/vencimentos'
 import { mensagemDeErro } from '@/lib/erros'
 
-const COR_MAR = '#2E5F73'
-const COR_TELHADO = '#C05437'
 
 type Tom = 'positivo' | 'negativo' | 'neutro'
 
@@ -340,8 +339,8 @@ function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: s
               className={cn('flex min-w-0 flex-1 cursor-pointer flex-col items-center rounded-md transition-colors', ativo === i && 'bg-preenchimento/70')}
             >
               <div className="flex w-full items-end justify-center" style={{ height: AREA + 24, gap: entreColunas }}>
-                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={COR_MAR} valores={valores} />
-                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={COR_TELHADO} valores={valores} />
+                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={MAR} valores={valores} />
+                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={TELHA} valores={valores} />
               </div>
               <div
                 className={cn(
