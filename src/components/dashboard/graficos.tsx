@@ -5,6 +5,7 @@
  * ------------------------------------------------------------------ */
 import type { CSSProperties, ReactNode } from 'react'
 import { useLargura } from './useLargura'
+import { visivelNoPasso } from './layoutBarras'
 import { cn } from '@/lib/cn'
 import { Cartao } from '@/components/ui/Cartao'
 import { MAR, MATA, SOL, TELHA } from '@/data/dashboard'
@@ -219,7 +220,8 @@ export function BarrasEntrouSaiu({ barras }: { barras: { rotulo: string; entrou:
       <div ref={rotulos} className="flex" style={{ paddingLeft: 44, marginTop: 8, gap }}>
         {barras.map((b, i) => {
           const saldo = b.entrou - b.saiu
-          const visivel = i % passo === 0
+          // A contagem parte do último: o grupo mais recente nunca fica sem data.
+          const visivel = visivelNoPasso(i, barras.length, passo)
           return (
             <div
               key={b.rotulo}

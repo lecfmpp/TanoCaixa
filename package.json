@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:socios": "node --test ops/socio-whatsapp/analise.test.mjs",
+    "test:graficos": "node --test src/components/dashboard/layoutBarras.test.mjs",
     "blog:gate": "node scripts/blog-gate.mjs"
   },
   "dependencies": {
