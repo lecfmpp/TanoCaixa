@@ -4,6 +4,7 @@
  * linha de base contínua e frase de leitura calculada no rodapé.
  * ------------------------------------------------------------------ */
 import type { CSSProperties, ReactNode } from 'react'
+import { useLargura } from './useLargura'
 import { cn } from '@/lib/cn'
 import { Cartao } from '@/components/ui/Cartao'
 import { MAR, MATA, SOL, TELHA } from '@/data/dashboard'
@@ -35,13 +36,13 @@ export function escala(min: number, max: number, incluiZero = true): Escala {
   return { lo, hi, ticks }
 }
 
-/** 56k, 7,5k, 800 — rótulo do eixo. */
+/** 56k, 7,5k, 104k, 800 — rótulo do eixo. A partir de 100k sem decimal (cabe em coluna estreita). */
 export function compacto(n: number): string {
   const a = Math.abs(n)
   const sinal = n < 0 ? '-' : ''
   if (a >= 1000) {
     const k = a / 1000
-    return `${sinal}${(Number.isInteger(k) ? String(k) : k.toFixed(1)).replace('.', ',')}k`
+    return `${sinal}${(Number.isInteger(k) ? String(k) : k >= 100 ? String(Math.round(k)) : k.toFixed(1)).replace('.', ',')}k`
   }
   return `${sinal}${Math.round(a)}`
 }
@@ -189,12 +190,19 @@ export function BarrasVerticais({ itens, fmtEixo, altura = 150, gap = 8, largura
 /** Barras agrupadas entrou × saiu, com o saldo de cada uma embaixo. */
 export function BarrasEntrouSaiu({ barras }: { barras: { rotulo: string; entrou: number; saiu: number }[] }) {
   const e = escala(0, Math.max(...barras.flatMap((b) => [b.entrou, b.saiu]), 1))
+  // Coluna estreita: mostra um rótulo de data a cada `passo` e esconde o saldo, em vez de um por cima do outro.
+  const [rotulos, largura] = useLargura<HTMLDivElement>()
+  // O espaço entre colunas encolhe com a quantidade (senão ele come a largura das barras).
+  const gap = barras.length > 20 ? 1 : barras.length > 12 ? 3 : 6
+  const coluna = largura > 0 ? (largura - 44 - gap * (barras.length - 1)) / Math.max(barras.length, 1) : 999
+  const passo = coluna >= 40 ? 1 : Math.ceil(40 / Math.max(coluna, 1))
+  const mostraSaldo = coluna >= 34
   return (
     <div className="mt-5">
       <AreaGrafico altura={150} e={e}>
-        <div className="flex h-full gap-1.5">
+        <div className="flex h-full" style={{ gap }}>
           {barras.map((b) => (
-            <div key={b.rotulo} className="relative flex min-w-0 flex-1 items-end justify-center gap-1">
+            <div key={b.rotulo} className="relative flex min-w-0 flex-1 items-end justify-center" style={{ gap: coluna < 14 ? 0 : 4 }}>
               {[
                 { v: b.entrou, cor: MAR },
                 { v: b.saiu, cor: TELHA },
@@ -208,15 +216,25 @@ export function BarrasEntrouSaiu({ barras }: { barras: { rotulo: string; entrou:
           ))}
         </div>
       </AreaGrafico>
-      <div className="flex gap-1.5" style={{ paddingLeft: 44, marginTop: 8 }}>
-        {barras.map((b) => {
+      <div ref={rotulos} className="flex" style={{ paddingLeft: 44, marginTop: 8, gap }}>
+        {barras.map((b, i) => {
           const saldo = b.entrou - b.saiu
+          const visivel = i % passo === 0
           return (
-            <div key={b.rotulo} className="min-w-0 flex-1 text-center">
-              <div className="text-xs text-tinta-4">{b.rotulo}</div>
-              <div className="mono text-[11px] font-bold" style={{ color: saldo >= 0 ? MATA : '#B4462F' }}>
-                {saldo >= 0 ? '+' : '-'}{compacto(Math.abs(saldo))}
-              </div>
+            <div
+              key={b.rotulo}
+              className={cn(
+                'flex min-w-0 flex-1 flex-col',
+                // Coluna estreita: os textos das pontas saem pra dentro do gráfico em vez de passar da borda do cartão.
+                coluna < 40 && barras.length > 1 && i === 0 ? 'items-start' : coluna < 40 && barras.length > 1 && i === barras.length - 1 ? 'items-end' : 'items-center',
+              )}
+            >
+              <div className={cn('whitespace-nowrap text-xs text-tinta-4', !visivel && 'invisible')}>{b.rotulo}</div>
+              {mostraSaldo && (
+                <div className="mono text-[11px] font-bold" style={{ color: saldo >= 0 ? MATA : '#B4462F' }}>
+                  {saldo >= 0 ? '+' : '-'}{compacto(Math.abs(saldo))}
+                </div>
+              )}
             </div>
           )
         })}
@@ -242,12 +260,20 @@ export function LinhaComTeto({ pontos, teto, fmtMes }: {
   const pct = (v: number) => `${v.toFixed(1).replace('.', ',')}%`
   return (
     <div className="mt-5">
-      <AreaGrafico altura={150} e={e} fmt={(t) => `${String(Math.round(t * 10) / 10).replace('.', ',')}%`} direita={12}>
+      <AreaGrafico
+        altura={150}
+        e={e}
+        // O "teto" ocupa o lugar do número do eixo que ficaria colado nele (antes os dois se sobrepunham).
+        fmt={(t) => (Math.abs(yPct(t, e) - y(teto)) < 12 ? '' : `${String(Math.round(t * 10) / 10).replace('.', ',')}%`)}
+        direita={12}
+      >
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
           <line x1="0" x2="100" y1={y(teto)} y2={y(teto)} stroke={TELHA} strokeWidth="1.5" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
           {n > 1 && <path d={d} fill="none" stroke={MAR} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
         </svg>
-        <span className="mono absolute -translate-y-1/2 text-[10px] font-bold" style={{ left: -44, top: `${y(teto)}%`, color: TELHA }}>teto</span>
+        <span className="mono absolute -translate-y-1/2 text-[10px] font-bold leading-[11px]" style={{ left: -44, top: `${y(teto)}%`, color: TELHA }}>
+          teto<br />{`${String(Math.round(teto * 10) / 10).replace('.', ',')}%`}
+        </span>
         {pontos.map((p, i) => {
           const acima = p.valor > teto
           return (

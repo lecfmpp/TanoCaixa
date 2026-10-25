@@ -8,6 +8,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { compacto } from '@/components/dashboard/graficos'
+import { useLargura } from '@/components/dashboard/useLargura'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { usePeriodo } from '@/ui/periodo'
 import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
@@ -287,30 +289,57 @@ function CartaoSobrou({ valor, margem, visivel }: { valor: number; margem: numbe
   )
 }
 
+/**
+ * Entrou × saiu por período. O que cabe depende da largura do cartão (zoom, tela
+ * estreita, menu aberto): com folga mostra os valores inteiros sobre as barras; com
+ * menos, valores curtos (4,6k); sem espaço, só o saldo embaixo. Os grupos nunca
+ * passam da borda: as colunas encolhem junto com o cartão.
+ */
 function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: string; entrou: number; saiu: number }[] }) {
   const AREA = 150
+  // Com muitas barras o espaço entre os grupos encolhe (senão ele come a largura das colunas: 31 barras ficavam invisíveis).
+  const GAP = barras.length > 20 ? 2 : barras.length > 12 ? 4 : 8
   const max = Math.max(...barras.flatMap((b) => [b.entrou, b.saiu]), 1)
+  const [ref, largura] = useLargura<HTMLDivElement>()
+  const grupo = largura > 0 ? (largura - GAP * (barras.length - 1)) / Math.max(barras.length, 1) : 999
+  const valores: 'inteiro' | 'curto' | 'nenhum' = grupo >= 88 ? 'inteiro' : grupo >= 68 ? 'curto' : 'nenhum'
+  const saldoCurto = grupo < 56
+  const entreColunas = grupo < 30 ? 1 : 4
+  // Grupo estreito (celular, muitas barras): data e saldo aparecem de um em um grupo, pra não se atropelarem.
+  // O passo vem do tamanho do maior texto (saldo de R$ 325 mil ocupa mais que "+358").
+  const maiorSaldo = Math.max(...barras.map((b) => (saldoCurto ? compacto(b.entrou - b.saiu) : inteiro(b.entrou - b.saiu)).length + 1), 5)
+  const precisa = Math.max(40, maiorSaldo * 7.4 + 16)
+  const passo = grupo + GAP >= precisa ? 1 : Math.ceil(precisa / Math.max(grupo + GAP, 1))
   return (
-    <Cartao className="flex flex-col">
-      <div className="mb-6 flex items-center justify-between">
+    <Cartao className="flex min-w-0 flex-col">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 className="text-[15px] font-bold text-tinta">{titulo}</h2>
         <div className="flex items-center gap-3 text-xs text-tinta-3">
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" /> entrou</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" /> saiu</span>
         </div>
       </div>
-      <div className="flex items-end justify-between gap-2">
-        {barras.map((b) => {
+      <div ref={ref} className="flex items-end" style={{ gap: GAP }}>
+        {barras.map((b, i) => {
           const sobraB = b.entrou - b.saiu
           return (
-            <div key={b.rotulo} className="flex flex-1 flex-col items-center">
-              <div className="flex items-end justify-center gap-1.5" style={{ height: AREA + 24 }}>
-                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={COR_MAR} />
-                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={COR_TELHADO} />
+            <div key={b.rotulo} className="flex min-w-0 flex-1 flex-col items-center">
+              <div className="flex w-full items-end justify-center" style={{ height: AREA + 24, gap: entreColunas }}>
+                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={COR_MAR} valores={valores} />
+                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={COR_TELHADO} valores={valores} />
               </div>
-              <div className="mt-3 text-center">
-                <div className="text-xs text-tinta-4">{b.rotulo}</div>
-                <div className={cn('mono mt-1 text-sm font-bold', sobraB >= 0 ? 'text-mata' : 'text-telha-alerta')}>{sobraB >= 0 ? '+' : ''}{inteiro(sobraB)}</div>
+              <div
+                className={cn(
+                  'mt-3 flex w-full flex-col',
+                  // Grupo estreito: os textos das pontas saem pra dentro do gráfico em vez de passar da borda do cartão.
+                  saldoCurto && barras.length > 1 && i === 0 ? 'items-start' : saldoCurto && barras.length > 1 && i === barras.length - 1 ? 'items-end' : 'items-center',
+                  i % passo !== 0 && 'invisible',
+                )}
+              >
+                <div className="whitespace-nowrap text-xs text-tinta-4">{b.rotulo}</div>
+                <div className={cn('mono mt-1 whitespace-nowrap font-bold', saldoCurto ? 'text-xs' : 'text-sm', sobraB >= 0 ? 'text-mata' : 'text-telha-alerta')}>
+                  {sobraB >= 0 ? '+' : ''}{saldoCurto ? compacto(sobraB) : inteiro(sobraB)}
+                </div>
               </div>
             </div>
           )
@@ -320,12 +349,14 @@ function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: s
   )
 }
 
-function ColunaBarra({ valor, max, area, cor }: { valor: number; max: number; area: number; cor: string }) {
+function ColunaBarra({ valor, max, area, cor, valores }: { valor: number; max: number; area: number; cor: string; valores: 'inteiro' | 'curto' | 'nenhum' }) {
   const altura = Math.max(4, (valor / max) * area)
   return (
-    <div className="flex flex-col items-center justify-end" style={{ height: area + 24 }}>
-      <span className="mono mb-1.5 text-[13px] font-medium" style={{ color: cor }}>{inteiro(valor)}</span>
-      <div className="w-7 rounded-t-md" style={{ height: altura, background: cor }} />
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-end" style={{ height: area + 24, maxWidth: 40 }}>
+      {valores !== 'nenhum' && (
+        <span className="mono mb-1.5 whitespace-nowrap text-[12px] font-medium" style={{ color: cor }}>{valores === 'inteiro' ? inteiro(valor) : compacto(valor)}</span>
+      )}
+      <div className="w-full rounded-t-md" style={{ height: altura, maxWidth: 28, background: cor }} title={inteiro(valor)} />
     </div>
   )
 }
