@@ -27,6 +27,8 @@ import Stripe from 'stripe'
 import { onRequest, onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
+import { exigirDonoOuGestao } from './acesso'
+import { eventoEhMaisNovo, statusDoStripe, urlSegura } from './assinatura'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
@@ -52,8 +54,8 @@ const cliente = () => new Stripe(STRIPE_SECRET_KEY.value())
 export const criarCheckoutAssinatura = onCall(
   { secrets: [STRIPE_SECRET_KEY] },
   async (req) => {
-    const { restauranteId, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
-    if (!restauranteId) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+    const { restauranteId: rid, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
+    const restauranteId = await exigirDonoOuGestao(req.auth?.uid, rid)
     const lojas = Math.floor(Number((req.data as Record<string, unknown>)?.lojas ?? 1))
     if (!Number.isFinite(lojas) || lojas < 1 || lojas > MAX_LOJAS) {
       throw new HttpsError('invalid-argument', `lojas deve ficar entre 1 e ${MAX_LOJAS}`)
@@ -74,20 +76,23 @@ export const criarCheckoutAssinatura = onCall(
       customer_email: email || undefined,
       subscription_data: { metadata: { restauranteId, plano: 'loja', lojas: String(lojas) } },
       metadata: { restauranteId, plano: 'loja', lojas: String(lojas) },
-      success_url: sucessoUrl || 'https://tanocaixa.web.app/painel?assinatura=ok',
-      cancel_url: cancelUrl || 'https://tanocaixa.web.app/painel/assinatura',
+      success_url: urlSegura(sucessoUrl, 'https://tanocaixa.web.app/painel?assinatura=ok'),
+      cancel_url: urlSegura(cancelUrl, 'https://tanocaixa.web.app/painel/assinatura'),
     }, comContexto)
     return { url: session.url }
   },
 )
 
-/** Abre o portal de cobrança (trocar cartão, ver faturas, cancelar). */
+/** Abre o portal de cobrança (trocar cartão, ver faturas, cancelar). O cliente do Stripe vem do
+ * servidor (`assinaturas/{restauranteId}`), nunca do navegador. */
 export const portalAssinatura = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => {
-  const { customerId, returnUrl } = (req.data ?? {}) as Record<string, string>
-  if (!customerId) throw new HttpsError('invalid-argument', 'customerId obrigatório')
+  const { restauranteId: rid, returnUrl } = (req.data ?? {}) as Record<string, string>
+  const restauranteId = await exigirDonoOuGestao(req.auth?.uid, rid)
+  const customerId = (await db.doc(`assinaturas/${restauranteId}`).get()).data()?.customerId as string | undefined
+  if (!customerId) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem assinatura')
   const portal = await cliente().billingPortal.sessions.create({
     customer: customerId,
-    return_url: returnUrl || 'https://tanocaixa.web.app/painel',
+    return_url: urlSegura(returnUrl, 'https://tanocaixa.web.app/painel'),
   }, comContexto)
   return { url: portal.url }
 })
@@ -103,7 +108,7 @@ function metaDoEvento(tipo: string, obj: Record<string, unknown>): Record<string
   return (obj.metadata ?? {}) as Record<string, string>
 }
 
-/** Webhook do Stripe → grava o status da assinatura no restaurante. */
+/** Webhook do Stripe → grava o status da assinatura em `assinaturas/{restauranteId}`. */
 export const stripeWebhook = onRequest(
   { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async (req, res) => {
@@ -132,29 +137,43 @@ export const stripeWebhook = onRequest(
     const restauranteId = meta.restauranteId
 
     if (restauranteId) {
-      const assinaturaRef = db.doc(`restaurants/${restauranteId}/faturamento/assinatura`)
-      if (evento.type === 'checkout.session.completed' || evento.type.startsWith('customer.subscription')) {
-        await assinaturaRef.set(
-          {
-            status: (obj.status as string) ?? 'ativa',
-            plano: meta.plano ?? null,
-            lojas: Number(meta.lojas) || null,
-            customerId: (obj.customer as string) ?? null,
-            subscriptionId: (obj.subscription as string) ?? (obj.id as string) ?? null,
-            atualizadoEm: new Date().toISOString(),
-          },
-          { merge: true },
-        )
-      } else if (evento.type === 'invoice.paid') {
-        await assinaturaRef.set(
-          { status: 'ativa', ultimaFaturaPagaEm: new Date().toISOString() },
-          { merge: true },
-        )
-      } else if (evento.type === 'invoice.payment_failed') {
-        await assinaturaRef.set(
-          { status: 'pagamento_falhou', atualizadoEm: new Date().toISOString() },
-          { merge: true },
-        )
+      // Coleção só do servidor (nenhuma regra do app a libera): quem é membro do restaurante
+      // consegue escrever em restaurants/{id}/**, então o status não pode morar lá.
+      const assinaturaRef = db.doc(`assinaturas/${restauranteId}`)
+      const gravadoEm = (await assinaturaRef.get()).data()?.eventoEm as number | undefined
+      const eventoEm = evento.created
+      if (eventoEhMaisNovo(eventoEm, gravadoEm)) {
+        const agora = new Date().toISOString()
+        if (evento.type === 'checkout.session.completed') {
+          // `status` da sessão é "complete" (não da assinatura): só guarda quem é o cliente.
+          await assinaturaRef.set(
+            {
+              plano: meta.plano ?? null,
+              lojas: Number(meta.lojas) || null,
+              customerId: (obj.customer as string) ?? null,
+              subscriptionId: (obj.subscription as string) ?? null,
+              atualizadoEm: agora,
+            },
+            { merge: true },
+          )
+        } else if (evento.type.startsWith('customer.subscription')) {
+          await assinaturaRef.set(
+            {
+              status: evento.type === 'customer.subscription.deleted' ? 'cancelada' : statusDoStripe(obj.status as string | undefined),
+              plano: meta.plano ?? null,
+              lojas: Number(meta.lojas) || null,
+              customerId: (obj.customer as string) ?? null,
+              subscriptionId: (obj.id as string) ?? null,
+              eventoEm,
+              atualizadoEm: agora,
+            },
+            { merge: true },
+          )
+        } else if (evento.type === 'invoice.paid') {
+          await assinaturaRef.set({ status: 'ativa', ultimaFaturaPagaEm: agora, eventoEm }, { merge: true })
+        } else if (evento.type === 'invoice.payment_failed') {
+          await assinaturaRef.set({ status: 'pagamento_falhou', atualizadoEm: agora, eventoEm }, { merge: true })
+        }
       }
     }
 
