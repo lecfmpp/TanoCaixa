@@ -16,6 +16,7 @@ import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { ALTA_RELEVANTE } from '@/data/compras'
 import { mensagemDeErro } from '@/lib/erros'
 import { diaDeHoje } from '@/data/derive'
+import { mesSeguinte, nomeDoMes } from '@/data/planoMes'
 import { CapturaFoto } from '@/components/camera/CapturaFoto'
 import type { TipoImport } from '@/data/importar'
 import {
@@ -529,15 +530,19 @@ export function GavetaHost() {
       }
       if (gavetaEdicao?.alvo === 'despesa') {
         await atualizarDespesa.mutateAsync({ id: gavetaEdicao.despesa.id, dados: campos })
+        const antes = gavetaEdicao.despesa.recorrente
+        const aviso = despesa.repete && !antes ? ' Agora ela se repete todo mês.' : !despesa.repete && antes ? ' Ela não se repete mais.' : despesa.repete ? ' Os próximos meses usam esse valor.' : ''
         adicionarToast({
           tipo: 'sucesso',
           titulo: 'Lançamento corrigido',
-          texto: `${brl(campos.valorTotal)} em ${CONTA[despesa.conta]?.nome}. Caixa e DRE já leem o valor novo.`,
+          texto: `${brl(campos.valorTotal)} em ${CONTA[despesa.conta]?.nome}. Caixa e DRE já leem o valor novo.${aviso}`,
         })
         return
       }
       const d = await criarDespesa.mutateAsync(campos)
-      toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.`, [{ colecao: 'despesas', id: d.id }])
+      // A repetição só nasce na virada do mês: avisa agora, senão parece que o "se repete" não fez nada.
+      const repete = despesa.repete ? ` Repete todo mês: a de ${nomeDoMes(mesSeguinte(despesa.data.slice(0, 7))).split(' de ')[0]} entra sozinha no dia 1.` : ''
+      toastComDesfazer('Tá no caixa!', `${brl(soNum(despesa.valor))} entraram em ${CONTA[despesa.conta]?.nome}.${repete}`, [{ colecao: 'despesas', id: d.id }])
     } else if (gaveta === 'compra') {
       const entrada = {
         fornecedor: nota.fornecedor,

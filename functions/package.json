@@ -10,7 +10,7 @@
     "build": "tsc",
     "deploy": "firebase deploy --only functions",
     "homologacao": "tsc && node lib/ifood/homologacao.js",
-    "test": "tsc -p tsconfig.test.json && node --test lib-test/boasVindas.test.js && tsc && node --test test/*.test.cjs"
+    "test": "tsc -p tsconfig.test.json && node --test lib-test/boasVindas.test.js lib-test/recorrentes.test.js lib-test/recorrentesDb.test.js && tsc && node --test test/*.test.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

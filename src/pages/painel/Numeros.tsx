@@ -24,8 +24,9 @@ import {
 } from '@/data/dashboard'
 import {
   BarraMeta, BarrasEntrouSaiu, BarrasVerticais, CaminhoEquilibrio, CartaoGrafico, Leitura, LinhaComTeto, Rosca, VazioGrafico,
-  curtoK, type BarraItem,
+  type BarraItem,
 } from '@/components/dashboard/graficos'
+import { curtoK } from '@/components/dashboard/escala'
 
 /** 'Jul' — rótulo curto do eixo dos meses. */
 function mesCurto(mes: string): string {

@@ -1,6 +1,17 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "outDir": "lib-test", "rootDir": "src", "noEmit": false },
+  "compilerOptions": {
+    "outDir": "lib-test",
+    "rootDir": "src",
+    "noEmit": false
+  },
   "exclude": [],
-  "include": ["src/boasVindas.ts", "src/boasVindas.test.ts"]
+  "include": [
+    "src/boasVindas.ts",
+    "src/boasVindas.test.ts",
+    "src/recorrentes.ts",
+    "src/recorrentes.test.ts",
+    "src/recorrentesDb.ts",
+    "src/recorrentesDb.test.ts"
+  ]
 }

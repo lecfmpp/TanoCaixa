@@ -299,5 +299,8 @@ export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhats
 /* ----------------------- E-mail de boas-vindas (Resend) ------------------- */
 export { boasVindas } from './boasVindasTrigger'
 
+/* ------------------ Despesa recorrente (se repete todo mês) ------------------ */
+export { repetirDespesasRecorrentes } from './recorrentesJob'
+
 // Captura de e-mail das iscas digitais do blog (planilhas e checklists)
 export { capturarLead } from './leads'

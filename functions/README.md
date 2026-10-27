@@ -52,6 +52,29 @@ Registre a URL de `ifoodWebhook` no Portal do iFood para receber eventos.
 > Os nomes de campo foram modelados a partir da doc pública; confira contra o
 > payload real na homologação e ajuste em `src/ifood/mapper.ts`.
 
+## Despesa que se repete todo mês
+
+O interruptor "Isso se repete todo mês" do lançamento de despesa só gravava `recorrente`;
+nada lia o campo. Agora `repetirDespesasRecorrentes` (todo dia, 00h10 de São Paulo) gera a
+despesa do mês que acabou de virar. Regras em `src/recorrentes.ts`, gravação em
+`src/recorrentesDb.ts`, ambas testadas (`npm test`).
+
+- **Série:** lançamentos com o mesmo `serieId`. Lançamento antigo marcado como recorrente (sem
+  `serieId`) é agrupado por fornecedor + conta, pra não gerar uma cópia por mês de histórico.
+- **Vale o último lançamento da série:** se ele continua recorrente e é de um mês anterior ao
+  atual, gera o do mês atual: mesmo valor, mesmo dia (31 em fevereiro cai no 28 e volta ao 31),
+  vencimento deslocado pela mesma distância, **a pagar**. Corrigir o valor nele vale pros próximos.
+- **Parar de repetir:** desligar o interruptor no último lançamento da série.
+- **Só conta da casa** (aluguel, luz, folha…): compra de mercadoria (nota de fornecedor, conta de CMV) nunca se repete.
+- **Só o mês atual:** não preenche meses que ficaram pra trás.
+- **Idempotente:** id fixo `{serieId}_{AAAA-MM}` e `create`. Cada repetição grava também um
+  marcador em `restaurants/{id}/recorrencias/{mesmo id}` no mesmo lote: se a pessoa apagar a do
+  mês, ela não volta no dia seguinte.
+- Restaurantes de demonstração são ignorados.
+
+Publicar: `firebase deploy --only functions:repetirDespesasRecorrentes`. Para rodar já, sem
+esperar a madrugada: Cloud Scheduler → `firebase-schedule-repetirDespesasRecorrentes-us-central1` → Forçar execução.
+
 ## Stripe (assinaturas)
 
 `src/stripe.ts` expõe `criarCheckoutAssinatura`, `portalAssinatura` e

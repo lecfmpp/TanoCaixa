@@ -500,6 +500,8 @@ export function useCriarDespesa() {
         formaPagamento: entrada.formaPagamento ?? 'pix',
         status: entrada.status ?? 'pago',
         recorrente: entrada.recorrente ?? false,
+        // Despesa que se repete todo mês começa uma série (o id dela); a repetição do mês novo nasce dela.
+        ...(entrada.recorrente && !entrada.serieId ? { serieId: id } : {}),
         criadoEm: autor.criadoEm,
         criadoPorId: autor.criadoPorId,
         criadoPorNome: autor.criadoPorNome,
@@ -544,6 +546,9 @@ export function useAtualizarDespesa() {
       const doc: DespesaDoc = {
         ...atual,
         ...dados,
+        // Ligar "se repete todo mês" num lançamento que ainda não era de uma série cria a série. Desligar
+        // deixa o serieId: o último lançamento da série passa a ser "não recorrente" e ela se encerra.
+        ...(dados.recorrente && !atual.serieId ? { serieId: id } : {}),
         categoria: normalizarCategoria(dados.categoria ?? atual.categoria),
         id,
         // Autoria original preservada; a correção fica registrada ao lado.
@@ -588,6 +593,7 @@ export function useDuplicarDespesa() {
         editadoEm: _e1,
         editadoPorId: _e2,
         editadoPorNome: _e3,
+        repetidaAuto: _auto, // a cópia é digitada, não gerada pela repetição
         ...base
       } = origem
       const doc: DespesaDoc = {

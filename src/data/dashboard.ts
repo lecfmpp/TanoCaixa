@@ -15,6 +15,13 @@ export const MAR = '#2E5F73'
 export const TELHA = '#C05437'
 export const MATA = '#2F6B4A'
 export const SOL = '#EFAB5C'
+/** Espelham os tokens de src/index.css, pra gráficos (SVG e estilo inline) usarem uma fonte só. */
+export const TELHA_ALERTA = '#B4462F' // --color-telha-alerta: texto de "acima da meta" / saldo negativo
+export const SUPERFICIE = '#FBFAF2' // --color-superficie: fundo dos cartões
+export const TINTA_2 = '#45585D' // --color-tinta-2
+export const TINTA_4 = '#8A9698' // --color-tinta-4
+export const TRILHO = '#E8E6D7' // grade tracejada e fundo de barra (= --color-preenchimento)
+export const LINHA_BASE = '#C9CDC4' // linha do zero
 
 const totalDia = (r: ReceitaDiaDoc) => r.canais.reduce((s, c) => s + c.valorBruto, 0)
 const diaDaSemana = (iso: string) => (new Date(iso.slice(0, 10) + 'T12:00:00').getDay() + 6) % 7 // 0 = segunda
