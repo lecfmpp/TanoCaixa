@@ -12,6 +12,7 @@ import { SeletorJanela, ddmm, diaDaSemana, nomeDaJanela, useJanela } from '@/com
 import { partesNaJanela, somarPartes, type BaseReceita } from '@/data/recebimentos'
 import { useAuth } from '@/auth/AuthContext'
 import { mensagemDeErro } from '@/lib/erros'
+import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { CANAIS_APPS, LINHAS_RECEITA, type CanalVenda } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
@@ -73,6 +74,28 @@ export function Caixa() {
   const appsJanela = partes.filter((p) => CANAIS_APPS.includes(p.canal as CanalVenda)).reduce((s, p) => s + p.valor, 0)
   const diasLancados = new Set(partes.map((p) => p.diaId)).size
 
+  /** As vendas que estão na tela (janela e filtro Venda/Recebimento incluídos), em CSV. */
+  function exportar() {
+    const dmy = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
+    const linhas = [...partes]
+      .sort((a, b) => ((base === 'recebimento' ? a.recebimento : a.venda) < (base === 'recebimento' ? b.recebimento : b.venda) ? -1 : 1))
+      .map((p) => {
+        const lancs = diaPorId.get(p.diaId)
+        const ultimo = lancs ? lancamentosDe(lancs).slice(-1)[0] : undefined
+        return [
+          dmy(p.venda),
+          dmy(p.recebimento),
+          nomeDoCanal(p.canal as CanalVenda),
+          ultimo?.porNome ?? '',
+          p.valor.toFixed(2).replace('.', ','),
+        ]
+      })
+    baixarCSV(
+      `receita-${base}-${de}_${ate}-${arquivoDe(cfg?.nome)}`,
+      gerarCSV(['Venda', 'Recebimento', 'Canal', 'Quem lançou', 'Valor (R$)'], linhas),
+    )
+  }
+
   /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
   function pedirExclusao(r: ReceitaDiaDoc) {
     const dia = dataCurta(new Date(r.data + 'T12:00:00'))
@@ -113,6 +136,7 @@ export function Caixa() {
         titulo="Receita"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         semMes
+        aoExportar={partes.length ? exportar : undefined}
       />
 
       <SeletorJanela estado={estado} />
