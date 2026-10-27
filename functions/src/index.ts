@@ -292,6 +292,10 @@ export { analisarFoto, perguntarEstoque } from './gemini'
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'
 
+/* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
+export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'
+export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhatsappSalvar, lembretesWhatsappGrupo } from './lembretesEngine'
+
 /* ----------------------- E-mail de boas-vindas (Resend) ------------------- */
 export { boasVindas } from './boasVindasTrigger'
 
