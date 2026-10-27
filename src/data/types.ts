@@ -87,6 +87,16 @@ export interface DespesaDoc extends Autoria {
   formaPagamento: 'pix' | 'dinheiro' | 'cartao' | 'boleto' | 'transferencia' | 'automatico'
   status: 'pago' | 'a_pagar' | 'vence'
   recorrente: boolean
+  /**
+   * Série de uma despesa que se repete todo mês: todos os lançamentos dela têm o mesmo
+   * `serieId` (o id do primeiro). Quem gera o do mês novo é a function `repetirDespesasRecorrentes`.
+   */
+  serieId?: string
+  /** Este lançamento foi gerado sozinho pela repetição do mês, não digitado. */
+  repetidaAuto?: boolean
+  /** Dia do mês que a série pede (antes de ajustar ao tamanho do mês: 31 → 28 em fevereiro). Só a repetição grava. */
+  diaDoMes?: number
+  vencDiaDoMes?: number
   observacao?: string
   itens?: ItemNota[]
   origemNota?: boolean // veio de foto/IA
