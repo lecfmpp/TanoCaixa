@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Button } from '@/components/ui/Button'
@@ -17,6 +16,7 @@ import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_
 import { diasAte, lembretes } from '@/data/vencimentos'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
+import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
 
@@ -35,6 +35,7 @@ export function Compras() {
   const [aberta, setAberta] = useState<string | null>(null)
 
   const todas = useMemo(() => despesas.data ?? [], [despesas.data])
+  const pagamento = useMarcarComoPago(todas)
   // Histórico de preço olha TODAS as compras (é o que dá a comparação com a
   // compra anterior); os números do mês olham só o mês corrente.
   const doMes = useMemo(() => todas.filter((d) => noPeriodo(d.dataCompetencia, periodo)), [todas, periodo])
@@ -187,14 +188,14 @@ export function Compras() {
                    * DRE, as entradas de estoque e o custo dos produtos andam
                    * juntos. Compra antiga sem itens não tem estoque atrás — ela
                    * é corrigida como lançamento avulso, na gaveta de despesa. */}
-                  {!pago && (
-                    // Pagar é no Fluxo de caixa: lá o check pergunta se teve juros.
-                    <Link
-                      to="/painel/fluxo"
+                  {!pago && pagamento.contaDe(n.lancamentos[0].id) && (
+                    // O check pergunta se teve juros; paga a nota inteira.
+                    <button
+                      onClick={() => pagamento.alternar(pagamento.contaDe(n.lancamentos[0].id)!)}
                       className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-botao px-2.5 py-1.5 text-xs font-bold text-mar transition hover:bg-preenchimento"
                     >
-                      <span className="hidden cel:inline">Pagar no fluxo</span><span className="cel:hidden">Pagar</span> <ArrowRight size={13} />
-                    </Link>
+                      <CheckCircle2 size={13} /> <span className="hidden cel:inline">Marcar como pago</span><span className="cel:hidden">Pagar</span>
+                    </button>
                   )}
                   <AcoesLancamento
                     alvo={
@@ -292,6 +293,7 @@ export function Compras() {
           )}
         </Cartao>
       )}
+      {pagamento.modal}
     </div>
   )
 }

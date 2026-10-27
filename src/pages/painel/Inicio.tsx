@@ -77,7 +77,7 @@ export function Inicio() {
   const insight = insights.data?.[0]
   const avisos = lembretes(ctx.despesas, diaDeHoje())
 
-  /** Pagar direto do aviso: o mesmo check do Fluxo de caixa (pergunta se teve juros). */
+  /** Pagar direto do aviso: o mesmo check das Despesas (pergunta se teve juros). */
   function pedirPagamento(v: Vencimento) {
     const conta = contasDoFluxo(ctx.despesas).find((c) => c.id === v.id)
     if (conta) setPagando(conta)
@@ -184,7 +184,7 @@ function Vencimentos({ avisos, aoPagar }: { avisos: Vencimento[]; aoPagar: (v: V
       </ul>
       <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-[rgba(46,95,115,0.12)] pt-3 text-sm font-bold text-mar">
         {avisos.length > 6 && <span className="font-medium text-tinta-3">e mais {avisos.length - 6}</span>}
-        <Link to="/painel/fluxo" className="inline-flex items-center gap-1 hover:underline">Fluxo de caixa <ArrowRight size={14} /></Link>
+        <Link to="/painel/despesas" className="inline-flex items-center gap-1 hover:underline">Ver despesas <ArrowRight size={14} /></Link>
       </div>
     </div>
   )
