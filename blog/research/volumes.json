@@ -1,0 +1,772 @@
+[
+ {
+  "kw": "anota ai",
+  "vol": 60500,
+  "cpc": 0.77,
+  "comp": "MEDIUM",
+  "idx": 46
+ },
+ {
+  "kw": "saipos",
+  "vol": 33100,
+  "cpc": 4.49,
+  "comp": "LOW",
+  "idx": 32
+ },
+ {
+  "kw": "cardápio web",
+  "vol": 33100,
+  "cpc": 1.84,
+  "comp": "MEDIUM",
+  "idx": 39
+ },
+ {
+  "kw": "goomer",
+  "vol": 18100,
+  "cpc": 1.35,
+  "comp": "LOW",
+  "idx": 22
+ },
+ {
+  "kw": "cardápio digital",
+  "vol": 6600,
+  "cpc": 5.51,
+  "comp": "HIGH",
+  "idx": 68
+ },
+ {
+  "kw": "dark kitchen",
+  "vol": 5400,
+  "cpc": 1.59,
+  "comp": "LOW",
+  "idx": 5
+ },
+ {
+  "kw": "consumer sistema",
+  "vol": 1900,
+  "cpc": 1.65,
+  "comp": "HIGH",
+  "idx": 70
+ },
+ {
+  "kw": "sistema para restaurante",
+  "vol": 1600,
+  "cpc": 8.58,
+  "comp": "HIGH",
+  "idx": 79
+ },
+ {
+  "kw": "taxa ifood",
+  "vol": 1000,
+  "cpc": 1.71,
+  "comp": "LOW",
+  "idx": 20
+ },
+ {
+  "kw": "neemo",
+  "vol": 1000,
+  "cpc": 1.45,
+  "comp": "LOW",
+  "idx": 8
+ },
+ {
+  "kw": "colibri sistema",
+  "vol": 1000,
+  "cpc": 4.42,
+  "comp": "MEDIUM",
+  "idx": 47
+ },
+ {
+  "kw": "cmv restaurante",
+  "vol": 880,
+  "cpc": 1.66,
+  "comp": "MEDIUM",
+  "idx": 50
+ },
+ {
+  "kw": "como calcular cmv",
+  "vol": 720,
+  "cpc": 0.33,
+  "comp": "LOW",
+  "idx": 20
+ },
+ {
+  "kw": "como calcular ponto de equilíbrio",
+  "vol": 720,
+  "cpc": 0.18,
+  "comp": "LOW",
+  "idx": 13
+ },
+ {
+  "kw": "repasse ifood",
+  "vol": 720,
+  "cpc": 3.82,
+  "comp": "LOW",
+  "idx": 3
+ },
+ {
+  "kw": "menew",
+  "vol": 590,
+  "cpc": 5.69,
+  "comp": "LOW",
+  "idx": 19
+ },
+ {
+  "kw": "sistema para delivery",
+  "vol": 390,
+  "cpc": 7.49,
+  "comp": "HIGH",
+  "idx": 95
+ },
+ {
+  "kw": "sistema para pizzaria",
+  "vol": 390,
+  "cpc": 10.95,
+  "comp": "HIGH",
+  "idx": 88
+ },
+ {
+  "kw": "sistema para lanchonete",
+  "vol": 390,
+  "cpc": 11.11,
+  "comp": "HIGH",
+  "idx": 98
+ },
+ {
+  "kw": "engenharia de cardápio",
+  "vol": 390,
+  "cpc": 1.16,
+  "comp": "LOW",
+  "idx": 23
+ },
+ {
+  "kw": "gestão de restaurante",
+  "vol": 320,
+  "cpc": 2.77,
+  "comp": "MEDIUM",
+  "idx": 64
+ },
+ {
+  "kw": "sistema para bar",
+  "vol": 260,
+  "cpc": 10.35,
+  "comp": "HIGH",
+  "idx": 80
+ },
+ {
+  "kw": "saipos preço",
+  "vol": 260,
+  "cpc": 5.35,
+  "comp": "MEDIUM",
+  "idx": 66
+ },
+ {
+  "kw": "ficha técnica restaurante",
+  "vol": 210,
+  "cpc": 3.45,
+  "comp": "MEDIUM",
+  "idx": 40
+ },
+ {
+  "kw": "sistema para hamburgueria",
+  "vol": 210,
+  "cpc": 10.35,
+  "comp": "HIGH",
+  "idx": 85
+ },
+ {
+  "kw": "sistema para padaria",
+  "vol": 210,
+  "cpc": 8.19,
+  "comp": "HIGH",
+  "idx": 93
+ },
+ {
+  "kw": "nota fiscal restaurante",
+  "vol": 170,
+  "cpc": 4.09,
+  "comp": "LOW",
+  "idx": 19
+ },
+ {
+  "kw": "precificação pizza",
+  "vol": 170,
+  "cpc": 0.78,
+  "comp": "LOW",
+  "idx": 17
+ },
+ {
+  "kw": "comida árabe delivery",
+  "vol": 140,
+  "cpc": 0.53,
+  "comp": "MEDIUM",
+  "idx": 34
+ },
+ {
+  "kw": "melhor sistema para restaurante",
+  "vol": 140,
+  "cpc": 5.04,
+  "comp": "HIGH",
+  "idx": 77
+ },
+ {
+  "kw": "planilha cmv",
+  "vol": 110,
+  "cpc": 1.45,
+  "comp": "HIGH",
+  "idx": 67
+ },
+ {
+  "kw": "sistema de gestão para restaurante",
+  "vol": 90,
+  "cpc": 6.34,
+  "comp": "HIGH",
+  "idx": 86
+ },
+ {
+  "kw": "quanto o ifood cobra",
+  "vol": 90,
+  "cpc": 2.9,
+  "comp": "LOW",
+  "idx": 20
+ },
+ {
+  "kw": "comissão ifood",
+  "vol": 90,
+  "cpc": 3.3,
+  "comp": "LOW",
+  "idx": 14
+ },
+ {
+  "kw": "como sair do ifood",
+  "vol": 90,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 1
+ },
+ {
+  "kw": "controle de estoque restaurante",
+  "vol": 90,
+  "cpc": 4.92,
+  "comp": "HIGH",
+  "idx": 80
+ },
+ {
+  "kw": "margem de lucro restaurante",
+  "vol": 90,
+  "cpc": 6.21,
+  "comp": "LOW",
+  "idx": 12
+ },
+ {
+  "kw": "sistema pdv restaurante",
+  "vol": 90,
+  "cpc": 16.15,
+  "comp": "HIGH",
+  "idx": 94
+ },
+ {
+  "kw": "como abrir pizzaria",
+  "vol": 90,
+  "cpc": 1.26,
+  "comp": "MEDIUM",
+  "idx": 58
+ },
+ {
+  "kw": "como abrir hamburgueria",
+  "vol": 90,
+  "cpc": 1.16,
+  "comp": "MEDIUM",
+  "idx": 66
+ },
+ {
+  "kw": "dre restaurante",
+  "vol": 70,
+  "cpc": 2.71,
+  "comp": "MEDIUM",
+  "idx": 45
+ },
+ {
+  "kw": "pdv grátis",
+  "vol": 70,
+  "cpc": 3.96,
+  "comp": "HIGH",
+  "idx": 90
+ },
+ {
+  "kw": "gestão de delivery",
+  "vol": 70,
+  "cpc": 6.16,
+  "comp": "HIGH",
+  "idx": 72
+ },
+ {
+  "kw": "precificação restaurante",
+  "vol": 50,
+  "cpc": 3.2,
+  "comp": "LOW",
+  "idx": 24
+ },
+ {
+  "kw": "ficha técnica pizza",
+  "vol": 50,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 2
+ },
+ {
+  "kw": "checklist restaurante",
+  "vol": 50,
+  "cpc": 1.74,
+  "comp": "MEDIUM",
+  "idx": 53
+ },
+ {
+  "kw": "planilha ficha técnica",
+  "vol": 40,
+  "cpc": 0.55,
+  "comp": "LOW",
+  "idx": 30
+ },
+ {
+  "kw": "controle de estoque cozinha",
+  "vol": 30,
+  "cpc": 2.74,
+  "comp": "MEDIUM",
+  "idx": 35
+ },
+ {
+  "kw": "cmv pizzaria",
+  "vol": 30,
+  "cpc": 2.07,
+  "comp": "MEDIUM",
+  "idx": 34
+ },
+ {
+  "kw": "software de gestão para restaurante",
+  "vol": 20,
+  "cpc": 3.07,
+  "comp": "HIGH",
+  "idx": 84
+ },
+ {
+  "kw": "controle financeiro restaurante",
+  "vol": 20,
+  "cpc": 4.42,
+  "comp": "HIGH",
+  "idx": 70
+ },
+ {
+  "kw": "fluxo de caixa restaurante",
+  "vol": 20,
+  "cpc": 3.8,
+  "comp": "HIGH",
+  "idx": 94
+ },
+ {
+  "kw": "planilha controle financeiro restaurante",
+  "vol": 20,
+  "cpc": 3.22,
+  "comp": "HIGH",
+  "idx": 97
+ },
+ {
+  "kw": "cmv ideal restaurante",
+  "vol": 20,
+  "cpc": 1.51,
+  "comp": "LOW",
+  "idx": 21
+ },
+ {
+  "kw": "cmv alto",
+  "vol": 20,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 8
+ },
+ {
+  "kw": "cmv hamburgueria",
+  "vol": 20,
+  "cpc": 3.85,
+  "comp": "MEDIUM",
+  "idx": 64
+ },
+ {
+  "kw": "sistema para restaurante grátis",
+  "vol": 20,
+  "cpc": 4.46,
+  "comp": "HIGH",
+  "idx": 76
+ },
+ {
+  "kw": "taxa de entrega delivery",
+  "vol": 20,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 19
+ },
+ {
+  "kw": "software para delivery",
+  "vol": 10,
+  "cpc": 18.99,
+  "comp": "MEDIUM",
+  "idx": 48
+ },
+ {
+  "kw": "planilha de fluxo de caixa para restaurante",
+  "vol": 10,
+  "cpc": 1.27,
+  "comp": "HIGH",
+  "idx": 86
+ },
+ {
+  "kw": "dre para restaurante",
+  "vol": 10,
+  "cpc": 7.28,
+  "comp": "HIGH",
+  "idx": 69
+ },
+ {
+  "kw": "markup restaurante",
+  "vol": 10,
+  "cpc": 1.88,
+  "comp": "LOW",
+  "idx": 22
+ },
+ {
+  "kw": "lucro delivery",
+  "vol": 10,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como lucrar com delivery",
+  "vol": 10,
+  "cpc": null,
+  "comp": "MEDIUM",
+  "idx": 43
+ },
+ {
+  "kw": "como abrir restaurante",
+  "vol": 10,
+  "cpc": 1.01,
+  "comp": "MEDIUM",
+  "idx": 53
+ },
+ {
+  "kw": "quanto lucra um restaurante",
+  "vol": 10,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 12
+ },
+ {
+  "kw": "despesas restaurante",
+  "vol": 10,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como administrar restaurante",
+  "vol": 10,
+  "cpc": 0.28,
+  "comp": "HIGH",
+  "idx": 82
+ },
+ {
+  "kw": "indicadores restaurante",
+  "vol": 10,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 8
+ },
+ {
+  "kw": "ticket médio restaurante",
+  "vol": 10,
+  "cpc": null,
+  "comp": "LOW",
+  "idx": 16
+ },
+ {
+  "kw": "sistema para restaurante japonês",
+  "vol": 10,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para restaurante preço",
+  "vol": 10,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "planilha dre restaurante",
+  "vol": 10,
+  "cpc": 0.44,
+  "comp": "HIGH",
+  "idx": 93
+ },
+ {
+  "kw": "curva abc restaurante",
+  "vol": 10,
+  "cpc": 0.07,
+  "comp": "MEDIUM",
+  "idx": 41
+ },
+ {
+  "kw": "sistema de pedidos online restaurante",
+  "vol": 10,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como aumentar vendas delivery",
+  "vol": 10,
+  "cpc": null,
+  "comp": "HIGH",
+  "idx": 86
+ },
+ {
+  "kw": "fechamento de caixa restaurante",
+  "vol": 10,
+  "cpc": 1.16,
+  "comp": "MEDIUM",
+  "idx": 54
+ },
+ {
+  "kw": "sistema para delivery próprio",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "gestão financeira de restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "ficha técnica de prato",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "ponto de equilíbrio restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como precificar prato",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "custo do delivery",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "delivery próprio ou ifood",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "controle de contas a pagar restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "custo fixo restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "dicas para gerir restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para comida árabe",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para esfiharia",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "custo para abrir uma pizzaria",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "ficha técnica hambúrguer",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "precificação hambúrguer",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "custo para abrir hamburgueria",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "cmv restaurante japonês",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "custo sushi",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "ficha técnica sushi",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como abrir restaurante japonês",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como abrir esfiharia",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como abrir restaurante árabe",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como abrir dark kitchen",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para dark kitchen",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para franquia de restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "conta azul restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "alternativas ao saipos",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "sistema para restaurante pequeno",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "app para dono de restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como controlar desperdício restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "ticket médio delivery",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "como aumentar lucro do restaurante",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ },
+ {
+  "kw": "conciliação ifood",
+  "vol": 0,
+  "cpc": null,
+  "comp": null,
+  "idx": null
+ }
+]

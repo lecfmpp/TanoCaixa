@@ -1,4 +1,4 @@
-import { pagaFranqueadora, type CategoriaDespesa, type GrupoDRE } from '@/types'
+import { pagaFranqueadora, type CategoriaDespesa, type Filtro, type GrupoDRE, type Intervalo } from '@/types'
 import {
   CONTA,
   GRUPO,
@@ -48,8 +48,51 @@ export interface Contexto {
 /** Margem de contribuição de fallback, quando ainda não há venda no mês. */
 const MC_PADRAO = 0.415
 
-/** Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). */
+/** Mês que o usuário escolheu no cabeçalho; null = o mês de hoje. */
+let mesEscolhido: string | null = null
+
+/**
+ * Mês de referência no formato 'YYYY-MM' (evita bug de fuso do Date). É o mês
+ * que o painel inteiro mostra: o de hoje, ou o que o usuário escolheu.
+ */
 export let MES_REF = mesDe(HOJE)
+
+const ouvintesDoMes = new Set<() => void>()
+
+export function assinarMesRef(fn: () => void): () => void {
+  ouvintesDoMes.add(fn)
+  return () => ouvintesDoMes.delete(fn)
+}
+
+/** Mês de hoje ('YYYY-MM'), independente do mês escolhido. */
+export function mesAtual(): string {
+  return mesDe(HOJE)
+}
+
+/** Troca o mês mostrado no painel; null volta pro mês de hoje. */
+export function escolherMesRef(mes: string | null): void {
+  const novo = mes && mes !== mesDe(HOJE) ? mes : null
+  if (novo === mesEscolhido) return
+  mesEscolhido = novo
+  MES_REF = mesEscolhido ?? mesDe(HOJE)
+  ouvintesDoMes.forEach((fn) => fn())
+}
+
+/** Quantos dias tem o mês de referência. */
+export function diasNoMesRef(): number {
+  const [a, m] = MES_REF.split('-').map(Number)
+  return new Date(a, m, 0).getDate()
+}
+
+/**
+ * Até que dia do mês de referência "já aconteceu": hoje no mês corrente, o mês
+ * inteiro num mês passado, nenhum num mês que ainda não começou.
+ */
+export function diaLimiteDoMesRef(): number {
+  const hoje = mesDe(HOJE)
+  if (MES_REF === hoje) return HOJE.getDate()
+  return MES_REF < hoje ? diasNoMesRef() : 0
+}
 
 /** Dia em 'YYYY-MM-DD' pelo calendário LOCAL (toISOString usa UTC e, à noite no Brasil, já é amanhã). */
 export function isoDoDia(d: Date): string {
@@ -73,10 +116,9 @@ export function agora(): Date {
   return modoDemo ? HOJE : new Date()
 }
 
-/** Quantos dias faltam pro mês de referência acabar (0 no último dia). */
+/** Quantos dias faltam pro mês de referência acabar (0 no último dia; 0 num mês passado). */
 export function diasRestantesNoMes(): number {
-  const ultimo = new Date(HOJE.getFullYear(), HOJE.getMonth() + 1, 0).getDate()
-  return ultimo - HOJE.getDate()
+  return diasNoMesRef() - diaLimiteDoMesRef()
 }
 
 /**
@@ -86,6 +128,7 @@ export function diasRestantesNoMes(): number {
 export function ajustarDataDeReferencia(demo: boolean): void {
   modoDemo = demo
   HOJE = demo ? HOJE_DEMO : new Date()
+  mesEscolhido = null
   MES_REF = mesDe(HOJE)
 }
 
@@ -98,7 +141,7 @@ export function virouODia(): boolean {
   const hoje = new Date()
   if (isoDoDia(hoje) === isoDoDia(HOJE)) return false
   HOJE = hoje
-  MES_REF = mesDe(HOJE)
+  MES_REF = mesEscolhido ?? mesDe(HOJE)
   return true
 }
 
@@ -108,7 +151,29 @@ export function mesAnterior(mes: string): string {
   return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, '0')}`
 }
 
-function noPeriodo(iso: string, periodo: 'semana' | 'mes'): boolean {
+/** Os dias do intervalo ('YYYY-MM-DD'), do primeiro ao último. */
+function diasDoIntervalo(i: Intervalo): string[] {
+  const dias: string[] = []
+  const cur = new Date(i.de + 'T12:00:00')
+  const fim = new Date(i.ate + 'T12:00:00')
+  while (cur <= fim && dias.length < 400) {
+    dias.push(isoDoDia(cur))
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dias
+}
+
+/** Quantos dias tem a janela do filtro (mês corrente inteiro, 7, ou o intervalo). */
+export function diasDoFiltro(f: Filtro): number {
+  if (typeof f !== 'string') return Math.max(1, diasDoIntervalo(f).length)
+  return f === 'semana' ? 7 : diasNoMesRef()
+}
+
+export function noPeriodo(iso: string, periodo: Filtro): boolean {
+  if (typeof periodo !== 'string') {
+    const dia = iso.slice(0, 10)
+    return dia >= periodo.de && dia <= periodo.ate
+  }
   if (periodo === 'mes') return iso.slice(0, 7) === MES_REF
   // Semana: compara a data (ao meio-dia local, sem deslocar de fuso).
   const d = new Date(iso.slice(0, 10) + 'T12:00:00')
@@ -127,7 +192,7 @@ function somaGrupo(despesas: DespesaDoc[], grupo: GrupoDRE): number {
     .reduce((s, d) => s + d.valorTotal, 0)
 }
 
-function faturamento(receita: ReceitaDiaDoc[]): number {
+export function faturamento(receita: ReceitaDiaDoc[]): number {
   return receita.reduce((s, r) => s + r.canais.reduce((a, c) => a + c.valorBruto, 0), 0)
 }
 
@@ -520,7 +585,7 @@ export interface ResumoInicio {
   sobrouFinal: number
 }
 
-export function resumoInicio(ctx: Contexto, periodo: 'semana' | 'mes'): ResumoInicio {
+export function resumoInicio(ctx: Contexto, periodo: Filtro): ResumoInicio {
   const desp = ctx.despesas.filter((d) => noPeriodo(d.dataCompetencia, periodo))
   const rec = ctx.receitaDia.filter((r) => noPeriodo(r.data, periodo))
   const entrou = faturamento(rec)
@@ -561,6 +626,20 @@ export function resumoInicio(ctx: Contexto, periodo: 'semana' | 'mes'): ResumoIn
       entrou: rec.filter((r) => semanaDoMes(r.data) === n).reduce((s, r) => s + r.canais.reduce((a, c) => a + c.valorBruto, 0), 0),
       saiu: desp.filter((d) => semanaDoMes(d.dataCompetencia) === n).reduce((s, d) => s + d.valorTotal, 0),
     }))
+  } else if (typeof periodo !== 'string') {
+    // Intervalo livre: uma barra por dia; se for longo, agrupa em blocos de
+    // vários dias pra não passar de ~10 barras.
+    const todos = diasDoIntervalo(periodo)
+    const bloco = Math.max(1, Math.ceil(todos.length / 10))
+    const soma = (lista: string[]) => ({
+      entrou: rec.filter((r) => lista.includes(r.data.slice(0, 10))).reduce((s, r) => s + r.canais.reduce((a, c) => a + c.valorBruto, 0), 0),
+      saiu: desp.filter((d) => lista.includes(d.dataCompetencia.slice(0, 10))).reduce((s, d) => s + d.valorTotal, 0),
+    })
+    barras = []
+    for (let i = 0; i < todos.length; i += bloco) {
+      const lista = todos.slice(i, i + bloco)
+      barras.push({ rotulo: `${lista[0].slice(8, 10)}/${lista[0].slice(5, 7)}`, ...soma(lista) })
+    }
   } else {
     const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
     // Os últimos 7 dias terminando hoje, cada barra com o nome do dia dela
@@ -600,20 +679,32 @@ export function resumoInicio(ctx: Contexto, periodo: 'semana' | 'mes'): ResumoIn
  * o mês passado do dia 1 até o dia de hoje; na semana, os 7 dias antes destes.
  * `temBase` é falso quando não há nada lançado na janela anterior.
  */
-export function periodoAnterior(ctx: Contexto, periodo: 'semana' | 'mes') {
-  let dentro: (iso: string) => boolean
+export function dentroDoPeriodoAnterior(periodo: Filtro): (iso: string) => boolean {
+  if (typeof periodo !== 'string') {
+    // Intervalo: a janela de mesmo tamanho logo antes dele.
+    const n = diasDoIntervalo(periodo).length
+    const fim = new Date(periodo.de + 'T12:00:00')
+    fim.setDate(fim.getDate() - 1)
+    const ini = new Date(fim)
+    ini.setDate(fim.getDate() - (n - 1))
+    const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
+    return (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+  }
   if (periodo === 'mes') {
     const mes = mesAnterior(MES_REF)
-    const ateDia = HOJE.getDate()
-    dentro = (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
-  } else {
-    const ini = new Date(HOJE)
-    ini.setDate(HOJE.getDate() - 13)
-    const fim = new Date(HOJE)
-    fim.setDate(HOJE.getDate() - 7)
-    const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
-    dentro = (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+    const ateDia = diaLimiteDoMesRef()
+    return (iso) => iso.slice(0, 7) === mes && Number(iso.slice(8, 10)) <= ateDia
   }
+  const ini = new Date(HOJE)
+  ini.setDate(HOJE.getDate() - 13)
+  const fim = new Date(HOJE)
+  fim.setDate(HOJE.getDate() - 7)
+  const [a, b] = [isoDoDia(ini), isoDoDia(fim)]
+  return (iso) => iso.slice(0, 10) >= a && iso.slice(0, 10) <= b
+}
+
+export function periodoAnterior(ctx: Contexto, periodo: Filtro) {
+  const dentro = dentroDoPeriodoAnterior(periodo)
   const rec = ctx.receitaDia.filter((r) => dentro(r.data))
   const desp = ctx.despesas.filter((d) => dentro(d.dataCompetencia))
   return {

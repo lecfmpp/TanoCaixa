@@ -9,6 +9,7 @@ import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { CampoVencimento } from '@/components/ui/CampoVencimento'
 import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useReceitaDia, useRestaurante } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
@@ -146,6 +147,9 @@ const NOTA_VAZIA = {
   pagamento: 'Pix',
   vencimento: '',
   obs: '',
+  numero: '',
+  desconto: '',
+  acrescimo: '',
   itens: [ITEM_VAZIO],
 }
 
@@ -259,6 +263,9 @@ export function GavetaHost() {
         pagamento: chipDoPagamento(n.formaPagamento, n.status),
         vencimento: n.vencimento?.slice(0, 10) ?? '',
         obs: n.lancamentos[0]?.observacao ?? '',
+        numero: n.numeroNota ?? '',
+        desconto: valorFormatado(n.desconto),
+        acrescimo: valorFormatado(n.acrescimo),
         itens: n.itens.length
           ? n.itens.map((i) => ({
               produtoId: i.produtoId,
@@ -309,14 +316,16 @@ export function GavetaHost() {
   const itensValidos = nota.itens
     .map((i) => ({ ...i, produto: porId.get(i.produtoId) }))
     .filter((i) => i.produto && soNum(i.quantidade) > 0)
-  const totalNota = itensValidos.reduce((s2, i) => s2 + soNum(i.quantidade) * soNum(i.preco), 0)
+  /** Soma dos produtos, antes de descontos e acréscimos. */
+  const totalProdutos = itensValidos.reduce((s2, i) => s2 + soNum(i.quantidade) * soNum(i.preco), 0)
+  const totalNota = Math.max(0, totalProdutos - soNum(nota.desconto) + soNum(nota.acrescimo))
 
   const totalFechamento =
     soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro) + soNum(fecha.apps) + soNum(fecha.delivery) + soNum(fecha.outras)
 
   /** Trava o "Continuar": nota sem item, movimento sem produto e dia sem venda não existem. */
   const podeAvancar =
-    gaveta === 'compra' ? itensValidos.length > 0 && totalNota > 0 && (nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
+    gaveta === 'compra' ? itensValidos.length > 0 && totalProdutos > 0 && totalNota > 0 && (nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
     : gaveta === 'despesa' ? despesa.pagamento !== 'Ainda vou pagar' || !!despesa.vencimento
     : gaveta === 'produto' ? produto.nome.trim().length > 0
     : gaveta === 'estoque' ? !!estoque.produtoId && soNum(estoque.quantidade) > 0
@@ -333,15 +342,19 @@ export function GavetaHost() {
         { rot: 'Conta', val: CONTA[despesa.conta]?.nome ?? '' },
         { rot: 'Competência', val: despesa.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: despesa.pagamento },
-        ...(despesa.pagamento === 'Ainda vou pagar' ? [{ rot: 'Vencimento', val: despesa.vencimento.split('-').reverse().join('/') }] : []),
+        ...(despesa.vencimento ? [{ rot: 'Vencimento', val: despesa.vencimento.split('-').reverse().join('/') }] : []),
       ]
     if (gaveta === 'compra')
       return [
         { rot: 'Fornecedor', val: nota.fornecedor || '—' },
+        ...(nota.numero ? [{ rot: 'Nº da nota', val: nota.numero }] : []),
         { rot: 'Itens', val: `${itensValidos.length}` },
         { rot: 'Data', val: nota.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: nota.pagamento },
-        ...(nota.pagamento === 'Ainda vou pagar' ? [{ rot: 'Vencimento', val: nota.vencimento.split('-').reverse().join('/') }] : []),
+        ...(nota.vencimento ? [{ rot: 'Vencimento', val: nota.vencimento.split('-').reverse().join('/') }] : []),
+        { rot: 'Valor total dos produtos', val: brl(totalProdutos) },
+        ...(soNum(nota.desconto) > 0 ? [{ rot: 'Descontos', val: `− ${brl(soNum(nota.desconto))}` }] : []),
+        ...(soNum(nota.acrescimo) > 0 ? [{ rot: 'Acréscimos', val: `+ ${brl(soNum(nota.acrescimo))}` }] : []),
         { rot: 'Total da nota', val: brl(totalNota) },
       ]
     if (gaveta === 'produto')
@@ -506,7 +519,7 @@ export function GavetaHost() {
         ...pagamentoParaDoc(despesa.pagamento, gavetaEdicao?.alvo === 'despesa' ? gavetaEdicao.despesa : undefined),
         observacao: despesa.obs,
         recorrente: despesa.repete,
-        dataVencimento: despesa.pagamento === 'Ainda vou pagar' ? despesa.vencimento : '',
+        dataVencimento: despesa.vencimento,
         // Corrigir não muda a natureza do lançamento: uma compra antiga sem
         // itens continua sendo compra, senão ela pulava de aba sozinha.
         tipoLancamento:
@@ -530,8 +543,11 @@ export function GavetaHost() {
         fornecedor: nota.fornecedor,
         data: nota.data,
         ...pagamentoParaDoc(nota.pagamento, gavetaEdicao?.alvo === 'nota' ? gavetaEdicao.nota : undefined),
-        vencimento: nota.pagamento === 'Ainda vou pagar' ? nota.vencimento : undefined,
+        vencimento: nota.vencimento || undefined,
         observacao: nota.obs,
+        numeroNota: nota.numero.trim() || undefined,
+        desconto: soNum(nota.desconto),
+        acrescimo: soNum(nota.acrescimo),
         itens: itensValidos.map((i) => ({
           produtoId: i.produtoId,
           quantidade: soNum(i.quantidade),
@@ -690,9 +706,12 @@ export function GavetaHost() {
                   {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={despesa.pagamento === p} aoClicar={() => setDespesa({ ...despesa, pagamento: p })} />)}
                 </div>
               </div>
-              {despesa.pagamento === 'Ainda vou pagar' && (
-                <Campo rotulo="Vencimento" type="date" value={despesa.vencimento} onChange={(e) => setDespesa({ ...despesa, vencimento: e.target.value })} />
-              )}
+              <CampoVencimento
+                valor={despesa.vencimento}
+                aoTrocar={(v) => setDespesa({ ...despesa, vencimento: v })}
+                base={despesa.data || hojeISO()}
+                obrigatorio={despesa.pagamento === 'Ainda vou pagar'}
+              />
               <label className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
                 <span><span className="block text-sm font-bold text-tinta">Isso se repete todo mês</span><span className="block text-xs text-tinta-4">aluguel, contador, internet…</span></span>
                 <Switch ligado={despesa.repete} aoTrocar={(v) => setDespesa({ ...despesa, repete: v })} />
@@ -710,6 +729,7 @@ export function GavetaHost() {
               />
               <AvisoIA campos={iaPreencheu} />
               <Campo rotulo="Fornecedor" destaque={daIA('fornecedor')} placeholder="Ex: Hortifrúti Zona Sul" value={nota.fornecedor} onChange={(e) => setNota({ ...nota, fornecedor: e.target.value })} />
+              <Campo rotulo="Número da Nota Fiscal" placeholder="Ex: 000123" value={nota.numero} onChange={(e) => setNota({ ...nota, numero: e.target.value })} />
               <Campo rotulo="Data da nota" type="date" value={nota.data} onChange={(e) => setNota({ ...nota, data: e.target.value })} />
 
               {produtos.length === 0 ? (
@@ -796,6 +816,14 @@ export function GavetaHost() {
                     <Plus size={16} /> Adicionar item
                   </button>
                   <div className="flex items-center justify-between rounded-cartao bg-preenchimento/60 px-4 py-3">
+                    <span className="text-sm font-bold text-tinta">Valor total dos produtos</span>
+                    <span className="mono text-[15px] font-bold text-tinta">{brl(totalProdutos)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Campo rotulo="Descontos · opcional" inputMode="decimal" placeholder="R$ 0,00" value={nota.desconto} onChange={(e) => setNota({ ...nota, desconto: e.target.value })} />
+                    <Campo rotulo="Acréscimos · opcional" inputMode="decimal" placeholder="R$ 0,00" value={nota.acrescimo} onChange={(e) => setNota({ ...nota, acrescimo: e.target.value })} />
+                  </div>
+                  <div className="flex items-center justify-between rounded-cartao bg-mar/10 px-4 py-3">
                     <span className="text-sm font-bold text-tinta">Total da nota</span>
                     <span className="mono text-[17px] font-bold text-tinta">{brl(totalNota)}</span>
                   </div>
@@ -808,12 +836,14 @@ export function GavetaHost() {
                   {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={nota.pagamento === p} aoClicar={() => setNota({ ...nota, pagamento: p })} />)}
                 </div>
               </div>
-              {nota.pagamento === 'Ainda vou pagar' && (
-                <div className="flex flex-col gap-1.5">
-                  <Campo rotulo="Vencimento do boleto" type="date" value={nota.vencimento} onChange={(e) => setNota({ ...nota, vencimento: e.target.value })} />
-                  <p className="text-xs text-tinta-4">É com essa data que o Início avisa “vence hoje” ou “vencido há X dias”.</p>
-                </div>
-              )}
+              <CampoVencimento
+                rotulo="Vencimento do boleto"
+                valor={nota.vencimento}
+                aoTrocar={(v) => setNota({ ...nota, vencimento: v })}
+                base={nota.data || hojeISO()}
+                obrigatorio={nota.pagamento === 'Ainda vou pagar'}
+                apoio="Qualquer dia, de qualquer mês. É com essa data que o Início avisa “vence hoje” ou “vencido há X dias”."
+              />
               <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: entrega da semana" value={nota.obs} onChange={(e) => setNota({ ...nota, obs: e.target.value })} />
               <p className="text-xs text-tinta-4">
                 A nota dá entrada no estoque, atualiza o custo de cada produto e entra no CMV do DRE — tudo de uma vez.

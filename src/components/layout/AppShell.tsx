@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
+import { useMesRef } from '@/ui/periodo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 
 /** Gavetas que um link de lembrete (?acao=…) pode abrir direto. */
@@ -20,6 +21,8 @@ export function AppShell() {
   // que diz quais contas existem no DRE, nos filtros e nas gavetas.
   usePlanoContas()
   const [gaveta, setGaveta] = useState(false)
+  // Trocar o mês refaz a página inteira: os números leem o mês na hora de renderizar.
+  const mes = useMesRef()
 
   // Link do lembrete de WhatsApp: /painel/compras?acao=compra abre a tela com a gaveta já aberta.
   const { abrirGaveta } = useUI()
@@ -68,7 +71,7 @@ export function AppShell() {
 
         <main className={cn('scroll-fina flex-1 overflow-y-auto', 'px-5 py-5 tab:px-7 tab:py-6')}>
           <div className="mx-auto max-w-[1180px]">
-            <Outlet />
+            <Outlet key={mes} />
           </div>
         </main>
       </div>

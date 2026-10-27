@@ -33,6 +33,17 @@ export interface RestauranteDoc {
   bandeira?: string
   /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
   taxasFranquia?: { royalties: number; fundoPromocao: number }
+  /**
+   * Números de partida do onboarding, editáveis em "Metas e números". Todos em
+   * R$/mês, exceto o que diz o contrário.
+   */
+  faturamentoMensal?: number
+  ticketMedio?: number
+  pedidosDia?: number
+  pessoas?: number
+  folha?: number
+  contasFixas?: number
+  mercadoria?: number
 }
 
 export interface MembroDoc {
@@ -88,6 +99,12 @@ export interface DespesaDoc extends Autoria {
   tipoLancamento?: 'conta' | 'compra'
   /** Agrupa os lançamentos gerados pela mesma nota fiscal. */
   notaId?: string
+  /** Número impresso na nota fiscal (o do fornecedor, não o `notaId` interno). */
+  numeroNota?: string
+  /** Desconto e acréscimo da nota INTEIRA (iguais em todos os lançamentos dela);
+   *  o `valorTotal` de cada lançamento já carrega a sua parte proporcional. */
+  descontoNota?: number
+  acrescimoNota?: number
   /** Última correção do lançamento — quem lançou continua sendo o autor. */
   editadoEm?: string
   editadoPorId?: string

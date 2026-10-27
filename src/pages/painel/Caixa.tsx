@@ -1,13 +1,17 @@
 import { Fragment, useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useReceitaDia, useRestaurante } from '@/data/hooks'
-import { agora } from '@/data/derive'
+import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
+import { agora, MES_REF } from '@/data/derive'
+import { nomeDoMes } from '@/data/planoMes'
+import { usePeriodo } from '@/ui/periodo'
+import { useAuth } from '@/auth/AuthContext'
+import { mensagemDeErro } from '@/lib/erros'
 import { CANAIS_APPS } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
@@ -31,10 +35,70 @@ function lancamentosDe(r: ReceitaDiaDoc): LancamentoDeVendas[] {
 
 /** Página do Caixa: lançar as vendas do dia e conciliar. Sem DRE, gastos ou lucro. */
 export function Caixa() {
-  const { abrirGaveta } = useUI()
+  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
-  const receitas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
+  const [filtro, setFiltro] = usePeriodo()
+  const intervalo = typeof filtro === 'string' ? null : filtro
+  // null = automático: o mês corrente se tiver lançamento, senão todos.
+  const [mesEscolhido, setMesEscolhido] = useState<string | null>(null)
+  const remover = useRemoverReceitaDia()
+  const restaurar = useRestaurarReceitaDia()
+  const todas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
+  // Os cartões de "hoje" olham o dia mais recente de todos; a lista, o mês escolhido.
+  const meses = [...new Set(todas.map((r) => r.data.slice(0, 7)))] // do mais novo pro mais antigo
+  // Mês escolhido que ficou sem lançamento (apagou o último dele) volta pro automático.
+  const mesAtivo =
+    mesEscolhido && (mesEscolhido === 'todos' || meses.includes(mesEscolhido))
+      ? mesEscolhido
+      : MES_REF
+  // Intervalo de datas escolhido no cabeçalho manda sobre o seletor de mês.
+  const receitas = intervalo
+    ? todas.filter((r) => r.data.slice(0, 10) >= intervalo.de && r.data.slice(0, 10) <= intervalo.ate)
+    : mesAtivo === 'todos' ? todas : todas.filter((r) => r.data.slice(0, 7) === mesAtivo)
+  /** Lançamentos agrupados por mês, com o total de cada um. */
+  const grupos = meses
+    .filter((m) => intervalo || mesAtivo === 'todos' || m === mesAtivo)
+    .map((mes) => {
+      const itens = receitas.filter((r) => r.data.slice(0, 7) === mes)
+      return { mes, itens, total: itens.reduce((s, r) => s + r.totalDia, 0) }
+    })
+  const podeApagar = permissoes?.lancaDespesa ?? false
+
+  /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
+  function pedirExclusao(r: ReceitaDiaDoc) {
+    const dia = dataCurta(new Date(r.data + 'T12:00:00'))
+    confirmar({
+      gravidade: 'destrutivo',
+      titulo: 'Apagar este lançamento de vendas?',
+      texto: 'O dia deixa de contar no caixa, no Dashboard e no DRE. Dá pra desfazer no aviso que aparece em seguida.',
+      resumo: [
+        { rot: 'Dia', val: dia },
+        { rot: 'Apps de delivery', val: brl(apps(r)) },
+        { rot: 'Na loja', val: brl(loja(r)) },
+        { rot: 'Total', val: brl(r.totalDia) },
+      ],
+      rotuloConfirmar: 'Apagar lançamento',
+      onConfirmar: async () => {
+        try {
+          await remover.mutateAsync(r)
+          adicionarToast({
+            tipo: 'sucesso',
+            titulo: 'Lançamento apagado',
+            texto: `${dia} · ${brl(r.totalDia)} saíram do caixa.`,
+            rotuloAcao: 'Desfazer',
+            onAcao: () => {
+              restaurar.mutate(r)
+              adicionarToast({ tipo: 'sistema', titulo: 'Desfeito', texto: 'O lançamento de vendas voltou.' })
+            },
+          })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra apagar', texto: mensagemDeErro(e, 'O lançamento continua no banco. Tente de novo.') })
+        }
+      },
+    })
+  }
 
   // Apps de delivery: o canal novo ('apps') e os antigos (iFood/Rappi), pra
   // dia lançado antes continuar somando igual.
@@ -42,7 +106,7 @@ export function Caixa() {
     r.canais.filter((c) => CANAIS_APPS.includes(c.canal)).reduce((s, c) => s + c.valorBruto, 0)
   const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
 
-  const hoje = receitas[0]
+  const hoje = todas[0]
   const appsHoje = hoje ? apps(hoje) : 0
   const lojaHoje = hoje ? loja(hoje) : 0
 
@@ -50,8 +114,11 @@ export function Caixa() {
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Caixa"
-        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · vendas e conciliação` : ''}
+        subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
+        periodo={filtro}
+        aoTrocarPeriodo={setFiltro}
+        soData
       />
 
       {/* Ação principal */}
@@ -76,14 +143,31 @@ export function Caixa() {
         <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
         <CaixaCard rotulo="Apps de delivery" valor={appsHoje} apoio="total lançado no dia" />
         <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
-        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio="com vendas registradas" contagem />
+        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio={intervalo ? 'no período escolhido' : mesAtivo === 'todos' ? 'em todos os meses' : `em ${nomeDoMes(mesAtivo).split(' de ')[0]}`} contagem />
       </div>
 
       {/* Conciliação / histórico */}
       <Cartao className="overflow-hidden p-0">
         <div className="flex items-center justify-between px-5 py-3.5">
-          <h2 className="text-[15px] font-bold text-tinta">Conciliação dos últimos dias</h2>
-          <span className="text-xs text-tinta-4">apps × loja × total</span>
+          <h2 className="text-[15px] font-bold text-tinta">Lançamento de vendas</h2>
+          <label className="flex items-center gap-2 text-xs text-tinta-4">
+            Mês
+            <select
+              value={intervalo ? 'periodo' : mesAtivo}
+              onChange={(e) => {
+                setMesEscolhido(e.target.value)
+                // Escolher um mês tira o intervalo de datas.
+                if (intervalo) setFiltro('mes')
+              }}
+              className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-1.5 text-sm font-semibold text-tinta outline-none focus:border-mar"
+            >
+              {intervalo && <option value="periodo">Período escolhido</option>}
+              <option value="todos">Todos os meses</option>
+              {meses.map((m) => (
+                <option key={m} value={m}>{nomeDoMes(m)}</option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
@@ -95,10 +179,23 @@ export function Caixa() {
                 <Th className="text-right">Total</Th>
                 <Th>Lançado por</Th>
                 <Th>Situação</Th>
+                {podeApagar && <Th><span className="sr-only">Ações</span></Th>}
               </tr>
             </thead>
             <tbody>
-              {receitas.map((r) => {
+              {grupos.map((g) => (
+                <Fragment key={g.mes}>
+                  <tr className="border-b border-divisoria bg-preenchimento/60">
+                    <td colSpan={podeApagar ? 7 : 6} className="px-4 py-2">
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-bold capitalize text-tinta">{nomeDoMes(g.mes)}</span>
+                        <span className="text-xs text-tinta-3">
+                          {g.itens.length} {g.itens.length === 1 ? 'dia' : 'dias'} · <span className="mono font-bold text-tinta">{brl(g.total)}</span>
+                        </span>
+                      </span>
+                    </td>
+                  </tr>
+              {g.itens.map((r) => {
                 const plat = apps(r)
                 const lj = loja(r)
                 const conferido = Math.abs(plat + lj - r.totalDia) < 0.01
@@ -139,6 +236,18 @@ export function Caixa() {
                           {conferido ? 'conferido' : 'revisar'}
                         </span>
                       </td>
+                      {podeApagar && (
+                        <td className="px-2 py-3">
+                          <button
+                            onClick={() => pedirExclusao(r)}
+                            aria-label={`Apagar lançamento de vendas de ${dataCurta(new Date(r.data + 'T12:00:00'))}`}
+                            title="Apagar lançamento"
+                            className="grid h-8 w-8 place-items-center rounded-botao text-tinta-4 transition hover:bg-telha-alerta/10 hover:text-telha-alerta"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                     {expandido &&
                       lancs.map((l, i) => (
@@ -146,15 +255,17 @@ export function Caixa() {
                           <td className="px-4 py-2 text-tinta-4">{i === 0 ? 'lançou' : 'relançou'}</td>
                           <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), agora())}</td>
                           <td className="mono px-4 py-2 text-right font-semibold text-tinta">{brl(l.total)}</td>
-                          <td colSpan={2} />
+                          <td colSpan={podeApagar ? 3 : 2} />
                         </tr>
                       ))}
                   </Fragment>
                 )
               })}
+                </Fragment>
+              ))}
               {receitas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-tinta-4">
+                  <td colSpan={podeApagar ? 7 : 6} className="px-4 py-10 text-center text-sm text-tinta-4">
                     Nenhuma venda lançada ainda. Comece por "Lançar vendas".
                   </td>
                 </tr>

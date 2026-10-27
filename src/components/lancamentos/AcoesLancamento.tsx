@@ -77,6 +77,7 @@ export function AcoesLancamento({ alvo, className }: { alvo: AlvoLancamento; cla
       const n = alvo.nota
       return [
         { rot: 'Fornecedor', val: n.fornecedor || '—' },
+        ...(n.numeroNota ? [{ rot: 'Nº da nota', val: n.numeroNota }] : []),
         { rot: 'Data da nota', val: dataBR(n.data) },
         { rot: 'Itens', val: `${n.itens.length}` },
         { rot: 'Lançamentos no DRE', val: `${n.lancamentos.length}` },
@@ -125,6 +126,9 @@ export function AcoesLancamento({ alvo, className }: { alvo: AlvoLancamento; cla
                 formaPagamento: n.formaPagamento,
                 status: n.status,
                 observacao: n.lancamentos[0]?.observacao,
+                numeroNota: n.numeroNota,
+                desconto: n.desconto,
+                acrescimo: n.acrescimo,
                 itens: n.itens.map((i) => ({
                   produtoId: i.produtoId,
                   quantidade: i.quantidade,
