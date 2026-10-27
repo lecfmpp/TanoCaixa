@@ -1,4 +1,5 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { recebimentoValido } from './recebimentos'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
@@ -833,12 +834,18 @@ export function useImportar() {
  * Lança as vendas do dia. Cada lançamento entra na trilha `historico` do dia —
  * quem lançou e quando — mesmo quando o dia é relançado e o valor muda.
  */
+/** `{ recebimentoEm }` só quando a data é depois da venda (Firestore não aceita `undefined`). */
+function comRecebimento(venda: string, recebimentoEm: string | undefined): { recebimentoEm?: string } {
+  const dia = recebimentoValido(venda, recebimentoEm)
+  return dia > venda.slice(0, 10) ? { recebimentoEm: dia } : {}
+}
+
 export function useCriarFechamento() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (e: { pix: number; cartao: number; dinheiro: number; apps?: number; delivery?: number; outras?: number }) => {
+    mutationFn: async (e: { pix: number; cartao: number; dinheiro: number; apps?: number; delivery?: number; outras?: number; recebeApps?: string; recebeDelivery?: string; recebeOutras?: string }) => {
       const { pix, cartao, dinheiro } = e
       const autor = getAutor()
       const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
@@ -852,10 +859,10 @@ export function useCriarFechamento() {
       // app, delivery próprio e outras receitas. Tudo digitado por quem lança —
       // não há integração com app de delivery (por enquanto).
       const canais = [
-        { canal: 'apps' as const, valorBruto: apps, taxa: 0, pedidos: 0 },
+        { canal: 'apps' as const, valorBruto: apps, taxa: 0, pedidos: 0, ...comRecebimento(hoje, e.recebeApps) },
         { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
-        { canal: 'whatsapp' as const, valorBruto: delivery, taxa: 0, pedidos: 0 },
-        { canal: 'outros' as const, valorBruto: outras, taxa: 0, pedidos: 0 },
+        { canal: 'whatsapp' as const, valorBruto: delivery, taxa: 0, pedidos: 0, ...comRecebimento(hoje, e.recebeDelivery) },
+        { canal: 'outros' as const, valorBruto: outras, taxa: 0, pedidos: 0, ...comRecebimento(hoje, e.recebeOutras) },
       ].filter((c) => c.valorBruto > 0)
       const totalDia = canais.reduce((s, c) => s + c.valorBruto, 0)
 

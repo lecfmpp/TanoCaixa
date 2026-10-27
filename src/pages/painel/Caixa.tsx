@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -7,12 +7,12 @@ import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
-import { agora, MES_REF } from '@/data/derive'
-import { nomeDoMes } from '@/data/planoMes'
-import { usePeriodo } from '@/ui/periodo'
+import { agora } from '@/data/derive'
+import { SeletorJanela, ddmm, diaDaSemana, nomeDaJanela, useJanela } from '@/components/ui/SeletorJanela'
+import { partesNaJanela, somarPartes, type BaseReceita } from '@/data/recebimentos'
 import { useAuth } from '@/auth/AuthContext'
 import { mensagemDeErro } from '@/lib/erros'
-import { CANAIS_APPS } from '@/data/planoContas'
+import { CANAIS_APPS, LINHAS_RECEITA, type CanalVenda } from '@/data/planoContas'
 import type { LancamentoDeVendas, ReceitaDiaDoc } from '@/data/types'
 
 const CORES = ['#2E5F73', '#C05437', '#2F6B4A', '#7B6A8C', '#EFAB5C']
@@ -33,38 +33,45 @@ function lancamentosDe(r: ReceitaDiaDoc): LancamentoDeVendas[] {
   return [{ em: r.criadoEm, porId: r.criadoPorId, porNome: r.criadoPorNome, total: r.totalDia }]
 }
 
-/** Página do Caixa: lançar as vendas do dia e conciliar. Sem DRE, gastos ou lucro. */
+/** Página da Receita: lançar as vendas do dia e ver quando o dinheiro cai. Sem DRE, gastos ou lucro. */
 export function Caixa() {
   const { abrirGaveta, confirmar, adicionarToast } = useUI()
   const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
-  const [filtro, setFiltro] = usePeriodo()
-  const intervalo = typeof filtro === 'string' ? null : filtro
-  // null = automático: o mês corrente se tiver lançamento, senão todos.
-  const [mesEscolhido, setMesEscolhido] = useState<string | null>(null)
+  // Dia | Semana | Mês, igual ao Fluxo de caixa e às Despesas.
+  const estado = useJanela('mes')
+  const { de, ate, hoje } = estado
+  const nomeJanela = nomeDaJanela(estado)
+  // Venda = o dia em que vendeu (é o que o DRE conta). Recebimento = o dia em que o dinheiro cai.
+  const [base, setBase] = useState<BaseReceita>('venda')
   const remover = useRemoverReceitaDia()
   const restaurar = useRestaurarReceitaDia()
-  const todas = [...(useReceitaDia().data ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1))
-  // Os cartões de "hoje" olham o dia mais recente de todos; a lista, o mês escolhido.
-  const meses = [...new Set(todas.map((r) => r.data.slice(0, 7)))] // do mais novo pro mais antigo
-  // Mês escolhido que ficou sem lançamento (apagou o último dele) volta pro automático.
-  const mesAtivo =
-    mesEscolhido && (mesEscolhido === 'todos' || meses.includes(mesEscolhido))
-      ? mesEscolhido
-      : MES_REF
-  // Intervalo de datas escolhido no cabeçalho manda sobre o seletor de mês.
-  const receitas = intervalo
-    ? todas.filter((r) => r.data.slice(0, 10) >= intervalo.de && r.data.slice(0, 10) <= intervalo.ate)
-    : mesAtivo === 'todos' ? todas : todas.filter((r) => r.data.slice(0, 7) === mesAtivo)
-  /** Lançamentos agrupados por mês, com o total de cada um. */
-  const grupos = meses
-    .filter((m) => intervalo || mesAtivo === 'todos' || m === mesAtivo)
-    .map((mes) => {
-      const itens = receitas.filter((r) => r.data.slice(0, 7) === mes)
-      return { mes, itens, total: itens.reduce((s, r) => s + r.totalDia, 0) }
-    })
+  const dados = useReceitaDia().data
+  const todas = useMemo(() => [...(dados ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1)), [dados])
   const podeApagar = permissoes?.lancaDespesa ?? false
+
+  const partes = useMemo(() => partesNaJanela(todas, base, de, ate), [todas, base, de, ate])
+  const total = somarPartes(partes)
+  const diaPorId = useMemo(() => new Map(todas.map((r) => [r.id, r])), [todas])
+  const recebido = somarPartes(partes.filter((p) => p.recebimento <= hoje))
+  const aReceber = total - recebido
+
+  /** Cartões: um por dia da base escolhida, do mais novo pro mais antigo. */
+  const porDia = useMemo(() => {
+    const m = new Map<string, typeof partes>()
+    for (const p of partes) {
+      const dia = base === 'recebimento' ? p.recebimento : p.venda
+      m.set(dia, [...(m.get(dia) ?? []), p])
+    }
+    return [...m.entries()].sort((x, y) => (x[0] < y[0] ? 1 : -1))
+  }, [partes, base])
+
+  const apps = (r: ReceitaDiaDoc) =>
+    r.canais.filter((c) => CANAIS_APPS.includes(c.canal)).reduce((s, c) => s + c.valorBruto, 0)
+  const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
+  const appsJanela = partes.filter((p) => CANAIS_APPS.includes(p.canal as CanalVenda)).reduce((s, p) => s + p.valor, 0)
+  const diasLancados = new Set(partes.map((p) => p.diaId)).size
 
   /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
   function pedirExclusao(r: ReceitaDiaDoc) {
@@ -100,25 +107,13 @@ export function Caixa() {
     })
   }
 
-  // Apps de delivery: o canal novo ('apps') e os antigos (iFood/Rappi), pra
-  // dia lançado antes continuar somando igual.
-  const apps = (r: ReceitaDiaDoc) =>
-    r.canais.filter((c) => CANAIS_APPS.includes(c.canal)).reduce((s, c) => s + c.valorBruto, 0)
-  const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
-
-  const hoje = todas[0]
-  const appsHoje = hoje ? apps(hoje) : 0
-  const lojaHoje = hoje ? loja(hoje) : 0
-
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader
         titulo="Receita"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
-        periodo={filtro}
-        aoTrocarPeriodo={setFiltro}
-        soData
+        semMes
       />
 
       {/* Ação principal */}
@@ -138,86 +133,95 @@ export function Caixa() {
         </button>
       </div>
 
-      {/* Resumo do caixa de hoje */}
-      <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
-        <CaixaCard rotulo="Vendas de hoje" valor={hoje ? hoje.totalDia : 0} />
-        <CaixaCard rotulo="Apps de delivery" valor={appsHoje} apoio="total lançado no dia" />
-        <CaixaCard rotulo="Na loja" valor={lojaHoje} apoio="Pix, cartão, dinheiro" />
-        <CaixaCard rotulo="Dias lançados" valor={receitas.length} apoio={intervalo ? 'no período escolhido' : mesAtivo === 'todos' ? 'em todos os meses' : `em ${nomeDoMes(mesAtivo).split(' de ')[0]}`} contagem />
+      <SeletorJanela estado={estado} />
+
+      {/* Venda | Recebimento: o DRE sempre conta pela venda */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 rounded-botao bg-preenchimento p-1" role="group" aria-label="Filtrar a receita pela data">
+          <span className="px-2 text-xs font-semibold text-tinta-4">Data:</span>
+          {(['venda', 'recebimento'] as const).map((b) => (
+            <button
+              key={b}
+              onClick={() => setBase(b)}
+              aria-pressed={base === b}
+              className={cn('rounded-[10px] px-3 py-1.5 text-sm font-bold capitalize transition', base === b ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta')}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-tinta-4">O DRE conta a receita no dia da venda, qualquer que seja o filtro.</span>
       </div>
 
-      {/* Conciliação / histórico */}
-      <Cartao className="overflow-hidden p-0">
-        <div className="flex items-center justify-between px-5 py-3.5">
-          <h2 className="text-[15px] font-bold text-tinta">Lançamento de vendas</h2>
-          <label className="flex items-center gap-2 text-xs text-tinta-4">
-            Mês
-            <select
-              value={intervalo ? 'periodo' : mesAtivo}
-              onChange={(e) => {
-                setMesEscolhido(e.target.value)
-                // Escolher um mês tira o intervalo de datas.
-                if (intervalo) setFiltro('mes')
-              }}
-              className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-1.5 text-sm font-semibold text-tinta outline-none focus:border-mar"
-            >
-              {intervalo && <option value="periodo">Período escolhido</option>}
-              <option value="todos">Todos os meses</option>
-              {meses.map((m) => (
-                <option key={m} value={m}>{nomeDoMes(m)}</option>
+      {/* Resumo da janela */}
+      <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
+        <CaixaCard rotulo={base === 'venda' ? `Vendido ${nomeJanela}` : `Recebe ${nomeJanela}`} valor={total} />
+        {base === 'venda' ? (
+          <>
+            <CaixaCard rotulo="Apps de delivery" valor={appsJanela} apoio="total lançado no período" />
+            <CaixaCard rotulo="Na loja e outros" valor={total - appsJanela} apoio="Pix, cartão, dinheiro" />
+          </>
+        ) : (
+          <>
+            <CaixaCard rotulo="Já recebido" valor={recebido} apoio="até hoje" />
+            <CaixaCard rotulo="A receber" valor={aReceber} apoio={aReceber > 0 ? 'ainda vai cair' : 'nada pendente'} />
+          </>
+        )}
+        <CaixaCard rotulo="Dias lançados" valor={diasLancados} apoio="no período escolhido" contagem />
+      </div>
+
+      {porDia.length === 0 ? (
+        <Cartao>
+          <p className="py-6 text-center text-sm text-tinta-4">
+            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por "Lançar vendas".' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : 'nesse mês'}.`}
+          </p>
+        </Cartao>
+      ) : (
+        porDia.map(([dia, lista]) => {
+          const totalDia = somarPartes(lista)
+          // Dias de venda que aparecem neste cartão (pra mostrar quem lançou e conferir).
+          const ids = [...new Set(lista.map((p) => p.diaId))]
+          return (
+            <Cartao key={dia} className="p-0">
+              <div className="flex items-center justify-between border-b border-divisoria bg-preenchimento/40 px-4 py-2.5">
+                <span className="text-sm font-bold capitalize text-tinta">
+                  {dia === hoje ? 'Hoje' : diaDaSemana(dia)} · {ddmm(dia)}
+                </span>
+                <span className="mono text-sm font-bold text-tinta">{brl(totalDia)}</span>
+              </div>
+              {lista.map((p) => (
+                <div key={`${p.diaId}-${p.canal}`} className="flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-tinta">{nomeDoCanal(p.canal as CanalVenda)}</div>
+                    <div className="text-xs text-tinta-4">
+                      {base === 'recebimento'
+                        ? `venda de ${ddmm(p.venda)}`
+                        : p.recebimento > p.venda
+                          ? p.recebimento <= hoje ? `recebido em ${ddmm(p.recebimento)}` : `recebe em ${ddmm(p.recebimento)}`
+                          : 'recebido no dia'}
+                    </div>
+                  </div>
+                  <div className="mono font-bold text-tinta" style={{ fontSize: 16 }}>{brl(p.valor)}</div>
+                </div>
               ))}
-            </select>
-          </label>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-sm">
-            <thead>
-              <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
-                <Th>Dia</Th>
-                <Th className="text-right">Apps de delivery</Th>
-                <Th className="text-right">Na loja</Th>
-                <Th className="text-right">Total</Th>
-                <Th>Lançado por</Th>
-                <Th>Situação</Th>
-                {podeApagar && <Th><span className="sr-only">Ações</span></Th>}
-              </tr>
-            </thead>
-            <tbody>
-              {grupos.map((g) => (
-                <Fragment key={g.mes}>
-                  <tr className="border-b border-divisoria bg-preenchimento/60">
-                    <td colSpan={podeApagar ? 7 : 6} className="px-4 py-2">
-                      <span className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-bold capitalize text-tinta">{nomeDoMes(g.mes)}</span>
-                        <span className="text-xs text-tinta-3">
-                          {g.itens.length} {g.itens.length === 1 ? 'dia' : 'dias'} · <span className="mono font-bold text-tinta">{brl(g.total)}</span>
-                        </span>
-                      </span>
-                    </td>
-                  </tr>
-              {g.itens.map((r) => {
-                const plat = apps(r)
-                const lj = loja(r)
-                const conferido = Math.abs(plat + lj - r.totalDia) < 0.01
-                const lancs = lancamentosDe(r)
-                const ultimo = lancs[lancs.length - 1]
-                const expandido = aberto === r.id
-                return (
-                  <Fragment key={r.id}>
-                    <tr className="border-b border-divisoria last:border-0">
-                      <td className="mono px-4 py-3 text-tinta-2">{dataCurta(new Date(r.data + 'T12:00:00'))}</td>
-                      <td className="mono px-4 py-3 text-right text-tinta">{brl(plat)}</td>
-                      <td className="mono px-4 py-3 text-right text-tinta">{brl(lj)}</td>
-                      <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(r.totalDia)}</td>
-                      <td className="px-4 py-3">
+              {base === 'venda' &&
+                ids.map((id) => {
+                  const r = diaPorId.get(id)
+                  if (!r) return null
+                  const conferido = Math.abs(apps(r) + loja(r) - r.totalDia) < 0.01
+                  const lancs = lancamentosDe(r)
+                  const ultimo = lancs[lancs.length - 1]
+                  const expandido = aberto === r.id
+                  return (
+                    <div key={id} className="border-t border-divisoria bg-preenchimento/30 px-4 py-2.5">
+                      <div className="flex items-center justify-between gap-3">
                         <button
                           onClick={() => lancs.length > 1 && setAberto(expandido ? null : r.id)}
                           className={cn('flex items-center gap-2 text-left', lancs.length > 1 ? 'cursor-pointer' : 'cursor-default')}
                         >
-                          <Avatar inicial={(ultimo.porNome || '?')[0]} cor={corNome(ultimo.porNome)} tamanho={26} />
-                          <span className="leading-tight">
-                            <span className="block text-xs font-semibold text-tinta">{ultimo.porNome}</span>
-                            <span className="block text-[11px] text-tinta-4">{quando(new Date(ultimo.em), agora())}</span>
+                          <Avatar inicial={(ultimo.porNome || '?')[0]} cor={corNome(ultimo.porNome)} tamanho={22} />
+                          <span className="text-[11px] text-tinta-4">
+                            lançado por <span className="font-semibold text-tinta">{ultimo.porNome}</span> · {quando(new Date(ultimo.em), agora())}
                           </span>
                           {lancs.length > 1 && (
                             <span className="flex items-center gap-0.5 text-[11px] font-bold text-mar">
@@ -225,55 +229,36 @@ export function Caixa() {
                             </span>
                           )}
                         </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'rounded-chip px-2 py-0.5 text-xs font-bold',
-                            conferido ? 'bg-mata/12 text-mata' : 'bg-sol/20 text-insight-rotulo',
+                        <span className="flex items-center gap-2">
+                          <span className={cn('rounded-chip px-2 py-0.5 text-xs font-bold', conferido ? 'bg-mata/12 text-mata' : 'bg-sol/20 text-insight-rotulo')}>
+                            {conferido ? 'conferido' : 'revisar'}
+                          </span>
+                          {podeApagar && (
+                            <button
+                              onClick={() => pedirExclusao(r)}
+                              aria-label={`Apagar lançamento de vendas de ${dataCurta(new Date(r.data + 'T12:00:00'))}`}
+                              title="Apagar lançamento"
+                              className="grid h-8 w-8 place-items-center rounded-botao text-tinta-4 transition hover:bg-telha-alerta/10 hover:text-telha-alerta"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           )}
-                        >
-                          {conferido ? 'conferido' : 'revisar'}
                         </span>
-                      </td>
-                      {podeApagar && (
-                        <td className="px-2 py-3">
-                          <button
-                            onClick={() => pedirExclusao(r)}
-                            aria-label={`Apagar lançamento de vendas de ${dataCurta(new Date(r.data + 'T12:00:00'))}`}
-                            title="Apagar lançamento"
-                            className="grid h-8 w-8 place-items-center rounded-botao text-tinta-4 transition hover:bg-telha-alerta/10 hover:text-telha-alerta"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                    {expandido &&
-                      lancs.map((l, i) => (
-                        <tr key={`${r.id}-${i}`} className="border-b border-divisoria bg-preenchimento/30 text-xs">
-                          <td className="px-4 py-2 text-tinta-4">{i === 0 ? 'lançou' : 'relançou'}</td>
-                          <td colSpan={2} className="px-4 py-2 text-tinta-2">{l.porNome} · {quando(new Date(l.em), agora())}</td>
-                          <td className="mono px-4 py-2 text-right font-semibold text-tinta">{brl(l.total)}</td>
-                          <td colSpan={podeApagar ? 3 : 2} />
-                        </tr>
-                      ))}
-                  </Fragment>
-                )
-              })}
-                </Fragment>
-              ))}
-              {receitas.length === 0 && (
-                <tr>
-                  <td colSpan={podeApagar ? 7 : 6} className="px-4 py-10 text-center text-sm text-tinta-4">
-                    Nenhuma venda lançada ainda. Comece por "Lançar vendas".
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Cartao>
+                      </div>
+                      {expandido &&
+                        lancs.map((l, i) => (
+                          <div key={`${r.id}-${i}`} className="mt-1 flex items-center justify-between text-[11px] text-tinta-3">
+                            <span>{i === 0 ? 'lançou' : 'relançou'} · {l.porNome} · {quando(new Date(l.em), agora())}</span>
+                            <span className="mono font-semibold text-tinta">{brl(l.total)}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )
+                })}
+            </Cartao>
+          )
+        })
+      )}
     </div>
   )
 }
@@ -290,6 +275,7 @@ function CaixaCard({ rotulo, valor, apoio, contagem }: { rotulo: string; valor: 
   )
 }
 
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn('rotulo px-4 py-2.5 text-tinta-4', className)}>{children}</th>
+/** Nome do canal como aparece no DRE (apps, ifood e rappi viram "Vendas delivery"). */
+function nomeDoCanal(canal: CanalVenda): string {
+  return LINHAS_RECEITA.find((l) => l.canais.includes(canal))?.nome ?? canal
 }

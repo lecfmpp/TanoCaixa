@@ -203,7 +203,7 @@ export function GavetaHost() {
   const [despesa, setDespesa] = useState(DESPESA_VAZIA)
   const [nota, setNota] = useState(NOTA_VAZIA)
   const [produto, setProduto] = useState({ nome: '', categoria: 'Hortifrúti', unidade: 'kg', custo: '', minimo: '', fornecedor: '', cmv: true })
-  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', apps: '', delivery: '', outras: '' })
+  const [fecha, setFecha] = useState({ pix: '', cartao: '', dinheiro: '', apps: '', delivery: '', outras: '', recebeApps: '', recebeDelivery: '', recebeOutras: '' })
   const [estoque, setEstoque] = useState({ tipo: MOVIMENTOS[0] as string, produtoId: '', quantidade: '', obs: '' })
   /** Campos que vieram da leitura da foto — ficam destacados pra conferência. */
   const [iaPreencheu, setIaPreencheu] = useState<string[]>([])
@@ -599,6 +599,9 @@ export function GavetaHost() {
         apps: soNum(fecha.apps),
         delivery: soNum(fecha.delivery),
         outras: soNum(fecha.outras),
+        recebeApps: fecha.recebeApps,
+        recebeDelivery: fecha.recebeDelivery,
+        recebeOutras: fecha.recebeOutras,
       })
       toastComDesfazer('Vendas lançadas', `${brl(f.totalDia)} lançados no caixa de hoje.`, [{ colecao: 'receita_dia', id: f.id }])
     } else {
@@ -903,13 +906,21 @@ export function GavetaHost() {
                 <Campo rotulo="Dinheiro" inputMode="decimal" value={fecha.dinheiro} onChange={(e) => setFecha({ ...fecha, dinheiro: e.target.value })} />
               </div>
               <span className="rotulo text-tinta-4">Delivery e outras vendas</span>
-              <Campo rotulo="Apps de delivery" placeholder="total bruto vendido nos apps hoje" inputMode="decimal" value={fecha.apps} onChange={(e) => setFecha({ ...fecha, apps: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <Campo rotulo="Apps de delivery" placeholder="total bruto vendido nos apps hoje" inputMode="decimal" value={fecha.apps} onChange={(e) => setFecha({ ...fecha, apps: e.target.value })} />
+                <Campo rotulo="Recebe em" type="date" min={diaDeHoje()} value={fecha.recebeApps} onChange={(e) => setFecha({ ...fecha, recebeApps: e.target.value })} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Delivery próprio" placeholder="WhatsApp, telefone" inputMode="decimal" value={fecha.delivery} onChange={(e) => setFecha({ ...fecha, delivery: e.target.value })} />
+                <Campo rotulo="Recebe em" type="date" min={diaDeHoje()} value={fecha.recebeDelivery} onChange={(e) => setFecha({ ...fecha, recebeDelivery: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Outras receitas" placeholder="evento, buffet" inputMode="decimal" value={fecha.outras} onChange={(e) => setFecha({ ...fecha, outras: e.target.value })} />
+                <Campo rotulo="Recebe em" type="date" min={diaDeHoje()} value={fecha.recebeOutras} onChange={(e) => setFecha({ ...fecha, recebeOutras: e.target.value })} />
               </div>
               <p className="text-xs text-tinta-4">
-                Cada campo aqui é uma linha da receita bruta do DRE. A comissão dos apps você lança como despesa, na conta de comissão de apps.
+                Cada campo aqui é uma linha da receita bruta do DRE, contada no dia da venda. “Recebe em” é opcional: deixe vazio se o dinheiro cai hoje.
+                A comissão dos apps você lança como despesa, na conta de comissão de apps.
               </p>
             </div>
           )}

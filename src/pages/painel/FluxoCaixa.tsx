@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Check, AlertTriangle } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { TagVencimento } from '@/components/ui/TagVencimento'
@@ -8,22 +8,11 @@ import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { mensagemDeErro } from '@/lib/erros'
 import { useContexto, useDesfazerPagamento, useRestaurante } from '@/data/hooks'
-import { diaDeHoje } from '@/data/derive'
 import { CONTA } from '@/data/planoContas'
 import { diasAte } from '@/data/vencimentos'
-import { contasDoFluxo, limitesDaJanela, moverJanela, type ContaDoFluxo, type Janela } from '@/data/fluxo'
+import { contasDoFluxo, type ContaDoFluxo } from '@/data/fluxo'
+import { SeletorJanela, ddmm, diaDaSemana, nomeDaJanela, useJanela } from '@/components/ui/SeletorJanela'
 import { useUI } from '@/ui/UIProvider'
-
-const JANELAS: { id: Janela; rotulo: string }[] = [
-  { id: 'dia', rotulo: 'Dia' },
-  { id: 'semana', rotulo: 'Semana' },
-  { id: 'mes', rotulo: 'Mês' },
-]
-
-const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
-const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
-const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
-const diaDaSemana = (iso: string) => SEMANA[new Date(iso + 'T12:00:00').getDay()]
 
 /**
  * Fluxo de caixa: o que tem pra pagar no dia, na semana, no mês. É AQUI que
@@ -35,12 +24,10 @@ export function FluxoCaixa() {
   const cfg = useRestaurante().data
   const { confirmar, adicionarToast } = useUI()
   const desfazer = useDesfazerPagamento()
-  const hoje = diaDeHoje()
-  const [janela, setJanela] = useState<Janela>('dia')
-  const [ref, setRef] = useState(hoje)
+  const estado = useJanela('dia')
+  const { janela, de, ate, hoje } = estado
   const [pagando, setPagando] = useState<ContaDoFluxo | null>(null)
 
-  const { de, ate } = limitesDaJanela(janela, ref)
   const contas = useMemo(() => contasDoFluxo(ctx.despesas), [ctx.despesas])
 
   const daJanela = useMemo(
@@ -85,47 +72,13 @@ export function FluxoCaixa() {
     })
   }
 
-  const titulo =
-    janela === 'dia'
-      ? ref === hoje ? `Hoje · ${diaDaSemana(ref)} ${ddmm(ref)}` : `${diaDaSemana(ref)} ${ddmm(ref)}`
-      : janela === 'semana'
-        ? `${ddmm(de)} – ${ddmm(ate)}`
-        : `${MESES[Number(ref.slice(5, 7)) - 1]} de ${ref.slice(0, 4)}`
-  const noAgora = hoje >= de && hoje <= ate
-  const nomeJanela = janela === 'dia' ? (ref === hoje ? 'hoje' : 'no dia') : janela === 'semana' ? 'na semana' : 'no mês'
+  const nomeJanela = nomeDaJanela(estado)
 
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader titulo="Fluxo de caixa" subtitulo={cfg ? `${cfg.nome} · o que tem pra pagar` : ''} semMes />
 
-      {/* Dia | Semana | Mês + navegação */}
-      <div className="flex flex-col gap-3 cel:flex-row cel:items-center cel:justify-between">
-        <div className="flex w-fit rounded-botao bg-preenchimento p-1">
-          {JANELAS.map((j) => (
-            <button
-              key={j.id}
-              onClick={() => setJanela(j.id)}
-              className={cn('rounded-[10px] px-4 py-2 text-sm font-bold transition', janela === j.id ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta')}
-            >
-              {j.rotulo}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setRef(moverJanela(janela, ref, -1))} aria-label="Anterior" className="rounded-botao border border-[rgba(46,95,115,0.14)] bg-superficie p-2 text-tinta-2 hover:border-mar/50">
-            <ChevronLeft size={18} />
-          </button>
-          <span className="min-w-[150px] text-center text-[15px] font-bold capitalize text-tinta">{titulo}</span>
-          <button onClick={() => setRef(moverJanela(janela, ref, 1))} aria-label="Próximo" className="rounded-botao border border-[rgba(46,95,115,0.14)] bg-superficie p-2 text-tinta-2 hover:border-mar/50">
-            <ChevronRight size={18} />
-          </button>
-          {!noAgora && (
-            <button onClick={() => setRef(hoje)} className="rounded-botao px-3 py-2 text-sm font-bold text-mar hover:bg-preenchimento">
-              Hoje
-            </button>
-          )}
-        </div>
-      </div>
+      <SeletorJanela estado={estado} />
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
         <Mini rotulo={`A pagar ${nomeJanela}`} valor={aPagar} apoio={`${daJanela.filter((c) => !c.pago).length} em aberto`} destaque />
