@@ -1,23 +1,22 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, Repeat, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Repeat, Search } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useContexto, useMarcarPago, useRestaurante } from '@/data/hooks'
+import { useContexto, useRestaurante } from '@/data/hooks'
 import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, noPeriodo, MES_REF } from '@/data/derive'
 import { usePeriodo, sufixoDoFiltro } from '@/ui/periodo'
 import { diasAte } from '@/data/vencimentos'
 import { TagVencimento } from '@/components/ui/TagVencimento'
-import { mensagemDeErro } from '@/lib/erros'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { nomeDoMes } from '@/data/planoMes'
 import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
-import { useUI } from '@/ui/UIProvider'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -34,6 +33,12 @@ function corNome(nome: string): string {
 /** As duas naturezas de saída: conta da casa e mercadoria comprada. */
 type Aba = 'casa' | 'compras'
 
+/** Qual data manda no filtro do período: a da entrada (competência) ou a do vencimento. */
+type BaseData = 'entrada' | 'vencimento'
+
+/** Sem vencimento, a conta vence no dia em que entrou. */
+const diaDa = (d: DespesaDoc, base: BaseData) => (base === 'vencimento' ? d.dataVencimento ?? d.dataCompetencia : d.dataCompetencia)
+
 export function Despesas() {
   // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
   const [periodo, setPeriodo] = usePeriodo()
@@ -41,9 +46,9 @@ export function Despesas() {
   const MES_NOME = periodo === 'mes' ? nomeDoMes(MES_REF).split(' de ')[0] : periodo === 'semana' ? 'a semana' : 'o período'
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
-  const { confirmar, adicionarToast } = useUI()
-  const marcarPago = useMarcarPago()
   const [busca, setBusca] = useState('')
+  const [baseData, setBaseData] = useState<BaseData>('entrada')
+  const [fornecedor, setFornecedor] = useState('')
   const [filtro, setFiltro] = useState<GrupoDRE | 'todas'>('todas')
   // Aluguel e compra de carne saem os dois do caixa, mas não se leem juntos:
   // um é conta fixa da casa, o outro é estoque virando prato.
@@ -52,8 +57,8 @@ export function Despesas() {
   // A tela toda fala do período escolhido (mês corrente ou últimos 7 dias), então
   // o que está fora dele fica de fora — senão os cartões somam o histórico.
   const doMes = useMemo(
-    () => ctx.despesas.filter((d) => noPeriodo(d.dataCompetencia, periodo)),
-    [ctx.despesas, periodo],
+    () => ctx.despesas.filter((d) => noPeriodo(diaDa(d, baseData), periodo)),
+    [ctx.despesas, periodo, baseData],
   )
 
   const compras = useMemo(() => doMes.filter(ehCompra), [doMes])
@@ -88,49 +93,31 @@ export function Despesas() {
     return GRUPOS.filter((g) => ids.has(g.id))
   }, [daAba])
 
+  const fornecedores = useMemo(
+    () => [...new Set(daAba.map((d) => d.fornecedor))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [daAba],
+  )
+
   const lista = useMemo(() => {
     return daAba
       .filter((d) => (filtro === 'todas' ? true : CONTA[d.categoria]?.grupo === filtro))
+      .filter((d) => (fornecedor ? d.fornecedor === fornecedor : true))
       .filter((d) => (busca ? (d.fornecedor + (d.descricao ?? '')).toLowerCase().includes(busca.toLowerCase()) : true))
-      .sort((a, b) => (a.dataCompetencia < b.dataCompetencia ? 1 : -1))
-  }, [daAba, filtro, busca])
+      // Por vencimento, a próxima conta a vencer vem primeiro; por entrada, a mais recente.
+      .sort((a, b) => {
+        const [x, y] = [diaDa(a, baseData), diaDa(b, baseData)]
+        return baseData === 'vencimento' ? (x < y ? -1 : 1) : x < y ? 1 : -1
+      })
+  }, [daAba, filtro, fornecedor, busca, baseData])
   const totalLista = lista.reduce((s, d) => s + d.valorTotal, 0)
 
   const vence3 = daAba.find((d) => d.status === 'vence')
   const hoje = diaDeHoje()
 
-  /** Marca o lançamento como pago (o mesmo fluxo do aviso no Início). */
-  function pedirPagamento(d: DespesaDoc) {
-    confirmar({
-      gravidade: 'neutro',
-      titulo: 'Marcar como pago?',
-      texto: `${d.fornecedor} fica registrado como pago por você, agora.`,
-      resumo: [
-        { rot: 'Fornecedor', val: d.fornecedor },
-        { rot: 'Valor', val: brl(d.valorTotal) },
-      ],
-      rotuloConfirmar: 'Marcar como pago',
-      onConfirmar: async () => {
-        try {
-          await marcarPago.mutateAsync({ ids: [d.id], pago: true, fornecedor: d.fornecedor, valor: d.valorTotal })
-          adicionarToast({
-            tipo: 'sucesso',
-            titulo: 'Pago',
-            texto: `${d.fornecedor} · ${brl(d.valorTotal)}`,
-            rotuloAcao: 'Desfazer',
-            onAcao: () => marcarPago.mutate({ ids: [d.id], pago: false, fornecedor: d.fornecedor, valor: d.valorTotal }),
-          })
-        } catch (e) {
-          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como pago', texto: mensagemDeErro(e, 'Tente de novo.') })
-        }
-      },
-    })
-  }
-
   /** Lançamentos que estão na tela (filtro e busca incluídos), em CSV. */
   function exportar() {
     const linhas = lista.map((d) => [
-      d.dataCompetencia.slice(0, 10).split('-').reverse().join('/'),
+      diaDa(d, baseData).slice(0, 10).split('-').reverse().join('/'),
       d.fornecedor,
       d.descricao ?? '',
       GRUPO[CONTA[d.categoria]?.grupo ?? 'cmv'].nome,
@@ -139,10 +126,11 @@ export function Despesas() {
       d.status,
       d.criadoPorNome,
       d.valorTotal.toFixed(2).replace('.', ','),
+      (d.juros ?? 0).toFixed(2).replace('.', ','),
     ])
     baixarCSV(
       `${aba === 'compras' ? 'compras' : 'despesas'}-${sufixoDoFiltro(periodo, MES_REF)}-${arquivoDe(cfg?.nome)}`,
-      gerarCSV(['Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)'], linhas),
+      gerarCSV([baseData === 'vencimento' ? 'Vencimento' : 'Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)', 'Juros pagos (R$)'], linhas),
     )
   }
 
@@ -153,8 +141,8 @@ export function Despesas() {
       {/* Duas naturezas, duas abas — o DRE e o caixa continuam somando as duas. */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center cel:justify-between">
         <div className="flex rounded-botao bg-preenchimento p-1">
-          <AbaBotao rotulo="Contas da casa" valor={totalContas} ativa={aba === 'casa'} aoClicar={() => { setAba('casa'); setFiltro('todas') }} />
-          <AbaBotao rotulo="Compras de mercadoria" valor={totalCompras} ativa={aba === 'compras'} aoClicar={() => { setAba('compras'); setFiltro('todas') }} />
+          <AbaBotao rotulo="Contas da casa" valor={totalContas} ativa={aba === 'casa'} aoClicar={() => { setAba('casa'); setFiltro('todas'); setFornecedor('') }} />
+          <AbaBotao rotulo="Compras de mercadoria" valor={totalCompras} ativa={aba === 'compras'} aoClicar={() => { setAba('compras'); setFiltro('todas'); setFornecedor('') }} />
         </div>
       </div>
 
@@ -195,6 +183,33 @@ export function Despesas() {
           <Search size={16} className="text-tinta-4" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar fornecedor…" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta-5" />
         </div>
+        <select
+          value={fornecedor}
+          onChange={(e) => setFornecedor(e.target.value)}
+          aria-label="Filtrar por fornecedor"
+          className={cn(
+            'rounded-campo border bg-superficie px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-mar cel:max-w-[220px]',
+            fornecedor ? 'border-mar text-mar' : 'border-[rgba(46,95,115,0.14)] text-tinta-2',
+          )}
+        >
+          <option value="">Todos os fornecedores</option>
+          {fornecedores.map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <div className="flex shrink-0 items-center gap-1 rounded-botao bg-preenchimento p-1" role="group" aria-label="Filtrar o período pela data">
+          <span className="px-2 text-xs font-semibold text-tinta-4">Data:</span>
+          {(['entrada', 'vencimento'] as const).map((b) => (
+            <button
+              key={b}
+              onClick={() => setBaseData(b)}
+              aria-pressed={baseData === b}
+              className={cn('rounded-[10px] px-3 py-1.5 text-sm font-bold capitalize transition', baseData === b ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta')}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="-mt-1 flex flex-wrap gap-2">
         <div className="flex flex-wrap gap-2">
           <Chip rotulo="Todas" selecionado={filtro === 'todas'} aoClicar={() => setFiltro('todas')} />
           {gruposUsados.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={filtro === g.id} aoClicar={() => setFiltro(g.id)} />)}
@@ -207,7 +222,7 @@ export function Despesas() {
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>Data</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th><Th><span className="sr-only">Ações</span></Th>
+                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>{baseData === 'vencimento' ? 'Vencimento' : 'Entrada'}</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th><Th><span className="sr-only">Ações</span></Th>
               </tr>
             </thead>
             <tbody>
@@ -228,7 +243,7 @@ export function Despesas() {
                   </td>
                   <td className="px-4 py-3"><EtiquetaConta categoria={d.categoria} /></td>
                   <td className="hidden px-4 py-3 capitalize text-tinta-2 tab:table-cell">{d.formaPagamento}</td>
-                  <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(d.dataCompetencia))}</td>
+                  <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(diaDa(d, baseData)))}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={26} />
@@ -244,7 +259,10 @@ export function Despesas() {
                   </td>
                   <td className="px-4 py-3">
                     {d.status === 'pago' ? (
-                      <span className="text-xs font-bold text-mata">pago</span>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-xs font-bold text-mata">pago{d.pagoEm ? ` ${dataCurta(dataDoDia(d.pagoEm))}` : ''}</span>
+                        {!!d.juros && <span className="mono text-[11px] font-bold text-telha-alerta">+ {brl(d.juros)} juros</span>}
+                      </div>
                     ) : (
                       <div className="flex flex-col items-start gap-1.5">
                         {d.dataVencimento ? (
@@ -252,9 +270,10 @@ export function Despesas() {
                         ) : (
                           <span className={cn('text-xs font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</span>
                         )}
-                        <button onClick={() => pedirPagamento(d)} className="inline-flex items-center gap-1 rounded-chip bg-mar px-2.5 py-1 text-xs font-bold text-creme transition hover:bg-mar-escuro">
-                          <CheckCircle2 size={12} /> Marcar como pago
-                        </button>
+                        {/* Pagar é no Fluxo de caixa — lá o check pergunta se teve juros. */}
+                        <Link to="/painel/fluxo" className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-bold text-mar hover:underline">
+                          Pagar no fluxo <ArrowRight size={12} />
+                        </Link>
                       </div>
                     )}
                   </td>
