@@ -11,6 +11,7 @@
  *  - Vale o ÚLTIMO lançamento da série: se ele continua `recorrente` e é de um
  *    mês ANTERIOR ao atual, gera o do mês atual. Desligar "se repete" no último
  *    lançamento encerra a série; corrigir o valor nele vale pros próximos meses.
+ *  - Só CONTA DA CASA: compra de mercadoria (nota de fornecedor, CMV) nunca se repete.
  *  - Só o mês atual: não preenche meses que ficaram pra trás (não reescreve o passado).
  *  - Mesmo dia do mês (dia 31 em fevereiro cai no 28, mas em março volta ao 31) e
  *    vencimento deslocado pela mesma distância que tinha da competência.
@@ -31,6 +32,8 @@ export interface DespesaMin {
   descricao?: string
   observacao?: string
   tipoLancamento?: string
+  notaId?: string
+  itens?: unknown[]
   /** Dia que a série pede (antes de ajustar ao tamanho do mês). */
   diaDoMes?: number
   vencDiaDoMes?: number
@@ -80,6 +83,20 @@ function diaPedido(iso: string, salvo: number | undefined): number {
   return Math.min(salvo, diasNoMes(mesDoDia(iso))) === real ? salvo : real
 }
 
+/** Contas do DRE que são compra de mercadoria (CMV), inclusive o nome antigo "mercadoria". */
+const CONTAS_DE_COMPRA = ['cmv_alimentos', 'cmv_bebidas', 'cmv_descartaveis', 'mercadoria']
+
+/**
+ * Compra de mercadoria (nota fiscal de fornecedor) NÃO é despesa fixa da casa: tem estoque e custo de produto atrás,
+ * e repetir uma geraria compra sem item. Mesma regra do app (data/compras.ts `ehCompra`): o `tipoLancamento` manda; sem
+ * ele (lançamento antigo), vale a conta do DRE.
+ */
+export function ehCompraDeMercadoria(d: DespesaMin): boolean {
+  if (d.notaId || (d.itens?.length ?? 0) > 0) return true
+  if (d.tipoLancamento) return d.tipoLancamento === 'compra'
+  return CONTAS_DE_COMPRA.includes(d.categoria)
+}
+
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 
 /** Em ordem de data do lançamento, desempatando pelo id (estável). */
@@ -103,6 +120,7 @@ export function planejarRepeticoes(despesas: DespesaMin[], hoje: string, agora: 
   for (const [chave, lancamentos] of series) {
     const ultimo = [...lancamentos].sort(maisRecente).at(-1)!
     if (!ultimo.recorrente) continue // série encerrada: desligaram "se repete" no último lançamento
+    if (ehCompraDeMercadoria(ultimo)) continue // só conta da casa (aluguel, luz, folha…); compra de mercadoria não se repete
     if (mesDoDia(ultimo.dataCompetencia) >= mes) continue // já tem o deste mês (ou é de um mês à frente)
 
     const serieId = chave.startsWith('legado:') ? ultimo.id : chave

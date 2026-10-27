@@ -117,8 +117,21 @@ test('o id é fixo por série e mês (rodar de novo não cria outro)', () => {
   assert.equal(plano(lista, '2026-11-30')[0].id, 'd1_2026-11')
 })
 
-test('cópia não carrega itens nem nota (é conta da casa)', () => {
-  const [r] = plano([{ ...d({ id: 'n' }), itens: [{ x: 1 }], notaId: 'nf-1' } as unknown as DespesaMin])
-  assert.equal('itens' in r.doc, false)
-  assert.equal('notaId' in r.doc, false)
+test('compra de mercadoria marcada como recorrente NÃO se repete (caso real: fornecedor de alimentos de 30/07)', () => {
+  assert.deepEqual(plano([d({ id: 'c1', fornecedor: 'Carioca 2020 Alimentos Ltda', categoria: 'cmv_alimentos', valorTotal: 131.64 })]), []) // lançamento antigo: vale a conta do DRE
+  assert.deepEqual(plano([d({ id: 'c2', categoria: 'cmv_bebidas' })]), [])
+  assert.deepEqual(plano([d({ id: 'c3', categoria: 'mercadoria' })]), []) // nome antigo da conta
+  assert.deepEqual(plano([d({ id: 'c4', tipoLancamento: 'compra', categoria: 'aluguel' })]), []) // o tipo manda
+  assert.deepEqual(plano([d({ id: 'c5', notaId: 'nf-1' })]), []) // veio de nota fiscal
+  assert.deepEqual(plano([d({ id: 'c6', itens: [{ produtoId: 'p' }] })]), [])
+})
+
+test('conta da casa com tipoLancamento "conta" repete mesmo se o nome da conta for outro', () => {
+  assert.equal(plano([d({ id: 'k1', tipoLancamento: 'conta', categoria: 'cmv_alimentos' })]).length, 1) // o tipo manda, como no app
+  assert.equal(plano([d({ id: 'k2', categoria: 'luz' })]).length, 1)
+})
+
+test('a cópia só leva os campos da conta: nada de pagamento, edição ou nota do original', () => {
+  const [r] = plano([{ ...d({ id: 'n' }), pagoEm: '2026-10-05', pagoPorNome: 'Ana', editadoPorNome: 'Ana', duplicadoDe: 'x' } as unknown as DespesaMin])
+  for (const campo of ['pagoEm', 'pagoPorNome', 'editadoPorNome', 'duplicadoDe', 'itens', 'notaId']) assert.equal(campo in r.doc, false, campo)
 })

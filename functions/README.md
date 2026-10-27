@@ -65,6 +65,7 @@ despesa do mês que acabou de virar. Regras em `src/recorrentes.ts`, gravação 
   atual, gera o do mês atual: mesmo valor, mesmo dia (31 em fevereiro cai no 28 e volta ao 31),
   vencimento deslocado pela mesma distância, **a pagar**. Corrigir o valor nele vale pros próximos.
 - **Parar de repetir:** desligar o interruptor no último lançamento da série.
+- **Só conta da casa** (aluguel, luz, folha…): compra de mercadoria (nota de fornecedor, conta de CMV) nunca se repete.
 - **Só o mês atual:** não preenche meses que ficaram pra trás.
 - **Idempotente:** id fixo `{serieId}_{AAAA-MM}` e `create`. Cada repetição grava também um
   marcador em `restaurants/{id}/recorrencias/{mesmo id}` no mesmo lote: se a pessoa apagar a do
