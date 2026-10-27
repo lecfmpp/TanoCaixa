@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Inbox, Lock, CheckCircle2, ArrowRight } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
@@ -8,6 +9,10 @@ import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
 import { brl, brlInteiro, inteiro, pct, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { compacto } from '@/components/dashboard/escala'
+import { MAR, TELHA } from '@/data/dashboard'
+import { useLargura } from '@/components/dashboard/useLargura'
+import { layoutBarras, visivelNoPasso, type ModoValores } from '@/components/dashboard/layoutBarras'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { usePeriodo } from '@/ui/periodo'
 import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
@@ -16,8 +21,6 @@ import { nomeDoMes } from '@/data/planoMes'
 import { lembretes, type Vencimento } from '@/data/vencimentos'
 import { mensagemDeErro } from '@/lib/erros'
 
-const COR_MAR = '#2E5F73'
-const COR_TELHADO = '#C05437'
 
 type Tom = 'positivo' | 'negativo' | 'neutro'
 
@@ -287,45 +290,98 @@ function CartaoSobrou({ valor, margem, visivel }: { valor: number; margem: numbe
   )
 }
 
+/**
+ * Entrou × saiu por período. O que cabe depende da largura do cartão (zoom, tela
+ * estreita, menu aberto): com folga mostra os valores sobre as barras; com menos,
+ * valores curtos (120k); sem espaço, nenhum. Em qualquer caso, tocar (ou clicar) num
+ * grupo mostra o entrou, o saiu e o saldo dele por extenso embaixo, que é o que
+ * resta no celular, onde `title` não existe. As regras de quanto cabe estão em
+ * layoutBarras.ts (testadas).
+ */
 function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: string; entrou: number; saiu: number }[] }) {
   const AREA = 150
   const max = Math.max(...barras.flatMap((b) => [b.entrou, b.saiu]), 1)
+  const [ref, largura] = useLargura<HTMLDivElement>()
+  const [escolhido, setEscolhido] = useState<number | null>(null)
+  const saldo = (b: { entrou: number; saiu: number }) => b.entrou - b.saiu
+  const sinal = (v: number) => (v >= 0 ? '+' : '')
+  const { gap, entreColunas, valores, saldoCurto, passo } = layoutBarras({
+    largura,
+    n: barras.length,
+    textos: {
+      inteiro: barras.flatMap((b) => [inteiro(b.entrou), inteiro(b.saiu)]),
+      curto: barras.flatMap((b) => [compacto(b.entrou), compacto(b.saiu)]),
+      saldoInteiro: barras.map((b) => sinal(saldo(b)) + inteiro(saldo(b))),
+      saldoCurto: barras.map((b) => sinal(saldo(b)) + compacto(saldo(b))),
+    },
+  })
+  // O período pode trocar (e encolher) com um grupo escolhido.
+  const ativo = escolhido !== null && escolhido < barras.length ? escolhido : null
   return (
-    <Cartao className="flex flex-col">
-      <div className="mb-6 flex items-center justify-between">
+    <Cartao className="flex min-w-0 flex-col">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 className="text-[15px] font-bold text-tinta">{titulo}</h2>
         <div className="flex items-center gap-3 text-xs text-tinta-3">
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" /> entrou</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" /> saiu</span>
         </div>
       </div>
-      <div className="flex items-end justify-between gap-2">
-        {barras.map((b) => {
-          const sobraB = b.entrou - b.saiu
+      <div ref={ref} className="flex items-end" style={{ gap }}>
+        {barras.map((b, i) => {
+          const sobraB = saldo(b)
           return (
-            <div key={b.rotulo} className="flex flex-1 flex-col items-center">
-              <div className="flex items-end justify-center gap-1.5" style={{ height: AREA + 24 }}>
-                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={COR_MAR} />
-                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={COR_TELHADO} />
+            <button
+              key={b.rotulo}
+              type="button"
+              onClick={() => setEscolhido(ativo === i ? null : i)}
+              aria-pressed={ativo === i}
+              aria-label={`${b.rotulo}: entrou ${brlInteiro(b.entrou)}, saiu ${brlInteiro(b.saiu)}, saldo ${brlInteiro(sobraB)}`}
+              className={cn('flex min-w-0 flex-1 cursor-pointer flex-col items-center rounded-md transition-colors', ativo === i && 'bg-preenchimento/70')}
+            >
+              <div className="flex w-full items-end justify-center" style={{ height: AREA + 24, gap: entreColunas }}>
+                <ColunaBarra valor={b.entrou} max={max} area={AREA} cor={MAR} valores={valores} />
+                <ColunaBarra valor={b.saiu} max={max} area={AREA} cor={TELHA} valores={valores} />
               </div>
-              <div className="mt-3 text-center">
-                <div className="text-xs text-tinta-4">{b.rotulo}</div>
-                <div className={cn('mono mt-1 text-sm font-bold', sobraB >= 0 ? 'text-mata' : 'text-telha-alerta')}>{sobraB >= 0 ? '+' : ''}{inteiro(sobraB)}</div>
+              <div
+                className={cn(
+                  'mt-3 flex w-full flex-col',
+                  // Grupo estreito: os textos das pontas saem pra dentro do gráfico em vez de passar da borda do cartão.
+                  saldoCurto && barras.length > 1 && i === 0 ? 'items-start' : saldoCurto && barras.length > 1 && i === barras.length - 1 ? 'items-end' : 'items-center',
+                  !visivelNoPasso(i, barras.length, passo) && 'invisible',
+                )}
+              >
+                <div className="whitespace-nowrap text-xs text-tinta-4">{b.rotulo}</div>
+                <div className={cn('mono mt-1 whitespace-nowrap font-bold', saldoCurto ? 'text-xs' : 'text-sm', sobraB >= 0 ? 'text-mata' : 'text-telha-alerta')}>
+                  {sinal(sobraB)}{saldoCurto ? compacto(sobraB) : inteiro(sobraB)}
+                </div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
+      <p className="mt-4 min-h-5 text-sm text-tinta-3" aria-live="polite">
+        {ativo !== null ? (
+          <>
+            <b className="text-tinta">{barras[ativo].rotulo}</b>: entrou <span className="mono font-bold text-mar">{brlInteiro(barras[ativo].entrou)}</span>, saiu{' '}
+            <span className="mono font-bold text-telhado">{brlInteiro(barras[ativo].saiu)}</span>, saldo{' '}
+            <span className={cn('mono font-bold', saldo(barras[ativo]) >= 0 ? 'text-mata' : 'text-telha-alerta')}>{brlInteiro(saldo(barras[ativo]))}</span>
+          </>
+        ) : valores !== 'inteiro' ? (
+          <span className="text-xs text-tinta-4">Toque numa barra para ver os valores.</span>
+        ) : null}
+      </p>
     </Cartao>
   )
 }
 
-function ColunaBarra({ valor, max, area, cor }: { valor: number; max: number; area: number; cor: string }) {
+function ColunaBarra({ valor, max, area, cor, valores }: { valor: number; max: number; area: number; cor: string; valores: ModoValores }) {
   const altura = Math.max(4, (valor / max) * area)
   return (
-    <div className="flex flex-col items-center justify-end" style={{ height: area + 24 }}>
-      <span className="mono mb-1.5 text-[13px] font-medium" style={{ color: cor }}>{inteiro(valor)}</span>
-      <div className="w-7 rounded-t-md" style={{ height: altura, background: cor }} />
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-end" style={{ height: area + 24, maxWidth: 40 }}>
+      {valores !== 'nenhum' && (
+        <span className="mono mb-1.5 whitespace-nowrap text-[12px] font-medium" style={{ color: cor }}>{valores === 'inteiro' ? inteiro(valor) : compacto(valor)}</span>
+      )}
+      <div className="w-full rounded-t-md" style={{ height: altura, maxWidth: 28, background: cor }} />
     </div>
   )
 }
