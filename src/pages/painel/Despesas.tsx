@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Repeat, Search } from 'lucide-react'
+import { CheckCircle2, Repeat, Search } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
@@ -17,6 +16,8 @@ import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
+import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
+import type { ContaDoFluxo } from '@/data/fluxo'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -46,6 +47,7 @@ export function Despesas() {
   const periodo: Filtro = useMemo(() => ({ de, ate }), [de, ate])
   const nomeJanela = nomeDaJanela(estado)
   const { ctx } = useContexto()
+  const pagamento = useMarcarComoPago(ctx.despesas)
   const restaurante = useRestaurante()
   const [busca, setBusca] = useState('')
   const [baseData, setBaseData] = useState<BaseData>('entrada')
@@ -259,6 +261,8 @@ export function Despesas() {
                   d={d}
                   hoje={hoje}
                   baseData={baseData}
+                  conta={pagamento.contaDe(d.id)}
+                  aoMarcar={pagamento.alternar}
                   alvo={
                     aba === 'compras' && notaDoLancamento.get(d.id)
                       ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
@@ -275,12 +279,14 @@ export function Despesas() {
         <span className="text-tinta-3">{lista.length} lançamentos</span>
         <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
       </div>
+
+      {pagamento.modal}
     </div>
   )
 }
 
 /** Uma conta no estilo da linha do Fluxo de caixa: fornecedor, conta do DRE, quem lançou, situação e valor. */
-function LinhaDespesa({ d, hoje, baseData, alvo }: { d: DespesaDoc; hoje: string; baseData: BaseData; alvo: React.ComponentProps<typeof AcoesLancamento>['alvo'] }) {
+function LinhaDespesa({ d, hoje, baseData, alvo, conta, aoMarcar }: { d: DespesaDoc; hoje: string; baseData: BaseData; alvo: React.ComponentProps<typeof AcoesLancamento>['alvo']; conta?: ContaDoFluxo; aoMarcar: (c: ContaDoFluxo) => void }) {
   return (
     <div className={cn('flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0', d.status === 'pago' && 'bg-mata/[0.04]')}>
       <div className="min-w-0 flex-1">
@@ -313,11 +319,11 @@ function LinhaDespesa({ d, hoje, baseData, alvo }: { d: DespesaDoc; hoje: string
             {d.criadoPorNome} · {quando(new Date(d.criadoEm), agora())}
             {d.editadoPorNome && <span className="text-telhado">· corrigido por {d.editadoPorNome}</span>}
           </span>
-          {d.status !== 'pago' && (
-            // Pagar é no Fluxo de caixa — lá o check pergunta se teve juros.
-            <Link to="/painel/fluxo" className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-mar hover:underline">
-              Pagar no fluxo <ArrowRight size={11} />
-            </Link>
+          {conta && (
+            // Pergunta se teve juros; o desfazer volta a conta pra "a pagar".
+            <button onClick={() => aoMarcar(conta)} className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-mar hover:underline">
+              {d.status === 'pago' ? 'Desmarcar pagamento' : <><CheckCircle2 size={12} /> Marcar como pago</>}
+            </button>
           )}
         </div>
       </div>
