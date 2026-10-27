@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Button } from '@/components/ui/Button'
@@ -8,13 +9,12 @@ import { TagVencimento } from '@/components/ui/TagVencimento'
 import { brl, brlInteiro, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
-import { useDespesas, useMarcarPago, useRestaurante } from '@/data/hooks'
+import { useDespesas, useRestaurante } from '@/data/hooks'
 import { MES_REF, diaDeHoje, noPeriodo } from '@/data/derive'
 import { usePeriodo, sufixoDoFiltro } from '@/ui/periodo'
 import { nomeDoMes } from '@/data/planoMes'
-import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra, type Nota } from '@/data/compras'
+import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_RELEVANTE, ehCompra } from '@/data/compras'
 import { diasAte, lembretes } from '@/data/vencimentos'
-import { mensagemDeErro } from '@/lib/erros'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 
@@ -29,8 +29,7 @@ type Aba = 'notas' | 'precos' | 'fornecedores'
 export function Compras() {
   const despesas = useDespesas()
   const cfg = useRestaurante().data
-  const { abrirGaveta, confirmar, adicionarToast } = useUI()
-  const marcarPago = useMarcarPago()
+  const { abrirGaveta } = useUI()
   const [periodo, setPeriodo] = usePeriodo()
   const [aba, setAba] = useState<Aba>('notas')
   const [aberta, setAberta] = useState<string | null>(null)
@@ -49,36 +48,6 @@ export function Compras() {
   // Aviso de boleto olha TODAS as notas: a que venceu mês passado continua devendo.
   const avisos = useMemo(() => lembretes(todas.filter(ehCompra), hoje), [todas, hoje])
   const vencidas = avisos.filter((v) => v.situacao === 'vencido')
-
-  /** Marca a nota inteira como paga, com confirmação e "Desfazer". */
-  function pedirPagamento(n: Nota) {
-    const ids = n.lancamentos.map((l) => l.id)
-    confirmar({
-      gravidade: 'neutro',
-      titulo: 'Marcar a nota como paga?',
-      texto: `A nota de ${n.fornecedor} sai de “a pagar” e fica registrada como paga por você, agora.`,
-      resumo: [
-        { rot: 'Fornecedor', val: n.fornecedor },
-        { rot: 'Valor', val: brl(n.valorTotal) },
-        ...(n.vencimento ? [{ rot: 'Vencimento', val: n.vencimento.split('-').reverse().join('/') }] : []),
-      ],
-      rotuloConfirmar: 'Marcar como paga',
-      onConfirmar: async () => {
-        try {
-          await marcarPago.mutateAsync({ ids, pago: true, fornecedor: n.fornecedor, valor: n.valorTotal })
-          adicionarToast({
-            tipo: 'sucesso',
-            titulo: 'Nota paga',
-            texto: `${n.fornecedor} · ${brl(n.valorTotal)}`,
-            rotuloAcao: 'Desfazer',
-            onAcao: () => marcarPago.mutate({ ids, pago: false, fornecedor: n.fornecedor, valor: n.valorTotal }),
-          })
-        } catch (e) {
-          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como paga', texto: mensagemDeErro(e, 'Tente de novo.') })
-        }
-      },
-    })
-  }
 
   const compradoNoMes = notasDoMes.reduce((s, n) => s + n.valorTotal, 0)
   const aPagar = notasDoMes.filter((n) => n.status !== 'pago').reduce((s, n) => s + n.valorTotal, 0)
@@ -219,12 +188,13 @@ export function Compras() {
                    * juntos. Compra antiga sem itens não tem estoque atrás — ela
                    * é corrigida como lançamento avulso, na gaveta de despesa. */}
                   {!pago && (
-                    <button
-                      onClick={() => pedirPagamento(n)}
-                      className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-botao bg-mar px-3 py-1.5 text-xs font-bold text-creme transition hover:bg-mar-escuro"
+                    // Pagar é no Fluxo de caixa: lá o check pergunta se teve juros.
+                    <Link
+                      to="/painel/fluxo"
+                      className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-botao px-2.5 py-1.5 text-xs font-bold text-mar transition hover:bg-preenchimento"
                     >
-                      <CheckCircle2 size={14} /> <span className="hidden cel:inline">Marcar como paga</span><span className="cel:hidden">Pagar</span>
-                    </button>
+                      <span className="hidden cel:inline">Pagar no fluxo</span><span className="cel:hidden">Pagar</span> <ArrowRight size={13} />
+                    </Link>
                   )}
                   <AcoesLancamento
                     alvo={

@@ -122,6 +122,16 @@ export interface DespesaDoc extends Autoria {
   /** Quando e por quem foi marcado como pago (o lançamento nasce 'a pagar'). */
   pagoEm?: string
   pagoPorNome?: string
+  /**
+   * Juros/multa pagos além do boleto. Ficam num lançamento à parte (conta
+   * "Multas, atrasos", id em `jurosId`) para o DRE somar sozinho; aqui é só
+   * pra despesa mostrar "+ R$ 12 de juros". Numa nota com vários lançamentos,
+   * só o primeiro carrega.
+   */
+  juros?: number
+  jurosId?: string
+  /** Este lançamento É o juro do pagamento de outro (id do original). */
+  jurosDe?: string
   /** Marca a cópia e aponta pro lançamento de origem. */
   duplicadoDe?: string
 }

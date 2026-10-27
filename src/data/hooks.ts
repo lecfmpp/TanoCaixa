@@ -17,9 +17,11 @@ import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
 import { useLojaAtiva } from './lojaAtiva'
 import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
+import { brl } from '@/lib/format'
 import { temRede, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
 import { precosPorItem, type Nota } from './compras'
+import { jurosDoPagamento } from './fluxo'
 import {
   normalizarCategoria,
   contaDeCmvDoProduto,
@@ -1330,30 +1332,96 @@ export function useRestaurarDespesa() {
   })
 }
 
-/** Marca nota ou conta como paga (ou volta pra "a pagar", no desfazer). */
-export function useMarcarPago() {
+/**
+ * Paga nota ou conta (é o check do Fluxo de caixa). Se saiu mais que o
+ * boleto, a diferença vira um lançamento próprio na conta "Multas, atrasos",
+ * já pago, no dia do pagamento — e assim DRE, Despesas, Dashboard e Plano do
+ * mês somam o juro sem nenhuma conta especial.
+ */
+export function usePagarConta() {
   const t = useTenant()
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (p: { ids: string[]; pago: boolean; fornecedor: string; valor: number }) => {
+    mutationFn: async (p: { lancamentos: DespesaDoc[]; valorPago: number; dia: string }) => {
       const autor = getAutor()
-      for (const id of p.ids) {
-        await repo.despesas.atualizar(
-          t,
-          id,
-          p.pago
-            ? { status: 'pago', pagoEm: autor.criadoEm, pagoPorNome: autor.criadoPorNome }
-            : { status: 'a_pagar', pagoEm: '', pagoPorNome: '' },
-        )
+      const [base] = p.lancamentos
+      if (!base) throw new Error('Nada pra pagar.')
+      const boleto = p.lancamentos.reduce((s, l) => s + l.valorTotal, 0)
+      const juros = jurosDoPagamento(boleto, p.valorPago)
+      // Pago hoje: a hora de agora. Pago em outro dia: meio-dia, pra não virar de dia no fuso.
+      const pagoEm = p.dia === diaDeHoje() ? autor.criadoEm : `${p.dia}T12:00:00.000Z`
+      let jurosId = ''
+      if (juros > 0) {
+        jurosId = novoId('d')
+        const doc: DespesaDoc = {
+          id: jurosId,
+          fornecedor: base.fornecedor,
+          descricao: `Juros/multa · ${base.descricao || base.fornecedor}`,
+          categoria: 'multas',
+          valorTotal: juros,
+          dataCompetencia: p.dia,
+          formaPagamento: base.formaPagamento,
+          status: 'pago',
+          recorrente: false,
+          tipoLancamento: 'conta',
+          jurosDe: base.id,
+          pagoEm,
+          pagoPorNome: autor.criadoPorNome,
+          ...autoriaDe(autor),
+        }
+        await repo.despesas.salvar(t, jurosId, doc)
+      }
+      for (const l of p.lancamentos) {
+        await repo.despesas.atualizar(t, l.id, {
+          status: 'pago',
+          pagoEm,
+          pagoPorNome: autor.criadoPorNome,
+          juros: l.id === base.id ? juros : 0,
+          jurosId: l.id === base.id ? jurosId : '',
+        })
       }
       await registrarAtividade(
         t,
         {
-          acao: p.pago ? 'marcou como pago' : 'voltou pra “a pagar”',
-          entidade: p.fornecedor,
+          acao: juros > 0 ? `pagou com ${brl(juros)} de juros` : 'pagou',
+          entidade: base.fornecedor,
           tipo: 'Pagamento',
-          valor: p.valor,
+          valor: boleto + juros,
+          quem: '',
+          quemInicial: '',
+          quemCor: '',
+        },
+        autor,
+      )
+      return { juros, jurosId }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'despesas'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Desfaz o pagamento: volta pra "a pagar" e apaga o lançamento de juros, se houve. */
+export function useDesfazerPagamento() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { lancamentos: DespesaDoc[] }) => {
+      const autor = getAutor()
+      for (const l of p.lancamentos) {
+        if (l.jurosId) await repo.despesas.remover(t, l.jurosId)
+        await repo.despesas.atualizar(t, l.id, { status: 'a_pagar', pagoEm: '', pagoPorNome: '', juros: 0, jurosId: '' })
+      }
+      await registrarAtividade(
+        t,
+        {
+          acao: 'voltou pra “a pagar”',
+          entidade: p.lancamentos[0]?.fornecedor ?? '',
+          tipo: 'Pagamento',
+          valor: p.lancamentos.reduce((s, l) => s + l.valorTotal, 0),
           quem: '',
           quemInicial: '',
           quemCor: '',
@@ -1367,6 +1435,7 @@ export function useMarcarPago() {
     },
   })
 }
+
 
 /** Uma nota mexe em quatro coleções — todas revalidam juntas. */
 function invalidarNota(qc: ReturnType<typeof useQueryClient>, t: string) {

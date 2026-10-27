@@ -15,11 +15,12 @@ import { useLargura } from '@/components/dashboard/useLargura'
 import { layoutBarras, visivelNoPasso, type ModoValores } from '@/components/dashboard/layoutBarras'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { usePeriodo } from '@/ui/periodo'
-import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao, useMarcarPago } from '@/data/hooks'
+import { useContexto, useAtividades, useInsights, useRestaurante, useSolicitacoes, useResponderSolicitacao } from '@/data/hooks'
 import { resumoInicio, periodoAnterior, diaDeHoje, diasRestantesNoMes, agora, MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import { lembretes, type Vencimento } from '@/data/vencimentos'
-import { mensagemDeErro } from '@/lib/erros'
+import { contasDoFluxo, type ContaDoFluxo } from '@/data/fluxo'
+import { ModalPagamento } from '@/components/pagamento/ModalPagamento'
 
 
 type Tom = 'positivo' | 'negativo' | 'neutro'
@@ -46,8 +47,8 @@ function deltaPonto(entrou: number, ponto: number): [string, Tom] {
 
 export function Inicio() {
   const { permissoes, sessao } = useAuth()
-  const { abrirGaveta, confirmar, adicionarToast } = useUI()
-  const marcarPago = useMarcarPago()
+  const { abrirGaveta } = useUI()
+  const [pagando, setPagando] = useState<ContaDoFluxo | null>(null)
   const [periodo, setPeriodo] = usePeriodo()
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
@@ -76,33 +77,10 @@ export function Inicio() {
   const insight = insights.data?.[0]
   const avisos = lembretes(ctx.despesas, diaDeHoje())
 
-  /** Pagar direto do aviso: confirma, marca e deixa o "Desfazer" à mão. */
+  /** Pagar direto do aviso: o mesmo check do Fluxo de caixa (pergunta se teve juros). */
   function pedirPagamento(v: Vencimento) {
-    confirmar({
-      gravidade: 'neutro',
-      titulo: `Marcar ${v.natureza === 'nota' ? 'a nota' : 'a conta'} como paga?`,
-      texto: `${v.fornecedor} sai da lista de vencimentos e fica registrado como pago por você, agora.`,
-      resumo: [
-        { rot: 'Fornecedor', val: v.fornecedor },
-        { rot: 'Valor', val: brl(v.valor) },
-        { rot: 'Vencimento', val: v.vencimento.split('-').reverse().join('/') },
-      ],
-      rotuloConfirmar: 'Marcar como paga',
-      onConfirmar: async () => {
-        try {
-          await marcarPago.mutateAsync({ ids: v.lancamentoIds, pago: true, fornecedor: v.fornecedor, valor: v.valor })
-          adicionarToast({
-            tipo: 'sucesso',
-            titulo: 'Pago',
-            texto: `${v.fornecedor} · ${brl(v.valor)}`,
-            rotuloAcao: 'Desfazer',
-            onAcao: () => marcarPago.mutate({ ids: v.lancamentoIds, pago: false, fornecedor: v.fornecedor, valor: v.valor }),
-          })
-        } catch (e) {
-          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra marcar como pago', texto: mensagemDeErro(e, 'Tente de novo.') })
-        }
-      },
-    })
+    const conta = contasDoFluxo(ctx.despesas).find((c) => c.id === v.id)
+    if (conta) setPagando(conta)
   }
 
   return (
@@ -128,6 +106,7 @@ export function Inicio() {
       <PedidosDaFranqueadora />
 
       <Vencimentos avisos={avisos} aoPagar={pedirPagamento} />
+      {pagando && <ModalPagamento conta={pagando} aoFechar={() => setPagando(null)} />}
 
       <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(46,95,115,0.12)] bg-superficie px-6 py-5 cel:flex-row cel:items-center">
         <div>
@@ -205,8 +184,7 @@ function Vencimentos({ avisos, aoPagar }: { avisos: Vencimento[]; aoPagar: (v: V
       </ul>
       <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-[rgba(46,95,115,0.12)] pt-3 text-sm font-bold text-mar">
         {avisos.length > 6 && <span className="font-medium text-tinta-3">e mais {avisos.length - 6}</span>}
-        <Link to="/painel/compras" className="inline-flex items-center gap-1 hover:underline">Notas fiscais <ArrowRight size={14} /></Link>
-        <Link to="/painel/despesas" className="inline-flex items-center gap-1 hover:underline">Contas da casa <ArrowRight size={14} /></Link>
+        <Link to="/painel/fluxo" className="inline-flex items-center gap-1 hover:underline">Fluxo de caixa <ArrowRight size={14} /></Link>
       </div>
     </div>
   )
