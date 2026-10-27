@@ -63,6 +63,9 @@ export const criarCheckoutAssinatura = onCall(
     const s = cliente()
     const session = await s.checkout.sessions.create({
       mode: 'subscription',
+      // Assinatura recorrente só aceita cartão; fixar evita o erro "No valid payment method types"
+      // quando a conta não tem métodos ativos no painel para BRL.
+      payment_method_types: ['card'],
       line_items: [{
         quantity: lojas,
         price_data: {
