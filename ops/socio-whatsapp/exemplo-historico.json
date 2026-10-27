@@ -1,0 +1,9 @@
+[
+  { "type": "outgoing", "idMessage": "A1", "timestamp": 1758877200, "typeMessage": "textMessage", "textMessage": "Fernando, vou fechar o contrato social com o contador até sexta." },
+  { "type": "incoming", "idMessage": "B1", "timestamp": 1758877500, "typeMessage": "textMessage", "textMessage": "Combinado. Você pode me mandar a planilha de custos do iFood?" },
+  { "type": "outgoing", "idMessage": "A2", "timestamp": 1758877800, "typeMessage": "textMessage", "textMessage": "Fechado, mando amanhã." },
+  { "type": "incoming", "idMessage": "B2", "timestamp": 1758963600, "typeMessage": "extendedTextMessage", "extendedTextMessage": { "text": "Deixa comigo falar com os 3 restaurantes do piloto na quarta." } },
+  { "type": "outgoing", "idMessage": "A3", "timestamp": 1759050000, "typeMessage": "textMessage", "textMessage": "Enviei a planilha de custos do iFood ✅" },
+  { "type": "outgoing", "idMessage": "A4", "timestamp": 1759136400, "typeMessage": "textMessage", "textMessage": "E aí, conseguiu falar com os restaurantes?" },
+  { "type": "outgoing", "idMessage": "BOT", "timestamp": 1759140000, "typeMessage": "textMessage", "textMessage": "Lembrete automático: vou te cobrar amanhã", "sendByApi": true }
+]

@@ -50,3 +50,9 @@ export function mesSeguinte(mes: string): string {
   const [a, m] = mes.split('-').map(Number)
   return m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, '0')}`
 }
+
+/** Mês de hoje pelo calendário local ('outubro de 2026'), pra gravar quando a conta/loja abre. */
+export function nomeDoMesAtual(): string {
+  const d = new Date()
+  return nomeDoMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+}

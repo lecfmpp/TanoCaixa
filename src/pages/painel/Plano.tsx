@@ -1,183 +1,99 @@
-import { useAuth } from '@/auth/AuthContext'
-import { httpsCallable } from 'firebase/functions'
-import { functions } from '@/lib/firebase'
 import { useState } from 'react'
+import { Check, Minus, Plus } from 'lucide-react'
+import { httpsCallable } from 'firebase/functions'
+import { useAuth } from '@/auth/AuthContext'
+import { functions } from '@/lib/firebase'
+import { SectionHeader } from '@/components/layout/SectionHeader'
+import { Cartao } from '@/components/ui/Cartao'
+import { Button } from '@/components/ui/Button'
+import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
+import { DESCONTO_LOJA, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
+import { brlInteiro } from '@/lib/format'
+import { useUI } from '@/ui/UIProvider'
 
-interface PlanoCard {
-  id: 'cozinha' | 'casa' | 'rede'
-  nome: string
-  preco: number
-  descricao: string
-  features: string[]
-}
-
-const PLANOS: PlanoCard[] = [
-  {
-    id: 'cozinha',
-    nome: 'Cozinha só',
-    preco: 79,
-    descricao: 'Para restaurantes pequenos com uma cozinha',
-    features: [
-      'Até 1 ponto de venda',
-      'Controle de estoque básico',
-      'Relatórios simples',
-      'Suporte por email',
-    ],
-  },
-  {
-    id: 'casa',
-    nome: 'Casa cheia',
-    preco: 149,
-    descricao: 'Para restaurantes com múltiplos pontos',
-    features: [
-      'Até 3 pontos de venda',
-      'Controle avançado de estoque',
-      'Relatórios detalhados (DRE, etc)',
-      'Gerenciamento de equipe',
-      'Suporte prioritário',
-    ],
-  },
-  {
-    id: 'rede',
-    nome: 'Mais de uma casa',
-    preco: 299,
-    descricao: 'Para redes e franquias',
-    features: [
-      'Ilimitado de pontos de venda',
-      'Gestão completa de operações',
-      'Análise por filial',
-      'Gerenciamento avançado de equipe',
-      'Integrações prioritárias',
-      'Suporte dedicado',
-    ],
-  },
+const INCLUI = [
+  'Lançamento do dia, foto da nota e compras',
+  'Dashboard, metas e caminho até o equilíbrio',
+  'DRE, despesas, estoque e produtos',
+  'Rede e franquias, com a visão de cada loja',
+  'Recado semanal por e-mail',
 ]
+const EM_BREVE = ['PDV (frente de caixa e KDS)', 'CMV por ficha técnica']
+const MAX_LOJAS = 50
 
+/** Assinatura: um plano só, R$ 149 por loja/mês. */
 export function Plano() {
   const { sessao } = useAuth()
-  const [carregando, setCarregando] = useState(false)
+  const { adicionarToast } = useUI()
+  const [lojas, setLojas] = useState(1)
+  const [abrindo, setAbrindo] = useState(false)
 
-  async function abrirCheckout(planoId: 'cozinha' | 'casa' | 'rede') {
+  async function contratar() {
     if (!sessao) return
-    setCarregando(true)
+    setAbrindo(true)
     try {
       const criarCheckout = httpsCallable(functions, 'criarCheckoutAssinatura')
-      const result = await criarCheckout({
+      const res = await criarCheckout({
         restauranteId: sessao.tenantId,
-        plano: planoId,
+        lojas,
         email: sessao.usuario.email,
         sucessoUrl: `${window.location.origin}/painel?assinatura=ok`,
-        cancelUrl: `${window.location.origin}/painel/plano`,
+        cancelUrl: `${window.location.origin}/painel/assinatura`,
       })
-      const { url } = result.data as { url: string }
-      if (url) window.location.href = url
+      const { url } = res.data as { url?: string }
+      if (!url) throw new Error('checkout sem URL')
+      window.location.href = url
     } catch (e) {
       console.error('Erro ao criar checkout:', e)
-      alert('Erro ao abrir checkout. Tente novamente.')
-    } finally {
-      setCarregando(false)
+      adicionarToast({ tipo: 'erro', titulo: 'Não abriu o pagamento', texto: 'Tente de novo em instantes.' })
+      setAbrindo(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-slate-900 mb-4">Planos de Assinatura</h1>
-          <p className="text-lg text-slate-600">
-            Escolha o plano certo para seu restaurante
-          </p>
+    <div className="flex flex-col gap-6">
+      <SectionHeader titulo="Assinatura" subtitulo="Um plano só, cobrado por loja" semMes />
+      <Cartao className="mx-auto w-full max-w-xl p-7">
+        <div className="flex items-end gap-2">
+          <span className="mono text-tinta-4 line-through" style={{ fontSize: 20 }}>R$ {PRECO_LOJA_CHEIO}</span>
+          <span className="mono text-tinta" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ {PRECO_LOJA}</span>
+          <span className="mb-2 text-sm text-tinta-4">/loja/mês</span>
         </div>
+        <p className="mt-1 text-sm font-semibold text-mata">R$ {DESCONTO_LOJA} de desconto por enquanto.</p>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {PLANOS.map((plano) => (
-            <div
-              key={plano.id}
-              className={`rounded-lg border-2 p-8 flex flex-col ${
-                plano.id === 'casa'
-                  ? 'border-blue-500 bg-blue-50 shadow-lg scale-105'
-                  : 'border-slate-200 bg-white'
-              }`}
-            >
-              {plano.id === 'casa' && (
-                <div className="mb-4">
-                  <span className="inline-block bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    Mais popular
-                  </span>
-                </div>
-              )}
-
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">{plano.nome}</h2>
-              <p className="text-slate-600 text-sm mb-6">{plano.descricao}</p>
-
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-slate-900">R$ {plano.preco}</span>
-                <span className="text-slate-600 ml-2">/mês</span>
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-grow">
-                {plano.features.map((feature, i) => (
-                  <li key={i} className="flex items-center text-slate-700">
-                    <svg
-                      className="w-5 h-5 text-green-500 mr-3"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => abrirCheckout(plano.id)}
-                disabled={carregando}
-                className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
-                  plano.id === 'casa'
-                    ? 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-300'
-                    : 'bg-slate-100 text-slate-900 hover:bg-slate-200 disabled:bg-slate-50'
-                }`}
-              >
-                {carregando ? 'Abrindo...' : 'Contratar plano'}
-              </button>
-            </div>
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {INCLUI.map((t) => (
+            <li key={t} className="flex items-start gap-2.5 text-sm text-tinta-2">
+              <Check size={16} className="mt-0.5 shrink-0 text-mata" strokeWidth={3} />{t}
+            </li>
           ))}
-        </div>
+          {EM_BREVE.map((t) => (
+            <li key={t} className="flex items-start gap-2.5 text-sm text-tinta-3">
+              <span className="mt-0.5 w-4 shrink-0 text-center text-tinta-4">·</span>
+              <span>{t} <SeloEmBreve className="ml-1" /></span>
+            </li>
+          ))}
+        </ul>
 
-        {/* FAQ */}
-        <div className="max-w-2xl mx-auto mt-20 pt-12 border-t border-slate-200">
-          <h3 className="text-2xl font-bold text-slate-900 mb-8">Dúvidas?</h3>
-          <div className="space-y-6">
-            <div>
-              <h4 className="font-semibold text-slate-900 mb-2">Posso mudar de plano depois?</h4>
-              <p className="text-slate-600">
-                Sim! Você pode fazer upgrade ou downgrade a qualquer momento no portal de assinatura.
-                A cobrança será ajustada proporcionalmente.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-900 mb-2">Como cancelo minha assinatura?</h4>
-              <p className="text-slate-600">
-                Você pode cancelar a qualquer momento via portal de assinatura. Sem contrato, sem
-                multa.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-900 mb-2">Qual é a política de reembolso?</h4>
-              <p className="text-slate-600">
-                Se cancelar no primeiro mês, reembolsamos 100% (com exceção das taxas de processamento).
-              </p>
-            </div>
+        <div className="mt-6 flex items-center justify-between rounded-cartao bg-preenchimento/50 p-4">
+          <div>
+            <div className="text-sm font-bold text-tinta">Quantas lojas?</div>
+            <div className="mono mt-0.5 text-sm text-tinta-3">{lojas} × R$ {PRECO_LOJA} = {brlInteiro(lojas * PRECO_LOJA)}/mês</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variante="secundario" aria-label="Menos uma loja" disabled={lojas <= 1} onClick={() => setLojas((n) => Math.max(1, n - 1))} className="px-2.5"><Minus size={16} /></Button>
+            <span className="mono w-6 text-center text-lg font-bold text-tinta">{lojas}</span>
+            <Button variante="secundario" aria-label="Mais uma loja" disabled={lojas >= MAX_LOJAS} onClick={() => setLojas((n) => Math.min(MAX_LOJAS, n + 1))} className="px-2.5"><Plus size={16} /></Button>
           </div>
         </div>
-      </div>
+
+        <Button variante="lancar" bloco className="mt-5 py-3" onClick={contratar} disabled={abrindo}>
+          {abrindo ? 'Abrindo o pagamento…' : 'Assinar agora'}
+        </Button>
+        <p className="mt-3 text-center text-xs text-tinta-4">
+          Pagamento seguro pelo Stripe. Cancela quando quiser, sem multa. Troca de cartão e faturas no portal da assinatura.
+        </p>
+      </Cartao>
     </div>
   )
 }

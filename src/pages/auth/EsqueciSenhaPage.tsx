@@ -1,20 +1,45 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { sendPasswordResetEmail } from 'firebase/auth'
 import { AuthLayout } from './AuthLayout'
+import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
-import { cn } from '@/lib/cn'
+import { auth } from '@/lib/firebase'
+import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 
-type Canal = 'whatsapp' | 'email'
+/** Códigos que NÃO mostramos como erro: dizer "não achamos conta com esse
+ * e-mail" deixaria qualquer um descobrir quem é cliente. */
+const NEUTROS = new Set(['auth/user-not-found', 'auth/invalid-credential'])
 
 export function EsqueciSenhaPage() {
-  const [canal, setCanal] = useState<Canal>('whatsapp')
+  const [email, setEmail] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+
+  async function aoEnviar(e: FormEvent) {
+    e.preventDefault()
+    setErro(null)
+    setEnviando(true)
+    try {
+      await sendPasswordResetEmail(auth, email.trim(), { url: `${window.location.origin}/entrar` })
+      setEnviado(true)
+    } catch (err) {
+      const codigo = codigoDoErro(err)
+      if (NEUTROS.has(codigo)) {
+        setEnviado(true)
+      } else {
+        console.error('Falha ao enviar link de senha:', codigo || err)
+        setErro(mensagemDeErroAuth(err, 'Não deu pra enviar o link agora.'))
+      }
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   return (
     <AuthLayout>
-      <Link
-        to="/entrar"
-        className="mb-6 inline-block text-sm font-semibold text-mar hover:underline"
-      >
+      <Link to="/entrar" className="mb-6 inline-block text-sm font-semibold text-mar hover:underline">
         ← Voltar pro login
       </Link>
 
@@ -23,55 +48,57 @@ export function EsqueciSenhaPage() {
           Acontece com todo mundo
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Diz onde você quer receber o código e a gente resolve isso rapidinho.
+          Digite o e-mail da sua conta que a gente manda um link pra você criar uma senha nova.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {(
-          [
-            { id: 'whatsapp', titulo: 'WhatsApp', dado: '(21) 9981•-••07' },
-            { id: 'email', titulo: 'E-mail', dado: 'h•••m@zaatarrio.com.br' },
-          ] as const
-        ).map((op) => (
-          <button
-            key={op.id}
-            type="button"
-            onClick={() => setCanal(op.id)}
-            className={cn(
-              'flex items-center justify-between rounded-campo border bg-superficie px-4 py-3.5 text-left transition',
-              canal === op.id
-                ? 'border-mar ring-2 ring-mar/15'
-                : 'border-[rgba(46,95,115,0.14)] hover:border-mar/40',
-            )}
+      {enviado ? (
+        <div className="flex flex-col gap-4">
+          <p
+            role="status"
+            className="pretty rounded-campo border border-mata/30 bg-mata/8 px-4 py-3 text-sm text-tinta-2"
           >
-            <span>
-              <span className="block text-sm font-bold text-tinta">{op.titulo}</span>
-              <span className="mono text-xs text-tinta-3">{op.dado}</span>
-            </span>
-            <span
-              className={cn(
-                'grid h-5 w-5 place-items-center rounded-full border-2',
-                canal === op.id ? 'border-mar' : 'border-tinta-5',
-              )}
-            >
-              {canal === op.id && <span className="h-2.5 w-2.5 rounded-full bg-mar" />}
-            </span>
-          </button>
-        ))}
+            Se existir uma conta com <b>{email.trim()}</b>, enviamos o link pra criar uma senha nova. Confira a caixa
+            de entrada e o spam — o link vale por pouco tempo.
+          </p>
+          <Button
+            variante="secundario"
+            bloco
+            onClick={() => {
+              setEnviado(false)
+              setErro(null)
+            }}
+          >
+            Usar outro e-mail
+          </Button>
+          <Link to="/entrar" className="text-center text-sm font-bold text-mar hover:underline">
+            Voltar pro login
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={aoEnviar} className="flex flex-col gap-4">
+          <Campo
+            rotulo="E-mail"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <Button variante="primario" bloco className="mt-2">
-          Me manda o código
-        </Button>
-      </div>
+          {erro && (
+            <p className="rounded-campo border border-telha-alerta/40 bg-telha-alerta/8 px-3 py-2 text-sm text-telha-alerta">
+              {erro}
+            </p>
+          )}
 
-      <p className="pretty mt-6 text-center text-sm text-tinta-3">
-        Não tem mais acesso a nenhum dos dois?{' '}
-        <a className="font-bold text-mata hover:underline" href="#">
-          Fala com a gente no WhatsApp
-        </a>{' '}
-        que a gente confere com você.
-      </p>
+          <Button type="submit" variante="primario" bloco disabled={enviando}>
+            {enviando ? 'Enviando…' : 'Me manda o link'}
+          </Button>
+        </form>
+      )}
     </AuthLayout>
   )
 }

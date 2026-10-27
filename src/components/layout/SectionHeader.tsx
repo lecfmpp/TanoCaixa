@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Receipt, ScrollText, Package, Boxes, CalendarCheck } from 'lucide-react'
-import type { Periodo } from '@/types'
+import type { Filtro } from '@/types'
 import { fotos } from '@/lib/fotos'
 import { Segmentado } from '@/components/ui/Segmentado'
+import { SeletorMes } from '@/components/ui/SeletorMes'
+import { SeletorIntervalo } from '@/components/ui/SeletorIntervalo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
 
@@ -10,12 +12,16 @@ interface SectionHeaderProps {
   titulo: string
   subtitulo: string
   foto?: string
-  periodo?: Periodo
-  aoTrocarPeriodo?: (p: Periodo) => void
+  periodo?: Filtro
+  aoTrocarPeriodo?: (p: Filtro) => void
+  /** Só o seletor de datas, sem o Semana | Mês (páginas que já agrupam por mês). */
+  soData?: boolean
   /** Sem callback, o botão Exportar não aparece — botão que não faz nada
    *  é pior que botão ausente. */
   aoExportar?: () => void
   lancar?: boolean
+  /** Esconde o seletor de mês (páginas que não dependem do mês, como Perfil). */
+  semMes?: boolean
 }
 
 const OPCOES_LANCAR: { id: TipoGaveta; rotulo: string; icone: typeof Receipt; dica: string }[] = [
@@ -37,8 +43,10 @@ export function SectionHeader({
   foto = fotos.aerea,
   periodo,
   aoTrocarPeriodo,
+  soData,
   aoExportar,
   lancar = true,
+  semMes,
 }: SectionHeaderProps) {
   const [menuAberto, setMenuAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -53,7 +61,7 @@ export function SectionHeader({
   }, [menuAberto])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-30" ref={ref}>
       {/* Faixa com foto (overflow hidden) */}
       <div className="foto-rio flex min-h-[104px] flex-col items-start justify-center gap-3 rounded-cartao-g px-6 py-5 tab:flex-row tab:items-center tab:justify-between">
         <img src={foto} alt="" aria-hidden />
@@ -71,12 +79,25 @@ export function SectionHeader({
           >
             {titulo}
           </h1>
-          <p className="mt-1 truncate text-sm text-creme/85">{subtitulo}</p>
+          <p className="mt-1 text-sm text-creme/85 tab:truncate">{subtitulo}</p>
         </div>
 
         <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">
+          {!semMes && (
+            <SeletorMes
+              ativo={periodo === undefined || periodo === 'mes'}
+              aoEscolher={periodo !== undefined && periodo !== 'mes' && aoTrocarPeriodo ? () => aoTrocarPeriodo('mes') : undefined}
+            />
+          )}
+          {periodo && aoTrocarPeriodo && !soData && (
+            <Segmentado valor={typeof periodo === 'string' ? periodo : null} aoTrocar={aoTrocarPeriodo} tom="claro" />
+          )}
           {periodo && aoTrocarPeriodo && (
-            <Segmentado valor={periodo} aoTrocar={aoTrocarPeriodo} tom="claro" />
+            <SeletorIntervalo
+              valor={typeof periodo === 'string' ? null : periodo}
+              aoTrocar={aoTrocarPeriodo}
+              aoLimpar={() => aoTrocarPeriodo('mes')}
+            />
           )}
           {aoExportar && (
             <button

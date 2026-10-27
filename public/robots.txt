@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /painel
+Disallow: /onboarding
+Disallow: /convite/
+Disallow: /api/
+
+Sitemap: https://tanocaixa.com/sitemap.xml

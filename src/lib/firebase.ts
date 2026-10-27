@@ -15,6 +15,9 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
+// E-mails do Auth (confirmação, nova senha) no idioma do navegador — pt-BR
+// pros nossos clientes — em vez do inglês padrão.
+auth.useDeviceLanguage()
 // ignoreUndefinedProperties: campos undefined são omitidos em vez de derrubar
 // a escrita (ex.: valor/estoque_minimo opcionais). O try/catch evita crash no
 // HMR do Vite (initializeFirestore só pode rodar uma vez por app).

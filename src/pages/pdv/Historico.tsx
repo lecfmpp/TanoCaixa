@@ -6,7 +6,7 @@ import { Campo } from '@/components/ui/Campo'
 import { CancelarPedido } from '@/components/pdv/CancelarPedido'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { HOJE, diaDeHoje } from '@/data/derive'
+import { agora, diaDeHoje } from '@/data/derive'
 import { diaAtras, usePedidosPdv } from '@/data/pdvHooks'
 import { ROTULO_FORMA, ROTULO_STATUS, ROTULO_TIPO, ehVenda } from '@/data/pdv'
 import type { PedidoPdvDoc, StatusPedido, TipoPedido } from '@/data/types'
@@ -84,7 +84,7 @@ export function Historico() {
                       <span className="mono w-12 shrink-0 font-bold text-tinta">#{p.numero}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-tinta">{p.cliente || ROTULO_TIPO[p.tipo]}</span>
-                        <span className="block truncate text-xs text-tinta-4">{quando(new Date(p.criadoEm), HOJE)} · {p.itens.reduce((s, i) => s + i.quantidade, 0)} itens · {p.criadoPorNome}</span>
+                        <span className="block truncate text-xs text-tinta-4">{quando(new Date(p.criadoEm), agora())} · {p.itens.reduce((s, i) => s + i.quantidade, 0)} itens · {p.criadoPorNome}</span>
                       </span>
                       <span className={cn('hidden rounded-chip px-2 py-0.5 text-xs font-bold cel:inline', COR_STATUS[p.status])}>{ROTULO_STATUS[p.status]}</span>
                       <span className={cn('mono w-24 shrink-0 text-right font-bold', p.status === 'cancelado' ? 'text-tinta-4 line-through' : 'text-tinta')}>{brl(p.total)}</span>
@@ -112,7 +112,7 @@ export function Historico() {
                         <span>Custo (ficha)</span><span className="mono text-right">{brl(p.custo)}</span>
                       </div>
                       {p.status === 'cancelado' && (
-                        <p className="mt-3 text-xs font-semibold text-telha-alerta">Cancelado por {p.canceladoPorNome}{p.canceladoEm ? `, ${quando(new Date(p.canceladoEm), HOJE)}` : ''} — {p.motivoCancelamento}</p>
+                        <p className="mt-3 text-xs font-semibold text-telha-alerta">Cancelado por {p.canceladoPorNome}{p.canceladoEm ? `, ${quando(new Date(p.canceladoEm), agora())}` : ''} — {p.motivoCancelamento}</p>
                       )}
                       {p.status !== 'cancelado' && (
                         <button onClick={() => setCancelando(p)} className="mt-3 rounded-botao border border-telha-alerta/30 px-3 py-1.5 text-xs font-bold text-telha-alerta hover:bg-telha-alerta/8">Cancelar pedido</button>

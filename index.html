@@ -2,7 +2,9 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2E5F73" />
     <meta name="description" content="Tá no Caixa — gestão financeira para donos de restaurante. Quanto entrou, quanto saiu, quanto sobrou." />
@@ -25,5 +27,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+      <script>
+      // Se o app não montar (ex.: erro de configuração), mostra um aviso em vez de tela branca.
+      setTimeout(function () {
+        var r = document.getElementById('root')
+        if (r && !r.children.length) {
+          r.innerHTML = '<p style="font-family:system-ui,sans-serif;padding:24px;text-align:center">Não foi possível carregar o Tá no Caixa agora. Atualize a página em instantes.</p>'
+        }
+      }, 8000)
+    </script>
   </body>
 </html>

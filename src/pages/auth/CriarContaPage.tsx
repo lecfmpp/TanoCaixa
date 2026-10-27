@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/auth/AuthContext'
+import { useAuth, SENHA_MINIMA } from '@/auth/AuthContext'
+import { ErroDeSessao } from '@/auth/ErroDeSessao'
 import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 import { mascararTelefone } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -27,7 +28,7 @@ function forcaSenha(senha: string): { nivel: number; frase: string } {
 
 export function CriarContaPage() {
   const navegar = useNavigate()
-  const { sessao, criarConta } = useAuth()
+  const { sessao, erroSessao, criarConta } = useAuth()
   const [senha, setSenha] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [aceite, setAceite] = useState(false)
@@ -45,6 +46,14 @@ export function CriarContaPage() {
     if (uidEsperado && sessao?.usuario.id === uidEsperado) navegar('/onboarding')
   }, [uidEsperado, sessao, navegar])
 
+  // Conta criada mas a sessão não montou: solta o botão (o aviso aparece abaixo).
+  useEffect(() => {
+    if (erroSessao) {
+      setEnviando(false)
+      setUidEsperado(null)
+    }
+  }, [erroSessao])
+
   async function aoEnviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -53,9 +62,25 @@ export function CriarContaPage() {
     const restaurante = String(fd.get('restaurante') ?? '')
     const bairro = String(fd.get('bairro') ?? '')
     setErro(null)
+    const digitosWhatsapp = whatsapp.replace(/\D/g, '')
+    if (digitosWhatsapp.length < 10 || digitosWhatsapp.length > 11) {
+      setErro('Confira o celular: use DDD + número, como (21) 99999-9999.')
+      return
+    }
+    if (senha.length < SENHA_MINIMA) {
+      setErro(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`)
+      return
+    }
     setEnviando(true)
     try {
-      const uid = await criarConta(nome, email, senha, restaurante, bairro)
+      const uid = await criarConta({
+        nome,
+        email,
+        senha,
+        restauranteNome: restaurante,
+        bairro,
+        celularWhatsapp: whatsapp,
+      })
       setUidEsperado(uid)
     } catch (e) {
       console.error('Falha ao criar conta:', codigoDoErro(e) || e)
@@ -111,6 +136,7 @@ export function CriarContaPage() {
             rotulo="Senha"
             name="senha"
             type="password"
+            autoComplete="new-password"
             placeholder="Crie uma senha de 8 caracteres ou mais"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
@@ -146,12 +172,16 @@ export function CriarContaPage() {
           />
           <span className="pretty">
             Concordo em tratar meus dados conforme a{' '}
+            {/* TODO(Leandro): não existe rota /privacidade nem texto da política
+                ainda. Apontar este link pra página quando ela for publicada. */}
             <a className="font-semibold text-mar hover:underline" href="#">
               Política de Privacidade
             </a>{' '}
             (LGPD).
           </span>
         </label>
+
+        <ErroDeSessao />
 
         {erro && (
           <p className="rounded-campo border border-telha-alerta/40 bg-telha-alerta/8 px-3 py-2 text-sm text-telha-alerta">

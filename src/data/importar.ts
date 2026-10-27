@@ -22,6 +22,17 @@ export interface ConfigImport {
   exemplos: string[][]
 }
 
+/**
+ * Data de exemplo no mês corrente ('26/10/2026'), pra planilha modelo não vir
+ * com um mês fixo que, importado sem querer, cai fora do mês que a pessoa vê.
+ */
+function dataExemplo(dia: number): string {
+  const h = new Date()
+  const ultimo = new Date(h.getFullYear(), h.getMonth() + 1, 0).getDate()
+  const d = Math.min(dia, ultimo, Math.max(1, h.getDate()))
+  return `${String(d).padStart(2, '0')}/${String(h.getMonth() + 1).padStart(2, '0')}/${h.getFullYear()}`
+}
+
 export const CONFIGS_IMPORT: Record<TipoImport, ConfigImport> = {
   produtos: {
     tipo: 'produtos',
@@ -53,18 +64,18 @@ export const CONFIGS_IMPORT: Record<TipoImport, ConfigImport> = {
       { chave: 'fornecedor', rotulo: 'Fornecedor', exemplo: 'Hortifrúti Zona Sul', obrigatorio: true },
       { chave: 'categoria', rotulo: 'Conta do DRE', exemplo: 'cmv_alimentos' },
       { chave: 'valor', rotulo: 'Valor (R$)', exemplo: '842,00', obrigatorio: true },
-      { chave: 'data', rotulo: 'Data (DD/MM/AAAA)', exemplo: '26/07/2026' },
+      { chave: 'data', rotulo: 'Data (DD/MM/AAAA)', exemplo: dataExemplo(26) },
       { chave: 'forma_pagamento', rotulo: 'Pagamento (pix/dinheiro/cartao/boleto)', exemplo: 'pix' },
       { chave: 'status', rotulo: 'Situação (pago/a_pagar)', exemplo: 'pago' },
       { chave: 'descricao', rotulo: 'Observação', exemplo: 'Feira da semana' },
     ],
     exemplos: [
-      ['Hortifrúti Zona Sul', 'cmv_alimentos', '842,00', '26/07/2026', 'pix', 'pago', 'Feira da semana'],
-      ['Distribuidora Zona Sul', 'cmv_bebidas', '1740,00', '12/07/2026', 'cartao', 'pago', 'Bebidas'],
-      ['Aluguel', 'aluguel', '3400,00', '05/07/2026', 'boleto', 'a_pagar', ''],
-      ['Folha da equipe', 'folha', '9200,00', '05/07/2026', 'automatico', 'pago', 'Salários'],
-      ['Contabilidade Nassar', 'contador', '780,00', '10/07/2026', 'pix', 'pago', 'Honorários'],
-      ['Simples Nacional · DAS', 'imposto_vendas', '2848,00', '20/07/2026', 'boleto', 'pago', ''],
+      ['Hortifrúti Zona Sul', 'cmv_alimentos', '842,00', dataExemplo(26), 'pix', 'pago', 'Feira da semana'],
+      ['Distribuidora Zona Sul', 'cmv_bebidas', '1740,00', dataExemplo(12), 'cartao', 'pago', 'Bebidas'],
+      ['Aluguel', 'aluguel', '3400,00', dataExemplo(5), 'boleto', 'a_pagar', ''],
+      ['Folha da equipe', 'folha', '9200,00', dataExemplo(5), 'automatico', 'pago', 'Salários'],
+      ['Contabilidade Nassar', 'contador', '780,00', dataExemplo(10), 'pix', 'pago', 'Honorários'],
+      ['Simples Nacional · DAS', 'imposto_vendas', '2848,00', dataExemplo(20), 'boleto', 'pago', ''],
     ],
   },
   estoque: {

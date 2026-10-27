@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "prebuild": "node scripts/check-env.mjs",
+    "build": "tsc -b && vite build && vite build --ssr src/blog/entry-server.tsx --outDir dist-ssr && node scripts/prerender-blog.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:socios": "node --test ops/socio-whatsapp/analise.test.mjs",
+    "blog:gate": "node scripts/blog-gate.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

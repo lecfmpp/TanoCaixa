@@ -417,7 +417,13 @@ export function tetosNormalizados(tetos: Record<string, number> | undefined): Te
 
 /* ------------------------------ Receita ------------------------------ */
 
-export type CanalVenda = 'balcao' | 'ifood' | 'rappi' | 'whatsapp' | 'outros'
+/**
+ * Canal de uma venda. `apps` é o total dos apps de delivery lançado à mão no
+ * fechamento do dia. `ifood` e `rappi` ficam só pra LER lançamentos antigos
+ * (de quando o fechamento trazia os apps separados): continuam somando na linha
+ * de delivery do DRE e no Caixa. Lançamento novo não usa mais esses dois.
+ */
+export type CanalVenda = 'balcao' | 'apps' | 'ifood' | 'rappi' | 'whatsapp' | 'outros'
 
 export interface LinhaReceitaInfo {
   id: string
@@ -429,7 +435,10 @@ export interface LinhaReceitaInfo {
 /** As quatro linhas de receita bruta do modelo padrão. */
 export const LINHAS_RECEITA: LinhaReceitaInfo[] = [
   { id: 'loja', nome: 'Vendas loja própria', canais: ['balcao'], cor: '#2E5F73' },
-  { id: 'delivery_app', nome: 'Vendas delivery', canais: ['ifood', 'rappi'], cor: '#C05437' },
+  { id: 'delivery_app', nome: 'Vendas delivery', canais: ['apps', 'ifood', 'rappi'], cor: '#C05437' },
   { id: 'delivery_proprio', nome: 'Venda delivery próprio', canais: ['whatsapp'], cor: '#2F6B4A' },
   { id: 'outras', nome: 'Outras receitas', canais: ['outros'], cor: '#EFAB5C' },
 ]
+
+/** Canais que contam como venda em app de delivery (inclui os antigos). */
+export const CANAIS_APPS: CanalVenda[] = LINHAS_RECEITA.find((l) => l.id === 'delivery_app')!.canais

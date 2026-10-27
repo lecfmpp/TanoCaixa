@@ -1,0 +1,87 @@
+# Publica o SITE (Firebase Hosting, projeto tanocaixa) pela nuvem.
+# Só roda quando alguém clica: Actions -> "Publicar o site" -> Run workflow.
+# NUNCA dispara por push. Passos únicos de configuração: README.md, "Publicar pela nuvem".
+#
+# O build usa as variáveis VITE_FIREBASE_* guardadas no GitHub (Settings -> Secrets and
+# variables -> Actions -> Variables). Sem elas o build falha (scripts/check-env.mjs):
+# publicar sem elas deixou o site com tela branca.
+name: Publicar o site
+
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: 'O que está subindo (fica no log)'
+        required: false
+        default: 'publicação manual'
+
+permissions:
+  contents: read
+  id-token: write # só usado no modo WIF
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (falha se faltar VITE_FIREBASE_*)
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: npm run build
+
+      # Autenticação: chave JSON no secret FIREBASE_SERVICE_ACCOUNT (padrão) ou, se a
+      # organização bloquear chaves, Workload Identity Federation (como no wiseleads):
+      # defina as variáveis GCP_WIF_PROVIDER e GCP_SERVICE_ACCOUNT e não use a chave.
+      - name: Autenticar (chave JSON)
+        if: ${{ vars.GCP_WIF_PROVIDER == '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Autenticar (Workload Identity Federation)
+        if: ${{ vars.GCP_WIF_PROVIDER != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy do Hosting
+        env:
+          MOTIVO: ${{ inputs.motivo }}
+        run: |
+          echo "Motivo: $MOTIVO"
+          npx --yes firebase-tools@latest deploy --only hosting \
+            --project tanocaixa --non-interactive \
+            --message "${GITHUB_REF_NAME}@$(git rev-parse --short HEAD) $MOTIVO"
+
+      # O que está no ar tem que ser o build novo (e não a tela branca).
+      - name: Conferir que o site no ar é este build
+        run: |
+          esperado=$(sha256sum dist/index.html | cut -d' ' -f1)
+          for i in 1 2 3 4 5; do
+            servido=$(curl -fsS "https://tanocaixa.web.app/index.html" | sha256sum | cut -d' ' -f1) || servido=erro
+            echo "tentativa $i: $servido"
+            [ "$servido" = "$esperado" ] && { echo "OK: no ar."; exit 0; }
+            sleep 6
+          done
+          echo "Não bateu (pode ser propagação do CDN): confira https://tanocaixa.web.app"
+          exit 1

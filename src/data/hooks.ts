@@ -1,10 +1,9 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
-import { db, functions } from '@/lib/firebase'
-import { getRestaurante, setRestaurante, repo, type IntegracaoDoc } from './repo'
+import { db } from '@/lib/firebase'
+import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
-import { getPlanoMes, salvarPlanoMes, type PlanoMesDoc } from './planoMes'
+import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
   salvarSolicitacao,
@@ -100,10 +99,6 @@ export function useAtividades() {
 export function useInsights() {
   const t = useTenant()
   return useQuery({ queryKey: [t, 'insights'], queryFn: () => repo.insights.listar(t) })
-}
-export function useIntegracoes() {
-  const t = useTenant()
-  return useQuery({ queryKey: [t, 'integracoes'], queryFn: () => repo.integracoes.listar(t) })
 }
 
 /* ---------------------------- Rede de lojas --------------------------- */
@@ -204,7 +199,8 @@ export function useAbrirLoja() {
         // Loja própria da rede: franqueada quando a rede é franquia.
         tipoNegocio: rede.data.tipo === 'franquia' ? 'franqueada' : 'multi_loja',
         aliquotaImposto: 0.06,
-        metaFaturamento: 50000,
+        // Loja nova começa sem meta; o dono define no Plano do mês.
+        metaFaturamento: 0,
       })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
@@ -447,7 +443,7 @@ export function useAutor() {
   return () => ({
     criadoEm: new Date().toISOString(),
     criadoPorId: sessao?.usuario.id ?? 'halim',
-    criadoPorNome: sessao?.usuario.nome ?? 'Halim',
+    criadoPorNome: sessao?.usuario.nome ?? 'Você',
     origem: origemAtual(),
     _inicial: sessao?.usuario.avatarInicial ?? 'H',
     _cor: sessao?.usuario.avatarCor ?? '#2E5F73',
@@ -747,20 +743,6 @@ export function useRemoverMembro() {
   })
 }
 
-export function useConectarIntegracao() {
-  const t = useTenant()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (p: { provedor: string; merchantId?: string; status?: IntegracaoDoc['status'] }) =>
-      repo.integracoes.salvar(t, p.provedor, {
-        provedor: p.provedor,
-        merchantId: p.merchantId,
-        status: p.status ?? 'conectando',
-      } as Partial<IntegracaoDoc>),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
-  })
-}
-
 /** Importa um lote de registros de CSV (produtos, despesas ou estoque). */
 export function useImportar() {
   const t = useTenant()
@@ -839,12 +821,6 @@ export function useImportar() {
   })
 }
 
-/** O que já veio das plataformas no dia (enquanto a integração real não roda). */
-export const VENDA_APP_DEMO = {
-  ifood: { bruto: 742.5, taxa: 178.2, pedidos: 38 },
-  rappi: { bruto: 186.4, taxa: 41.3, pedidos: 9 },
-}
-
 /**
  * Lança as vendas do dia. Cada lançamento entra na trilha `historico` do dia —
  * quem lançou e quando — mesmo quando o dia é relançado e o valor muda.
@@ -854,20 +830,21 @@ export function useCriarFechamento() {
   const qc = useQueryClient()
   const getAutor = useAutor()
   return useMutation({
-    mutationFn: async (e: { pix: number; cartao: number; dinheiro: number; delivery?: number; outras?: number }) => {
+    mutationFn: async (e: { pix: number; cartao: number; dinheiro: number; apps?: number; delivery?: number; outras?: number }) => {
       const { pix, cartao, dinheiro } = e
       const autor = getAutor()
       const autoria = { criadoEm: autor.criadoEm, criadoPorId: autor.criadoPorId, criadoPorNome: autor.criadoPorNome, origem: autor.origem }
       const hoje = diaDeHoje()
       const loja = pix + cartao + dinheiro
+      const apps = e.apps ?? 0
       const delivery = e.delivery ?? 0
       const outras = e.outras ?? 0
       const id = `fech-${hoje}`
       // Um canal por linha de receita bruta do DRE: loja própria, delivery de
-      // app, delivery próprio e outras receitas.
+      // app, delivery próprio e outras receitas. Tudo digitado por quem lança —
+      // não há integração com app de delivery (por enquanto).
       const canais = [
-        { canal: 'ifood' as const, valorBruto: VENDA_APP_DEMO.ifood.bruto, taxa: VENDA_APP_DEMO.ifood.taxa, pedidos: VENDA_APP_DEMO.ifood.pedidos },
-        { canal: 'rappi' as const, valorBruto: VENDA_APP_DEMO.rappi.bruto, taxa: VENDA_APP_DEMO.rappi.taxa, pedidos: VENDA_APP_DEMO.rappi.pedidos },
+        { canal: 'apps' as const, valorBruto: apps, taxa: 0, pedidos: 0 },
         { canal: 'balcao' as const, valorBruto: loja, taxa: 0, pedidos: 0 },
         { canal: 'whatsapp' as const, valorBruto: delivery, taxa: 0, pedidos: 0 },
         { canal: 'outros' as const, valorBruto: outras, taxa: 0, pedidos: 0 },
@@ -915,6 +892,41 @@ export function useCriarFechamento() {
   })
 }
 
+/** Apaga o lançamento de vendas de um dia. O documento volta inteiro no "Desfazer". */
+export function useRemoverReceitaDia() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (r: ReceitaDiaDoc) => {
+      await repo.receitaDia.remover(t, r.id)
+      await registrarAtividade(
+        t,
+        { acao: 'apagou o lançamento de vendas de', entidade: r.data.slice(0, 10).split('-').reverse().join('/'), tipo: 'Vendas', valor: r.totalDia, quem: '', quemInicial: '', quemCor: '' },
+        getAutor(),
+      )
+      return r
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Traz de volta o lançamento de vendas apagado (o "Desfazer" do toast). */
+export function useRestaurarReceitaDia() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (r: ReceitaDiaDoc) => {
+      await repo.receitaDia.salvar(t, r.id, r)
+      return r
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'receita_dia'] }),
+  })
+}
+
 export interface ItemDaNota {
   produtoId: string
   quantidade: number
@@ -929,6 +941,11 @@ export interface EntradaNota {
   /** Vencimento do boleto — é ele que gera o lembrete no Início. */
   vencimento?: string
   observacao?: string
+  /** Número impresso na nota do fornecedor. */
+  numeroNota?: string
+  /** Descontos e acréscimos da nota; o total gravado é produtos − descontos + acréscimos. */
+  desconto?: number
+  acrescimo?: number
   itens: ItemDaNota[]
 }
 
@@ -1005,9 +1022,17 @@ async function gravarNota(
     ])
   }
 
+  // Desconto e acréscimo valem pela nota inteira: cada conta do DRE leva a sua
+  // parte, proporcional ao que os itens dela pesam nos produtos.
+  const totalProdutos = linhas.reduce((s, l) => s + l.item.quantidade * l.item.precoUnitario, 0)
+  const desconto = Math.max(0, e.desconto ?? 0)
+  const acrescimo = Math.max(0, e.acrescimo ?? 0)
+  const ajuste = acrescimo - desconto
   let valorTotal = 0
   for (const [categoria, itens] of porConta) {
-    const valor = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+    const bruto = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
+    const parte = totalProdutos > 0 ? bruto / totalProdutos : 0
+    const valor = Math.round((bruto + ajuste * parte) * 100) / 100
     valorTotal += valor
     const despesaId = novoId('d')
     await repo.despesas.salvar(t, despesaId, {
@@ -1024,6 +1049,9 @@ async function gravarNota(
       tipoLancamento: 'compra',
       notaId,
       itens,
+      ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
+      ...(desconto > 0 ? { descontoNota: desconto } : {}),
+      ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
       ...(e.observacao ? { observacao: e.observacao } : {}),
       ...autoria,
       ...extras,
@@ -1267,6 +1295,9 @@ export function useRestaurarNota() {
           status: nota.status,
           vencimento: nota.vencimento,
           observacao: base?.observacao,
+          numeroNota: nota.numeroNota,
+          desconto: nota.desconto,
+          acrescimo: nota.acrescimo,
           itens: nota.itens.map((i) => ({
             produtoId: i.produtoId,
             quantidade: i.quantidade,
@@ -1403,8 +1434,8 @@ export function useDesfazer() {
   })
 }
 
-/** Teto padrão de taxas de app (%) até o dono conectar as integrações e a
- * gente passar a calcular de verdade a partir dos pedidos reais. */
+/** Teto padrão das taxas sobre venda (%): comissão de apps, maquininha.
+ * O dono ajusta depois no Plano do mês. */
 export const TAXA_APP_TETO_PADRAO = 12
 
 export interface RespostasOnboarding {
@@ -1465,16 +1496,18 @@ export function usePersistirOnboarding() {
         cnpj: r.cnpj,
         regimeTributario: 'simples',
         aliquotaImposto: 0.06,
-        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 50000,
-        // Tetos por grupo do DRE — o que o onboarding não pergunta fica no padrão.
+        // Em branco = sem meta (0). Nada de meta de exemplo numa conta real.
+        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 0,
+        // Tetos por grupo do DRE — o que o onboarding não pergunta (ou a pessoa
+        // pulou) fica no padrão, em vez de virar teto de 0%.
         tetos: {
           ...TETOS_PADRAO,
-          ocupacao: pctDaMeta(r.contasFixas, r.meta),
-          pessoal: pctDaMeta(r.folha, r.meta),
-          cmv: pctDaMeta(r.mercadoria, r.meta),
+          ...(r.contasFixas > 0 ? { ocupacao: pctDaMeta(r.contasFixas, r.meta) } : {}),
+          ...(r.folha > 0 ? { pessoal: pctDaMeta(r.folha, r.meta) } : {}),
+          ...(r.mercadoria > 0 ? { cmv: pctDaMeta(r.mercadoria, r.meta) } : {}),
           deducao: TAXA_APP_TETO_PADRAO,
         },
-        aberturaMes: 'julho de 2026',
+        aberturaMes: nomeDoMesAtual(),
         onboardingConcluido: true,
         // Natureza do negócio: é ela que decide se o DRE tem linha de
         // franqueadora e se existe visão de rede.
@@ -1486,6 +1519,7 @@ export function usePersistirOnboarding() {
             : null,
         // extras do onboarding (RestauranteDoc tolera campos a mais)
         numLojas: Number(r.lojas) || 1,
+        faturamentoMensal: Number(r.faturamento.replace(/\D/g, '')) || 0,
         ticketMedio: numeroBR(r.ticket),
         pedidosDia: Number(r.pedidos) || 0,
         horarios: r.horarios,
@@ -1510,17 +1544,9 @@ export function usePersistirOnboarding() {
           },
         })
       }
-
-      // Canais marcados viram integrações "conectando".
-      await Promise.all(
-        r.canais
-          .filter((c) => c === 'ifood' || c === 'rappi')
-          .map((c) => repo.integracoes.salvar(t, c, { provedor: c, status: 'conectando' })),
-      )
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [t, 'restaurante'] })
-      qc.invalidateQueries({ queryKey: [t, 'integracoes'] })
       qc.invalidateQueries({ queryKey: ['rede'] })
     },
   })
@@ -1641,67 +1667,6 @@ export function useSalvarContagem() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'contagens'] }),
   })
 }
-
-/* ------------------------------ iFood ----------------------------------- */
-
-export interface LojaIFood {
-  id: string
-  nome: string
-  razaoSocial: string
-}
-
-/**
- * Lojas do iFood autorizadas para o nosso aplicativo. O dono escolhe a dele
- * numa lista em vez de digitar o código — além de evitar erro de digitação,
- * é o que faz o clique gerar a consulta real ao iFood.
- */
-export function useListarLojasIFood() {
-  return useMutation({
-    mutationFn: async (): Promise<LojaIFood[]> => {
-      const fn = httpsCallable<void, { lojas: LojaIFood[] }>(functions, 'listarLojasIFood')
-      const { data } = await fn()
-      return data.lojas ?? []
-    },
-  })
-}
-
-/**
- * Vincula a loja escolhida ao restaurante. Passa pela Cloud Function porque
- * é lá que confirmamos, contra o iFood, que a loja existe e que temos acesso.
- */
-export function useConectarIFood() {
-  const t = useTenant()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (merchantId: string) => {
-      const fn = httpsCallable<
-        { restauranteId: string; provedor: string; merchantId: string },
-        { ok: boolean }
-      >(functions, 'conectarIntegracao')
-      const { data } = await fn({ restauranteId: t, provedor: 'ifood', merchantId })
-      return data
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
-  })
-}
-
-/** Sincroniza cardápio e estado da loja na hora, sem esperar o sync das 6h. */
-export function useSincronizarIFood() {
-  const t = useTenant()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (merchantId: string) => {
-      const fn = httpsCallable<{ restauranteId: string; merchantId: string }, { itens: number }>(
-        functions,
-        'sincronizarIFoodAgora',
-      )
-      const { data } = await fn({ restauranteId: t, merchantId })
-      return data
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'integracoes'] }),
-  })
-}
-
 
 /* ------------------------------ Cardápio (PDV) ------------------------------ */
 

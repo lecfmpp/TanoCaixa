@@ -6,9 +6,11 @@
  * habilitar automatic_tax) — os preços dos planos já devem sair com
  * imposto embutido, e NF-e/NFS-e é emitida fora do Stripe (emissor local).
  *
- * Planos do Tá no Caixa: Cozinha só (R$79) · Casa cheia (R$149) · Mais de
- * uma casa (R$299). Crie os Products/Prices no Stripe e coloque os IDs de
- * Price em STRIPE_PRICE_* (secrets/env).
+ * Plano único do Tá no Caixa: R$ 149 por loja/mês (sem PDV e CMV, que ainda
+ * estão em breve). O preço "de" R$ 249 é só âncora de comunicação na landing
+ * — o Stripe cobra 149. O valor entra como `price_data` no checkout (moeda,
+ * valor e recorrência vivem em PRECO_LOJA_CENTAVOS abaixo), então não há
+ * Price ID pra criar/guardar. A quantidade da assinatura é o nº de lojas.
  *
  * PRÉ-REQUISITOS: plano Blaze + segredos (ver functions/README.md):
  *   firebase functions:secrets:set STRIPE_SECRET_KEY
@@ -28,9 +30,10 @@ import { getFirestore } from 'firebase-admin/firestore'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
-const STRIPE_PRICE_COZINHA = defineSecret('STRIPE_PRICE_COZINHA')
-const STRIPE_PRICE_CASA = defineSecret('STRIPE_PRICE_CASA')
-const STRIPE_PRICE_REDE = defineSecret('STRIPE_PRICE_REDE')
+
+/** R$ 149,00 por loja/mês. Mudou o preço? Mude aqui e na landing (Preco). */
+const PRECO_LOJA_CENTAVOS = 14900
+const MAX_LOJAS = 50
 
 /** STRIPE_SECRET_KEY é uma Organization API key (várias contas na mesma
  * organização Stripe) — toda chamada v1 precisa dizer qual conta é o alvo,
@@ -45,28 +48,34 @@ const comContexto = {
 const db = getFirestore()
 const cliente = () => new Stripe(STRIPE_SECRET_KEY.value())
 
-function priceDoPlano(plano: string): string {
-  if (plano === 'cozinha') return STRIPE_PRICE_COZINHA.value()
-  if (plano === 'casa') return STRIPE_PRICE_CASA.value()
-  if (plano === 'rede') return STRIPE_PRICE_REDE.value()
-  throw new HttpsError('invalid-argument', `plano inválido: ${plano}`)
-}
-
-/** Inicia o checkout de assinatura de um plano. Retorna a URL do Stripe. */
+/** Inicia o checkout de assinatura (R$ 149/loja). Retorna a URL do Stripe. */
 export const criarCheckoutAssinatura = onCall(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_PRICE_COZINHA, STRIPE_PRICE_CASA, STRIPE_PRICE_REDE] },
+  { secrets: [STRIPE_SECRET_KEY] },
   async (req) => {
-    const { restauranteId, plano, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
-    if (!restauranteId || !plano) throw new HttpsError('invalid-argument', 'restauranteId e plano obrigatórios')
+    const { restauranteId, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
+    if (!restauranteId) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+    const lojas = Math.floor(Number((req.data as Record<string, unknown>)?.lojas ?? 1))
+    if (!Number.isFinite(lojas) || lojas < 1 || lojas > MAX_LOJAS) {
+      throw new HttpsError('invalid-argument', `lojas deve ficar entre 1 e ${MAX_LOJAS}`)
+    }
     const s = cliente()
     const session = await s.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: priceDoPlano(plano), quantity: 1 }],
+      line_items: [{
+        quantity: lojas,
+        price_data: {
+          currency: 'brl',
+          unit_amount: PRECO_LOJA_CENTAVOS,
+          recurring: { interval: 'month' },
+          product_data: { name: 'Tá no Caixa — por loja', description: 'Gestão financeira do restaurante. Sem PDV e CMV (em breve).' },
+        },
+      }],
+      allow_promotion_codes: true,
       customer_email: email || undefined,
-      subscription_data: { metadata: { restauranteId, plano } },
-      metadata: { restauranteId, plano },
+      subscription_data: { metadata: { restauranteId, plano: 'loja', lojas: String(lojas) } },
+      metadata: { restauranteId, plano: 'loja', lojas: String(lojas) },
       success_url: sucessoUrl || 'https://tanocaixa.web.app/painel?assinatura=ok',
-      cancel_url: cancelUrl || 'https://tanocaixa.web.app/painel',
+      cancel_url: cancelUrl || 'https://tanocaixa.web.app/painel/assinatura',
     }, comContexto)
     return { url: session.url }
   },
@@ -129,6 +138,7 @@ export const stripeWebhook = onRequest(
           {
             status: (obj.status as string) ?? 'ativa',
             plano: meta.plano ?? null,
+            lojas: Number(meta.lojas) || null,
             customerId: (obj.customer as string) ?? null,
             subscriptionId: (obj.subscription as string) ?? (obj.id as string) ?? null,
             atualizadoEm: new Date().toISOString(),

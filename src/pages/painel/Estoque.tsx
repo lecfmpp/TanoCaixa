@@ -17,7 +17,7 @@ import {
   useRestaurante,
   useTenant,
 } from '@/data/hooks'
-import { HOJE, MES_REF, diaDeHoje } from '@/data/derive'
+import { agora, MES_REF, diaDeHoje } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import {
   TIPO_ENTRADA,
@@ -276,7 +276,7 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
                   </div>
                   <div className="text-[11px] text-tinta-4">
                     {dataBR(diaDoMovimento(m))} · lançado por {m.criadoPorNome}
-                    {m.criadoEm ? `, ${quando(new Date(m.criadoEm), HOJE)}` : ''}
+                    {m.criadoEm ? `, ${quando(new Date(m.criadoEm), agora())}` : ''}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -402,7 +402,7 @@ function InsightsIA({
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           maxLength={500}
-          placeholder="Ou pergunte do seu jeito: quanto de frango saiu em julho?"
+          placeholder="Ou pergunte do seu jeito: quanto de frango saiu este mês?"
           className="min-w-0 flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3.5 py-2.5 text-[15px] text-tinta outline-none placeholder:text-tinta-5 focus:border-mar focus:ring-2 focus:ring-mar/15"
         />
         <Button type="submit" disabled={carregando || !texto.trim()}>Perguntar</Button>
@@ -746,7 +746,7 @@ function HistoricoDeContagens({ contagens, aoApagar }: { contagens: ContagemDoc[
                       </span>
                       <span className="block text-xs text-tinta-4">
                         {c.itens.length} {c.itens.length === 1 ? 'produto' : 'produtos'} · {c.criadoPorNome}
-                        {c.criadoEm ? `, ${quando(new Date(c.criadoEm), HOJE)}` : ''}
+                        {c.criadoEm ? `, ${quando(new Date(c.criadoEm), agora())}` : ''}
                       </span>
                     </span>
                   </button>
