@@ -12,6 +12,8 @@
     "src/recorrentes.ts",
     "src/recorrentes.test.ts",
     "src/recorrentesDb.ts",
-    "src/recorrentesDb.test.ts"
+    "src/recorrentesDb.test.ts",
+    "src/assinatura.ts",
+    "src/assinatura.test.ts"
   ]
 }
