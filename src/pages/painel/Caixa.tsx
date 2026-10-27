@@ -113,7 +113,7 @@ export function Caixa() {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader
-        titulo="Caixa"
+        titulo="Receita"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
         lancar={false}
         periodo={filtro}

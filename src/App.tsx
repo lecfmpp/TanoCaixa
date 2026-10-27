@@ -1,5 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '@/auth/AuthContext'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/auth/AuthContext'
 import { DataProvider } from '@/data/Provider'
 import { UIProvider } from '@/ui/UIProvider'
 import { ToastHost } from '@/ui/ToastHost'
@@ -39,6 +39,18 @@ import { CaixaPdv } from '@/pages/pdv/CaixaPdv'
 import { Historico } from '@/pages/pdv/Historico'
 import { Kds } from '@/pages/pdv/Kds'
 
+/**
+ * O Início está fora do menu por enquanto: quem abre /painel puro cai no Dashboard.
+ * Com query (?acao=…, ?assinatura=ok) a página continua sendo o Início, pra não
+ * perder o gesto do link; a rota segue existindo.
+ */
+function PaginaInicial() {
+  const { permissoes } = useAuth()
+  const { search } = useLocation()
+  if (!search && permissoes?.veNumeros) return <Navigate to="/painel/numeros" replace />
+  return <Inicio />
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -60,7 +72,7 @@ export default function App() {
                   </RotaProtegida>
                 }
               >
-                <Route index element={<ExigePermissao chave="veInicio"><Inicio /></ExigePermissao>} />
+                <Route index element={<ExigePermissao chave="veInicio"><PaginaInicial /></ExigePermissao>} />
                 <Route path="caixa" element={<ExigePermissao chave="veFechamento"><Caixa /></ExigePermissao>} />
                 <Route path="despesas" element={<ExigePermissao chave="veDespesas"><Despesas /></ExigePermissao>} />
                 <Route path="fluxo" element={<ExigePermissao chave="veDespesas"><FluxoCaixa /></ExigePermissao>} />

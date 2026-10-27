@@ -9,19 +9,21 @@ export interface ItemNav {
   recurso?: 'pdv'
   /** Página navegável, mas ainda sem funcionalidade: o menu mostra o selo "Em breve". */
   emBreve?: boolean
+  /** Página existe (rota e links diretos seguem valendo), mas some do menu por enquanto. */
+  oculto?: boolean
 }
 
 /** Itens do menu, cada um atrelado a uma permissão de seção. */
 export const itensNav: ItemNav[] = [
   { para: '/painel/numeros', rotulo: 'Dashboard', chave: 'veNumeros' },
-  { para: '/painel', rotulo: 'Início', chave: 'veInicio' },
-  { para: '/painel/caixa', rotulo: 'Caixa', chave: 'veFechamento' },
+  { para: '/painel', rotulo: 'Início', chave: 'veInicio', oculto: true },
+  { para: '/painel/caixa', rotulo: 'Receita', chave: 'veFechamento' },
   { para: '/painel/despesas', rotulo: 'Despesas', chave: 'veDespesas' },
   { para: '/painel/fluxo', rotulo: 'Fluxo de caixa', chave: 'veDespesas' },
   { para: '/painel/compras', rotulo: 'Compras', chave: 'veDespesas' },
   { para: '/painel/produtos', rotulo: 'Produtos', chave: 'veProdutos' },
   { para: '/painel/estoque', rotulo: 'Estoque', chave: 'veEstoque' },
-  { para: '/painel/pdv', rotulo: 'PDV', chave: 'veInicio', recurso: 'pdv' },
+  { para: '/painel/pdv', rotulo: 'PDV', chave: 'veInicio', recurso: 'pdv', emBreve: true },
   { para: '/painel/dre', rotulo: 'DRE', chave: 'veDRE' },
   { para: '/painel/cmv', rotulo: 'CMV', chave: 'veDRE', emBreve: true },
   { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
