@@ -8,13 +8,13 @@ import { Chip } from '@/components/ui/Chip'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
-import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, noPeriodo, MES_REF } from '@/data/derive'
-import { usePeriodo, sufixoDoFiltro } from '@/ui/periodo'
+import { despesasResumo, categoriasResumo, resumoInicio, diaDeHoje, agora, noPeriodo } from '@/data/derive'
+import { SeletorJanela, ddmm, diaDaSemana, nomeDaJanela, useJanela } from '@/components/ui/SeletorJanela'
+import type { Filtro } from '@/types'
 import { diasAte } from '@/data/vencimentos'
 import { TagVencimento } from '@/components/ui/TagVencimento'
 import { CONTA, GRUPO, GRUPOS, type GrupoDRE } from '@/data/planoContas'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
-import { nomeDoMes } from '@/data/planoMes'
 import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 import type { DespesaDoc } from '@/data/types'
@@ -40,10 +40,11 @@ type BaseData = 'entrada' | 'vencimento'
 const diaDa = (d: DespesaDoc, base: BaseData) => (base === 'vencimento' ? d.dataVencimento ?? d.dataCompetencia : d.dataCompetencia)
 
 export function Despesas() {
-  // Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
-  const [periodo, setPeriodo] = usePeriodo()
-  /** 'agosto' — o mês que a tela inteira está mostrando (ou 'a semana'). */
-  const MES_NOME = periodo === 'mes' ? nomeDoMes(MES_REF).split(' de ')[0] : periodo === 'semana' ? 'a semana' : 'o período'
+  // Dia | Semana | Mês, igual ao Fluxo de caixa. Dentro do componente: MES_REF só vale depois que a sessão é resolvida.
+  const estado = useJanela('mes')
+  const { de, ate } = estado
+  const periodo: Filtro = useMemo(() => ({ de, ate }), [de, ate])
+  const nomeJanela = nomeDaJanela(estado)
   const { ctx } = useContexto()
   const restaurante = useRestaurante()
   const [busca, setBusca] = useState('')
@@ -110,6 +111,15 @@ export function Despesas() {
       })
   }, [daAba, filtro, fornecedor, busca, baseData])
   const totalLista = lista.reduce((s, d) => s + d.valorTotal, 0)
+  /** Os lançamentos da lista, um cartão por dia (pela data que o filtro Entrada/Vencimento escolheu). */
+  const porDia = useMemo(() => {
+    const m = new Map<string, DespesaDoc[]>()
+    for (const d of lista) {
+      const dia = diaDa(d, baseData).slice(0, 10)
+      m.set(dia, [...(m.get(dia) ?? []), d])
+    }
+    return [...m.entries()]
+  }, [lista, baseData])
 
   const vence3 = daAba.find((d) => d.status === 'vence')
   const hoje = diaDeHoje()
@@ -129,14 +139,16 @@ export function Despesas() {
       (d.juros ?? 0).toFixed(2).replace('.', ','),
     ])
     baixarCSV(
-      `${aba === 'compras' ? 'compras' : 'despesas'}-${sufixoDoFiltro(periodo, MES_REF)}-${arquivoDe(cfg?.nome)}`,
+      `${aba === 'compras' ? 'compras' : 'despesas'}-${de}_${ate}-${arquivoDe(cfg?.nome)}`,
       gerarCSV([baseData === 'vencimento' ? 'Vencimento' : 'Data', 'Fornecedor', 'Descrição', 'Grupo do DRE', 'Conta', 'Pagamento', 'Situação', 'Quem lançou', 'Valor (R$)', 'Juros pagos (R$)'], linhas),
     )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeDoMes(MES_REF)}` : ''} periodo={periodo} aoTrocarPeriodo={setPeriodo} aoExportar={lista.length ? exportar : undefined} />
+      <SectionHeader titulo="Despesas" subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · o que saiu e o que tem pra pagar` : ''} semMes aoExportar={lista.length ? exportar : undefined} />
+
+      <SeletorJanela estado={estado} />
 
       {/* Duas naturezas, duas abas — o DRE e o caixa continuam somando as duas. */}
       <div className="flex flex-col gap-3 cel:flex-row cel:items-center cel:justify-between">
@@ -147,8 +159,8 @@ export function Despesas() {
       </div>
 
       <div className="grid grid-cols-2 gap-3.5 tab:grid-cols-4">
-        <CartaoMini rotulo={`Saiu em ${MES_NOME}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
-        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do ${periodo === 'mes' ? 'mês' : 'período'}`} tom="mata" />
+        <CartaoMini rotulo={`Saiu ${nomeJanela}`} valor={resumo.saiu} apoio={`${resumo.contagem} lançamentos`} />
+        <CartaoMini rotulo="Já pago" valor={resumo.pago} apoio={`${Math.round((resumo.pago / (resumo.saiu || 1)) * 100)}% do período`} tom="mata" />
         <CartaoMini rotulo="A pagar" valor={resumo.aPagar} apoio={`${daAba.filter((d) => d.status !== 'pago').length} em aberto`} />
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>
@@ -216,95 +228,105 @@ export function Despesas() {
         </div>
       </div>
 
-      {/* Tabela */}
-      <Cartao className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                <Th>Fornecedor</Th><Th>Conta do DRE</Th><Th className="hidden tab:table-cell">Pagamento</Th><Th>{baseData === 'vencimento' ? 'Vencimento' : 'Entrada'}</Th><Th>Quem lançou</Th><Th>Situação</Th><Th className="text-right">Valor</Th><Th><span className="sr-only">Ações</span></Th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((d) => (
-                <tr key={d.id} className="border-b border-divisoria last:border-0 hover:bg-preenchimento/30">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-tinta">{d.fornecedor}</div>
-                    {d.descricao && <div className="text-xs text-tinta-4">{d.descricao}</div>}
-                    {d.recorrente && (
-                      <span
-                        className="mt-1 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-chip bg-mar/10 px-2 py-0.5 text-[11px] font-bold text-mar"
-                        title={d.repetidaAuto ? 'Gerada sozinha pela repetição mensal' : 'Se repete todo mês'}
-                      >
-                        <Repeat size={11} strokeWidth={2.4} />
-                        {d.repetidaAuto ? 'repetida do mês anterior' : 'todo mês'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><EtiquetaConta categoria={d.categoria} /></td>
-                  <td className="hidden px-4 py-3 capitalize text-tinta-2 tab:table-cell">{d.formaPagamento}</td>
-                  <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(diaDa(d, baseData)))}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={26} />
-                      <div className="leading-tight">
-                        <div className="text-xs font-semibold text-tinta">{d.criadoPorNome}</div>
-                        <div className="text-[11px] text-tinta-4">{quando(new Date(d.criadoEm), agora())}</div>
-                        {/* Correção não apaga quem lançou — fica registrada ao lado. */}
-                        {d.editadoPorNome && (
-                          <div className="text-[11px] text-telhado">corrigido por {d.editadoPorNome}</div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {d.status === 'pago' ? (
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="text-xs font-bold text-mata">pago{d.pagoEm ? ` ${dataCurta(dataDoDia(d.pagoEm))}` : ''}</span>
-                        {!!d.juros && <span className="mono text-[11px] font-bold text-telha-alerta">+ {brl(d.juros)} juros</span>}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-start gap-1.5">
-                        {d.dataVencimento ? (
-                          <TagVencimento dias={diasAte(d.dataVencimento, hoje)} />
-                        ) : (
-                          <span className={cn('text-xs font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</span>
-                        )}
-                        {/* Pagar é no Fluxo de caixa — lá o check pergunta se teve juros. */}
-                        <Link to="/painel/fluxo" className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-bold text-mar hover:underline">
-                          Pagar no fluxo <ArrowRight size={12} />
-                        </Link>
-                      </div>
-                    )}
-                  </td>
-                  <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(d.valorTotal)}</td>
-                  <td className="px-2 py-3">
-                    <AcoesLancamento
-                      alvo={
-                        aba === 'compras' && notaDoLancamento.get(d.id)
-                          ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
-                          : { tipo: 'conta', despesa: d }
-                      }
-                      className="flex justify-end"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {lista.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-tinta-4">
+      {/* Um cartão por dia, no estilo do Fluxo de caixa */}
+      {porDia.length === 0 ? (
+        <Cartao>
+          <p className="py-6 text-center text-sm text-tinta-4">
             {aba === 'compras'
               ? 'Nenhuma nota fiscal lançada no período. A compra de mercadoria entra item a item, ligada aos seus produtos.'
               : 'Nenhuma conta da casa lançada no período.'}
           </p>
-        )}
-        <div className="flex items-center justify-between border-t border-divisoria bg-preenchimento/40 px-4 py-3 text-sm">
-          <span className="text-tinta-3">{lista.length} lançamentos</span>
-          <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
+        </Cartao>
+      ) : (
+        porDia.map(([dia, itens]) => {
+          const totalDia = itens.reduce((s, d) => s + d.valorTotal, 0)
+          const aberto = itens.filter((d) => d.status !== 'pago').reduce((s, d) => s + d.valorTotal, 0)
+          return (
+            <Cartao key={dia} className="p-0">
+              <div className="flex items-center justify-between border-b border-divisoria bg-preenchimento/40 px-4 py-2.5">
+                <span className="text-sm font-bold capitalize text-tinta">
+                  {dia === hoje ? 'Hoje' : diaDaSemana(dia)} · {ddmm(dia)}
+                </span>
+                <span className="text-xs text-tinta-4">
+                  <span className="mono font-bold text-tinta">{brl(totalDia)}</span>
+                  {' · '}
+                  {aberto > 0 ? <>a pagar <span className="mono font-bold text-tinta">{brl(aberto)}</span></> : <span className="font-bold text-mata">tudo pago ✓</span>}
+                </span>
+              </div>
+              {itens.map((d) => (
+                <LinhaDespesa
+                  key={d.id}
+                  d={d}
+                  hoje={hoje}
+                  baseData={baseData}
+                  alvo={
+                    aba === 'compras' && notaDoLancamento.get(d.id)
+                      ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
+                      : { tipo: 'conta', despesa: d }
+                  }
+                />
+              ))}
+            </Cartao>
+          )
+        })
+      )}
+
+      <div className="flex items-center justify-between rounded-cartao bg-preenchimento/40 px-4 py-3 text-sm">
+        <span className="text-tinta-3">{lista.length} lançamentos</span>
+        <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
+      </div>
+    </div>
+  )
+}
+
+/** Uma conta no estilo da linha do Fluxo de caixa: fornecedor, conta do DRE, quem lançou, situação e valor. */
+function LinhaDespesa({ d, hoje, baseData, alvo }: { d: DespesaDoc; hoje: string; baseData: BaseData; alvo: React.ComponentProps<typeof AcoesLancamento>['alvo'] }) {
+  return (
+    <div className={cn('flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0', d.status === 'pago' && 'bg-mata/[0.04]')}>
+      <div className="min-w-0 flex-1">
+        <div className={cn('truncate font-semibold', d.status === 'pago' ? 'text-tinta-3' : 'text-tinta')}>{d.fornecedor}</div>
+        {d.descricao && <div className="truncate text-xs text-tinta-4">{d.descricao}</div>}
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <EtiquetaConta categoria={d.categoria} />
+          {d.recorrente && (
+            <span
+              className="inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-chip bg-mar/10 px-2 py-0.5 text-[11px] font-bold text-mar"
+              title={d.repetidaAuto ? 'Gerada sozinha pela repetição mensal' : 'Se repete todo mês'}
+            >
+              <Repeat size={11} strokeWidth={2.4} />
+              {d.repetidaAuto ? 'repetida do mês anterior' : 'todo mês'}
+            </span>
+          )}
         </div>
-      </Cartao>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {d.status === 'pago' ? (
+            <span className="text-[11px] font-semibold text-mata">pago{d.pagoEm ? ` ${dataCurta(dataDoDia(d.pagoEm))}` : ''}</span>
+          ) : d.dataVencimento ? (
+            <TagVencimento dias={diasAte(d.dataVencimento, hoje)} />
+          ) : (
+            <span className={cn('text-[11px] font-bold', STATUS[d.status].cls)}>{STATUS[d.status].txt}</span>
+          )}
+          {baseData === 'entrada' && d.dataVencimento && <span className="text-[11px] text-tinta-4">vence {dataCurta(dataDoDia(d.dataVencimento))}</span>}
+          {baseData === 'vencimento' && <span className="text-[11px] text-tinta-4">entrou {dataCurta(dataDoDia(d.dataCompetencia))}</span>}
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-tinta-4">
+            <Avatar inicial={(d.criadoPorNome || '?')[0]} cor={corNome(d.criadoPorNome)} tamanho={16} />
+            {d.criadoPorNome} · {quando(new Date(d.criadoEm), agora())}
+            {d.editadoPorNome && <span className="text-telhado">· corrigido por {d.editadoPorNome}</span>}
+          </span>
+          {d.status !== 'pago' && (
+            // Pagar é no Fluxo de caixa — lá o check pergunta se teve juros.
+            <Link to="/painel/fluxo" className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-mar hover:underline">
+              Pagar no fluxo <ArrowRight size={11} />
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="text-right">
+        <div className={cn('mono font-bold', d.status === 'pago' ? 'text-tinta-3' : 'text-tinta')} style={{ fontSize: 16 }}>{brl(d.valorTotal)}</div>
+        {!!d.juros && <div className="mono text-[11px] font-bold text-telha-alerta">+ {brl(d.juros)} juros</div>}
+        {d.formaPagamento && <div className="text-[11px] capitalize text-tinta-4">{d.formaPagamento}</div>}
+      </div>
+      <AcoesLancamento alvo={alvo} className="flex justify-end" />
     </div>
   )
 }
@@ -348,8 +370,4 @@ function AbaBotao({ rotulo, valor, ativa, aoClicar }: { rotulo: string; valor: n
       {rotulo} <span className="mono font-bold text-tinta-4">· {brlInteiro(valor)}</span>
     </button>
   )
-}
-
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn('px-4 py-2.5 rotulo text-tinta-4', className)}>{children}</th>
 }
