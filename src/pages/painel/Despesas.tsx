@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, Search } from 'lucide-react'
+import { CheckCircle2, Repeat, Search } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
@@ -216,6 +216,15 @@ export function Despesas() {
                   <td className="px-4 py-3">
                     <div className="font-semibold text-tinta">{d.fornecedor}</div>
                     {d.descricao && <div className="text-xs text-tinta-4">{d.descricao}</div>}
+                    {d.recorrente && (
+                      <span
+                        className="mt-1 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-chip bg-mar/10 px-2 py-0.5 text-[11px] font-bold text-mar"
+                        title={d.repetidaAuto ? 'Gerada sozinha pela repetição mensal' : 'Se repete todo mês'}
+                      >
+                        <Repeat size={11} strokeWidth={2.4} />
+                        {d.repetidaAuto ? 'repetida do mês anterior' : 'todo mês'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3"><EtiquetaConta categoria={d.categoria} /></td>
                   <td className="hidden px-4 py-3 capitalize text-tinta-2 tab:table-cell">{d.formaPagamento}</td>
