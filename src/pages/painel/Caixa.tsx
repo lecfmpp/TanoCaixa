@@ -35,7 +35,7 @@ function lancamentosDe(r: ReceitaDiaDoc): LancamentoDeVendas[] {
 
 /** Página da Receita: lançar as vendas do dia e ver quando o dinheiro cai. Sem DRE, gastos ou lucro. */
 export function Caixa() {
-  const { abrirGaveta, confirmar, adicionarToast } = useUI()
+  const { confirmar, adicionarToast } = useUI()
   const { permissoes } = useAuth()
   const cfg = useRestaurante().data
   const [aberto, setAberto] = useState<string | null>(null)
@@ -112,26 +112,8 @@ export function Caixa() {
       <SectionHeader
         titulo="Receita"
         subtitulo={cfg ? `${cfg.nome} · ${cfg.bairro} · lançamento de vendas` : ''}
-        lancar={false}
         semMes
       />
-
-      {/* Ação principal */}
-      <div className="flex flex-col items-start justify-between gap-3 rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo px-6 py-5 cel:flex-row cel:items-center">
-        <div>
-          <p className="text-[15px] font-bold text-insight-texto">Lançar as vendas de hoje</p>
-          <p className="text-sm text-insight-texto/80">
-            Lance o que entrou de Pix, cartão e dinheiro na loja e o total dos apps de delivery.
-            Fica registrado quem lançou e quando.
-          </p>
-        </div>
-        <button
-          onClick={() => abrirGaveta('fechamento')}
-          className="shrink-0 rounded-botao bg-telhado px-5 py-2.5 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95"
-        >
-          Lançar vendas
-        </button>
-      </div>
 
       <SeletorJanela estado={estado} />
 
@@ -173,7 +155,7 @@ export function Caixa() {
       {porDia.length === 0 ? (
         <Cartao>
           <p className="py-6 text-center text-sm text-tinta-4">
-            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por "Lançar vendas".' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : 'nesse mês'}.`}
+            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por “Lançar” → “Lançar vendas”.' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : 'nesse mês'}.`}
           </p>
         </Cartao>
       ) : (
