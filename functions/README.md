@@ -75,31 +75,33 @@ despesa do mês que acabou de virar. Regras em `src/recorrentes.ts`, gravação 
 Publicar: `firebase deploy --only functions:repetirDespesasRecorrentes`. Para rodar já, sem
 esperar a madrugada: Cloud Scheduler → `firebase-schedule-repetirDespesasRecorrentes-us-central1` → Forçar execução.
 
-## Stripe (assinaturas): Grátis × Pro
+## Stripe (assinaturas): teste de 14 dias + Pro
 
 `src/stripe.ts` expõe `criarCheckoutAssinatura`, `portalAssinatura`,
-`abrirLojaExtra` e `stripeWebhook`. Sem Stripe Tax (não cobre o Brasil):
-o preço já sai com imposto embutido e a NF é emitida fora do Stripe.
+`abrirLojaExtra` e `stripeWebhook`; `src/testeTrigger.ts` expõe `comecarTeste`.
+Sem Stripe Tax (não cobre o Brasil): o preço já sai com imposto embutido e a
+NF é emitida fora do Stripe.
 
-**Planos** (`src/assinatura.ts`, espelhado em `src/data/planos.ts` e `src/data/preco.ts` do app):
-- **Grátis**: sem assinatura. Tudo da loja única, menos DRE completo, foto da
-  nota com IA e lembretes no WhatsApp. Equipe até 2 pessoas.
+**Plano único** (`src/assinatura.ts`, espelhado em `src/data/planos.ts` e `src/data/preco.ts` do app):
+- **Teste**: 14 dias com tudo liberado pra 1 loja, sem cartão. Começa sozinho
+  quando o restaurante nasce (`comecarTeste`). Vencido **não trava nada**: o
+  app só mostra o aviso pra assinar (dono e gestão).
 - **Pro**: R$ 149/mês a primeira loja + R$ 79/mês por loja extra da rede.
   Assinatura com dois itens (Prices com lookup_key `tanocaixa_pro_loja` e
   `tanocaixa_pro_loja_extra`, criados sozinhos na primeira chamada).
 
-**Onde mora o plano**: `assinaturas/{restauranteId}` (só o servidor grava; a
-equipe da loja lê pelas regras). Pro = `status` `ativa` ou `pagamento_falhou`.
-Loja extra tem `pagadorId` (a loja que paga) e o webhook copia o status pra ela.
-As travas valem no servidor: `analisarFoto`, `lembretesWhatsappSalvar` e a
-rodada dos lembretes, `criarConvite` (limite de equipe) e `abrirLojaExtra`.
+**Onde mora**: `assinaturas/{restauranteId}` (só o servidor grava; a equipe da
+loja lê pelas regras). Pago = `status` `ativa` ou `pagamento_falhou`; senão,
+vale `testeAte`. Loja extra tem `pagadorId` (a loja que paga) e o webhook copia
+o status pra ela.
 
-**Loja extra**: `abrirLojaExtra` soma 1 no item "loja extra" com
-`proration_behavior: always_invoice` + `payment_behavior: error_if_incomplete`.
-Cartão recusado = erro e nenhuma loja criada.
+**Loja extra** é a única coisa que exige o Pro pago: `abrirLojaExtra` soma 1 no
+item "loja extra" com `proration_behavior: always_invoice` +
+`payment_behavior: error_if_incomplete`. Cartão recusado = erro e nenhuma loja criada.
 
-**Migração** pra deixar todo mundo no Grátis: `node scripts/migrar-plano-gratis.cjs`
-(só mostra) e `--aplicar` (grava). Quem tem assinatura ativa fica de fora.
+**Migração** (14 dias a partir de agora pra quem já existe):
+`node scripts/migrar-teste-14-dias.cjs` (só mostra) e `--aplicar` (grava).
+Quem paga, loja extra e teste ainda válido ficam de fora.
 
 ### Setup
 
@@ -123,7 +125,7 @@ Cartão recusado = erro e nenhuma loja criada.
    `status` vira `ativa` e a página mostra "Você está no Pro".
 4. Rede → "Abrir loja": a assinatura ganha o item "loja extra" (qtd 1) e sai uma
    invoice proporcional. Com `4000 0000 0000 0341` no portal, a loja não abre.
-5. "Gerenciar assinatura" abre o portal; cancelar → `status` `cancelada` → Grátis.
+5. "Gerenciar assinatura" abre o portal; cancelar → `status` `cancelada` → aviso de assinar (nada trava).
 
 ## Avisos no WhatsApp (Green-API)
 

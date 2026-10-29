@@ -287,6 +287,9 @@ export {
   abrirLojaExtra,
 } from './stripe'
 
+/* --------------- Teste de 14 dias (restaurante novo) ---------------- */
+export { comecarTeste } from './testeTrigger'
+
 /* ------------------- Gemini Vision (foto → lançamento) ------------------- */
 export { analisarFoto, perguntarEstoque } from './gemini'
 

@@ -22,7 +22,7 @@ export interface DadosExtraidosFoto {
 }
 
 const analisar = httpsCallable<
-  { imagemBase64: string; mimeType: string; tipo: string; restauranteId: string },
+  { imagemBase64: string; mimeType: string; tipo: string },
   DadosExtraidosFoto
 >(functions, 'analisarFoto')
 
@@ -90,11 +90,10 @@ export function prepararFoto(arquivo: File): Promise<{ base64: string; mimeType:
 export async function extrairDadosDeFoto(
   base64: string,
   tipo: 'despesa' | 'produto' | 'estoque',
-  restauranteId: string,
   mimeType = 'image/jpeg',
 ): Promise<DadosExtraidosFoto> {
   try {
-    const { data } = await analisar({ imagemBase64: base64, mimeType, tipo, restauranteId })
+    const { data } = await analisar({ imagemBase64: base64, mimeType, tipo })
     return data
   } catch (e) {
     const err = e as FunctionsError

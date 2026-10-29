@@ -23,20 +23,8 @@ import { nomeDoMes } from '@/data/planoMes'
 export function Rede() {
   const rede = useRede()
   const { lojas, carregando } = useContextosDaRede()
-  const plano = usePlano()
 
-  if (rede.isLoading || plano.carregando) return <p className="text-sm text-tinta-4">Carregando a rede…</p>
-  if (!plano.pro) {
-    return (
-      <div className="flex flex-col gap-4">
-        <SectionHeader titulo="Rede" subtitulo="Várias lojas no mesmo lugar" />
-        <AvisoPro
-          titulo="Rede de lojas"
-          texto={`No Pro você junta as lojas num painel só, compara loja a loja e abre loja nova por + R$ ${PRECO_LOJA_EXTRA}/mês cada.`}
-        />
-      </div>
-    )
-  }
+  if (rede.isLoading) return <p className="text-sm text-tinta-4">Carregando a rede…</p>
   if (!rede.data) return <SemRede />
 
   return <PainelDaRede nomeRede={rede.data.nome} tipo={rede.data.tipo} lojas={lojas} carregando={carregando} />
@@ -243,7 +231,7 @@ function PainelDaRede({
 
 export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
   const abrir = useAbrirLoja()
-  const { pro } = usePlano()
+  const { pago } = usePlano()
   const { adicionarToast } = useUI()
   const [nome, setNome] = useState('')
   const [bairro, setBairro] = useState('')
@@ -255,7 +243,7 @@ export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
     } catch (e) {
       adicionarToast({
         tipo: 'erro',
-        titulo: ehErroDePlano(e) ? 'Loja extra é do Pro' : 'A loja não foi aberta',
+        titulo: ehErroDePlano(e) ? 'Loja extra precisa do Pro assinado' : 'A loja não foi aberta',
         // A function já responde em português (cartão recusado, plano…).
         texto: (e instanceof Error && e.message) || 'Tente de novo em instantes.',
       })
@@ -267,12 +255,12 @@ export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
     aoFechar()
   }
 
-  if (!pro) {
+  if (!pago) {
     return (
       <AvisoPro
         className="m-4"
         titulo="Loja extra"
-        texto={`Abrir loja nova é do Pro: + R$ ${PRECO_LOJA_EXTRA}/mês por loja, na mesma assinatura.`}
+        texto={`O teste vale pra uma loja. Com o Pro assinado, cada loja a mais da rede sai por + R$ ${PRECO_LOJA_EXTRA}/mês, na mesma assinatura.`}
       />
     )
   }

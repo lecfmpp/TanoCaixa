@@ -4,7 +4,7 @@ import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
-import { getAssinatura, planoDaAssinatura, type Plano } from './planos'
+import { acessoDaAssinatura, diasDeTeste, getAssinatura, type Acesso } from './planos'
 import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
@@ -56,14 +56,20 @@ export function useTenant() {
   return loja ?? sessao?.tenantId ?? DEMO_TENANT
 }
 
-/** Plano (Grátis ou Pro) da loja aberta. A demonstração mostra o Pro. */
+/** Assinatura da loja aberta: paga, no teste de 14 dias ou com o teste vencido. A demonstração conta como paga. */
 export function usePlano() {
   const t = useTenant()
   const { sessao } = useAuth()
   const demo = !!sessao?.demo || t.startsWith('demo-')
   const q = useQuery({ queryKey: [t, 'assinatura'], queryFn: () => getAssinatura(t), enabled: !demo })
-  const plano: Plano = demo ? 'pro' : planoDaAssinatura(q.data)
-  return { plano, pro: plano === 'pro', assinatura: q.data ?? null, carregando: !demo && q.isLoading }
+  const acesso: Acesso = demo ? 'pago' : acessoDaAssinatura(q.data)
+  return {
+    acesso,
+    pago: acesso === 'pago',
+    diasDeTeste: demo ? null : diasDeTeste(q.data),
+    assinatura: q.data ?? null,
+    carregando: !demo && q.isLoading,
+  }
 }
 
 /** Tenant do login, ignorando a troca de loja. Usado pela própria rede. */

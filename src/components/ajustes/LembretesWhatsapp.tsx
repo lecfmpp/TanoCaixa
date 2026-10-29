@@ -7,8 +7,7 @@ import { Switch } from '@/components/ui/Switch'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
-import { usePlano, useTenant } from '@/data/hooks'
-import { AvisoPro, SeloPro } from '@/components/ui/SeloPro'
+import { useTenant } from '@/data/hooks'
 import { useUI } from '@/ui/UIProvider'
 import { mensagemDeErro } from '@/lib/erros'
 
@@ -40,7 +39,6 @@ export function LembretesWhatsapp() {
   const t = useTenant()
   const qc = useQueryClient()
   const { adicionarToast } = useUI()
-  const { pro } = usePlano()
   const chave = [t, 'lembretes-whatsapp']
 
   const config = useQuery({
@@ -69,20 +67,12 @@ export function LembretesWhatsapp() {
   })
 
   if (!config.data?.temGrupo) return null
-  if (!pro) {
-    return (
-      <AvisoPro
-        titulo="Lembretes no WhatsApp"
-        texto="No Pro, o grupo do seu restaurante recebe avisos de rotina: vendas do dia, contas a vencer, contagem de estoque e mais."
-      />
-    )
-  }
   const mudou = grupoId.trim() !== config.data.grupoId
   const grupos = [...new Set(config.data.lembretes.map((l) => l.grupo))]
 
   return (
     <Cartao className="flex flex-col">
-      <h2 className="flex items-center gap-2 text-[15px] font-bold text-tinta">Lembretes no WhatsApp <SeloPro /></h2>
+      <h2 className="text-[15px] font-bold text-tinta">Lembretes no WhatsApp</h2>
       <p className="mt-1 mb-2 text-sm text-tinta-3">
         Avisos de rotina no grupo do seu restaurante, no máximo um por dia e sempre com o link da tela certa. Tudo
         começa desligado: ligue só o que ajuda você.

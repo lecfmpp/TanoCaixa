@@ -5,8 +5,7 @@ import { Cartao } from '@/components/ui/Cartao'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { gerarCSV, baixarCSV } from '@/lib/csv'
-import { useContexto, useRestaurante, useDespesas, usePlano } from '@/data/hooks'
-import { AvisoPro } from '@/components/ui/SeloPro'
+import { useContexto, useRestaurante, useDespesas } from '@/data/hooks'
 import { dreDoMes, type LinhaDRE } from '@/data/derive'
 import { CONTA, GRUPO } from '@/data/planoContas'
 
@@ -29,8 +28,6 @@ export function DRE() {
   const cfg = useRestaurante().data
   const dre = useMemo(() => dreDoMes(ctx), [ctx])
   const [fechados, setFechados] = useState<Record<string, boolean>>({})
-  // Grátis vê o resumo (grupos e lucro); o detalhe conta por conta e a planilha são do Pro.
-  const { pro } = usePlano()
 
   const sub = cfg ? `${cfg.nome} · ${cfg.bairro} · ${nomeMes(dre.mes)}` : ''
   const regime = cfg?.regimeTributario === 'presumido' ? 'Lucro presumido' : 'Simples Nacional'
@@ -40,7 +37,7 @@ export function DRE() {
     setFechados((f) => ({ ...f, [chave]: !f[chave] }))
   }
 
-  const linhas = dre.linhas.filter((l) => l.nivel === 0 || (pro && !fechados[chaveColapso(l)]))
+  const linhas = dre.linhas.filter((l) => l.nivel === 0 || !fechados[chaveColapso(l)])
 
   // Pra onde vai cada R$ 100: os grupos com valor + o que sobrou.
   const segmentos = [
@@ -86,7 +83,7 @@ export function DRE() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader titulo="DRE" subtitulo={sub} aoExportar={pro ? baixarDRE : undefined} />
+      <SectionHeader titulo="DRE" subtitulo={sub} aoExportar={baixarDRE} />
       <p className="-mt-2 text-sm text-tinta-4">Demonstrativo de resultado · {nomeMes(dre.mes)}</p>
       <p className="-mt-3 text-sm text-tinta-4">
         Regime de caixa · {cfg?.nome ?? '—'}
@@ -122,8 +119,8 @@ export function DRE() {
                     <Linha
                       key={l.id}
                       linha={l}
-                      colapsavel={pro && (l.tipo === 'grupo' || l.id === 'receita_bruta')}
-                      fechado={!pro || !!fechados[chaveColapso(l)]}
+                      colapsavel={l.tipo === 'grupo' || l.id === 'receita_bruta'}
+                      fechado={!!fechados[chaveColapso(l)]}
                       aoAlternar={() => alternar(chaveColapso(l))}
                     />
                   ))}
@@ -131,13 +128,6 @@ export function DRE() {
               </table>
             </div>
           </Cartao>
-
-          {!pro && (
-            <AvisoPro
-              titulo="DRE completo"
-              texto="No Pro você abre cada grupo e vê conta por conta pra onde foi o dinheiro, e baixa a planilha pro contador."
-            />
-          )}
 
           <Cartao className="flex flex-col gap-3">
             <h2 className="text-[15px] font-bold text-tinta">Pra onde vai cada R$ 100 que o cliente paga</h2>
@@ -181,22 +171,20 @@ export function DRE() {
             </p>
           </Cartao>
 
-          {pro && (
-            <Cartao className="flex flex-col gap-1">
-              <h2 className="mb-2 text-[15px] font-bold text-tinta">Pro contador</h2>
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-sm text-tinta-2">DRE em planilha</span>
-                <button onClick={baixarDRE} className="text-sm font-bold text-mar hover:underline">Baixar</button>
-              </div>
-              <div className="flex items-center justify-between border-t border-divisoria py-2.5">
-                <span className="text-sm text-tinta-2">Lançamentos do mês</span>
-                <button onClick={baixarLancamentos} className="text-sm font-bold text-mar hover:underline">Baixar</button>
-              </div>
-              <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
-                Sai no mesmo plano de contas do modelo padrão, conta por conta.
-              </p>
-            </Cartao>
-          )}
+          <Cartao className="flex flex-col gap-1">
+            <h2 className="mb-2 text-[15px] font-bold text-tinta">Pro contador</h2>
+            <div className="flex items-center justify-between py-2.5">
+              <span className="text-sm text-tinta-2">DRE em planilha</span>
+              <button onClick={baixarDRE} className="text-sm font-bold text-mar hover:underline">Baixar</button>
+            </div>
+            <div className="flex items-center justify-between border-t border-divisoria py-2.5">
+              <span className="text-sm text-tinta-2">Lançamentos do mês</span>
+              <button onClick={baixarLancamentos} className="text-sm font-bold text-mar hover:underline">Baixar</button>
+            </div>
+            <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
+              Sai no mesmo plano de contas do modelo padrão, conta por conta.
+            </p>
+          </Cartao>
         </div>
       </div>
     </div>

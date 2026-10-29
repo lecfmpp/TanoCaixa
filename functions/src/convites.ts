@@ -13,8 +13,6 @@ import { randomBytes } from 'node:crypto'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { normalizarPapel } from './papel'
-import { LIMITE_EQUIPE_GRATIS } from './assinatura'
-import { planoDoRestaurante } from './plano'
 
 const db = getFirestore()
 
@@ -51,17 +49,6 @@ export const criarConvite = onCall(async (req) => {
   const papelDoCriador = normalizarPapel(membroSnap.data()?.papel as string | undefined)
   if (papelDoCriador !== 'dono' && papelDoCriador !== 'gestao') {
     throw new HttpsError('permission-denied', 'Só dono ou gestão podem convidar')
-  }
-
-  // Grátis: equipe até 2 pessoas, contando quem já entrou e os convites ainda abertos.
-  if ((await planoDoRestaurante(restauranteId)) !== 'pro') {
-    const [membros, abertos] = await Promise.all([
-      db.collection(`restaurants/${restauranteId}/membros`).count().get(),
-      db.collection('convites').where('restauranteId', '==', restauranteId).where('status', '==', 'pendente').count().get(),
-    ])
-    if (membros.data().count + abertos.data().count >= LIMITE_EQUIPE_GRATIS) {
-      throw new HttpsError('failed-precondition', `No Grátis a equipe vai até ${LIMITE_EQUIPE_GRATIS} pessoas. Passe pro Pro pra convidar mais gente.`, { motivo: 'plano_pro' })
-    }
   }
 
   const token = gerarToken()

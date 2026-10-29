@@ -18,7 +18,6 @@ import { SEGREDOS, FUSO, diaSP, ehDemo, enviarLembrete } from './whatsapp'
 import { LEMBRETES, type IdLembrete } from './lembretesCatalogo'
 import { REGRAS, PRIORIDADE, EM_BREVE, diasEntre, type Ctx, type DespesaMin } from './lembretesRegras'
 import { normalizarPapel } from './papel'
-import { exigirPro, planoDoRestaurante } from './plano'
 
 // Lazy: o app do Firebase Admin só está inicializado quando uma função roda.
 const db = { doc: (p: string) => getFirestore().doc(p), collection: (p: string) => getFirestore().collection(p) }
@@ -110,8 +109,6 @@ async function rodar(rodada: 'manha' | 'noite'): Promise<void> {
     const rid = g.id
     const cfg = g.data() as GrupoDoc
     if (ehDemo(rid) || !cfg.grupoId) continue
-    // Lembretes no WhatsApp são do Pro: quem voltou pro Grátis para de receber.
-    if ((await planoDoRestaurante(rid)) !== 'pro') continue
     const ligados = PRIORIDADE.filter((id) => cfg.ativos?.[id] && REGRAS[id]?.quando === rodada)
     if (!ligados.length) continue
 
@@ -182,7 +179,6 @@ async function configDoRestaurante(rid: string, papel: 'dono' | 'gestao') {
     grupoId: cfg.grupoId ?? '',
     /** Só o dono troca o grupo (a gestão liga e desliga lembretes). */
     podeEditarGrupo: papel === 'dono',
-    plano: await planoDoRestaurante(rid),
     lembretes: (Object.keys(LEMBRETES) as IdLembrete[]).map((id) => ({
       id,
       titulo: TITULOS[id],
@@ -206,7 +202,6 @@ export const lembretesWhatsappSalvar = onCall(async (req) => {
   const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
   if (!id || !(id in LEMBRETES) || typeof ativo !== 'boolean') throw new HttpsError('invalid-argument', 'id e ativo obrigatórios')
   if (EM_BREVE.includes(id as IdLembrete)) throw new HttpsError('failed-precondition', 'Esse lembrete ainda não está disponível')
-  if (ativo) await exigirPro(rid, 'Lembrete no WhatsApp')
   const ref = db.doc(`whatsapp_grupos/${rid}`)
   const snap = await ref.get()
   if (!snap.get('grupoId')) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem grupo de WhatsApp')

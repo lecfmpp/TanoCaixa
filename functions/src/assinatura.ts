@@ -3,23 +3,34 @@
  * ------------------------------------------------------------------ */
 
 /** Situação guardada em `assinaturas/{restauranteId}`. */
-export type Situacao = 'ativa' | 'pagamento_falhou' | 'pendente' | 'cancelada'
+export type Situacao = 'ativa' | 'pagamento_falhou' | 'pendente' | 'cancelada' | 'teste'
 
-/** Plano do restaurante. Grátis é o padrão de quem não tem assinatura ativa. */
-export type Plano = 'gratis' | 'pro'
+/** Teste: 14 dias com tudo liberado pra 1 loja. Loja extra só com o Pro pago. */
+export const DIAS_TESTE = 14
 
 /** R$ 149,00 a primeira loja e R$ 79,00 cada loja extra da rede, por mês.
  * Mudou o preço? Mude aqui e em src/data/preco.ts (landing e página de assinatura). */
 export const PRECO_LOJA_CENTAVOS = 14900
 export const PRECO_LOJA_EXTRA_CENTAVOS = 7900
 export const MAX_LOJAS = 50
-/** No Grátis a equipe vai até 2 pessoas, contando o dono. */
-export const LIMITE_EQUIPE_GRATIS = 2
 
-/** Só assinatura ativa libera o Pro. Pagamento que falhou segura o Pro enquanto o Stripe
- * tenta cobrar de novo (ele cancela sozinho no fim das tentativas). */
-export function planoDaSituacao(s: string | undefined): Plano {
-  return s === 'ativa' || s === 'pagamento_falhou' ? 'pro' : 'gratis'
+/** Pago, no teste ou com o teste vencido. Vencido não trava nada: o app só avisa pra assinar. */
+export type Acesso = 'pago' | 'teste' | 'vencido'
+
+/** Assinatura ativa é paga. Pagamento que falhou segue pago enquanto o Stripe tenta cobrar
+ * de novo (ele cancela sozinho no fim das tentativas). */
+export function estaPago(s: string | undefined): boolean {
+  return s === 'ativa' || s === 'pagamento_falhou'
+}
+
+export function acessoDaAssinatura(status: string | undefined, testeAte: string | undefined, agora: Date): Acesso {
+  if (estaPago(status)) return 'pago'
+  return testeAte && new Date(testeAte).getTime() > agora.getTime() ? 'teste' : 'vencido'
+}
+
+/** Fim do teste (ISO), DIAS_TESTE dias depois de `desde`. */
+export function fimDoTeste(desde: Date): string {
+  return new Date(desde.getTime() + DIAS_TESTE * 24 * 3600 * 1000).toISOString()
 }
 
 /** Quantidades dos dois itens da assinatura: a loja principal é sempre 1, o resto é extra. */

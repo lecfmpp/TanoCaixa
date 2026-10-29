@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Cartao } from './Cartao'
 
-/** Etiqueta "Pro" — recurso que o plano Grátis não tem. */
+/** Etiqueta "Pro" — o que precisa da assinatura paga. */
 export function SeloPro({ className }: { className?: string }) {
   return (
     <span
@@ -17,7 +17,7 @@ export function SeloPro({ className }: { className?: string }) {
   )
 }
 
-/** Convite pro Pro no lugar de um recurso travado no Grátis. */
+/** Convite pra assinar o Pro no lugar de algo que precisa da assinatura paga. */
 export function AvisoPro({
   titulo,
   texto,
@@ -43,7 +43,7 @@ export function AvisoPro({
         onClick={aoClicar}
         className="mt-1 self-start rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme hover:bg-mar-escuro"
       >
-        Conhecer o Pro
+        Assinar o Pro
       </Link>
     </Cartao>
   )

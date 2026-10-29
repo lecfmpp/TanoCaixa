@@ -6,8 +6,9 @@
  * habilitar automatic_tax) — os preços dos planos já devem sair com
  * imposto embutido, e NF-e/NFS-e é emitida fora do Stripe (emissor local).
  *
- * Planos: Grátis (sem assinatura) e Pro. O Pro custa R$ 149/mês pela primeira
- * loja e R$ 79/mês por loja extra da rede (ver assinatura.ts). A assinatura
+ * Plano único, o Pro: 14 dias de teste com tudo liberado pra 1 loja (sem cartão;
+ * vencido não trava, o app só avisa), depois R$ 149/mês pela primeira loja e
+ * R$ 79/mês por loja extra da rede (ver assinatura.ts). Loja extra exige o Pro pago. A assinatura
  * tem dois itens: "loja principal" (qtd 1) e "loja extra" (qtd = lojas − 1).
  * Os dois Prices são achados pela lookup_key e criados na primeira vez que
  * faltam, então não há Price ID pra guardar em segredo. O preço "de" R$ 249 é
@@ -37,7 +38,7 @@ import { exigirDonoOuGestao } from './acesso'
 import {
   eventoEhMaisNovo,
   itensDaAssinatura,
-  planoDaSituacao,
+  estaPago,
   statusDoStripe,
   urlSegura,
   MAX_LOJAS,
@@ -125,7 +126,7 @@ async function propagarParaExtras(pagadorId: string, status: Situacao, agora: st
   const extras = await db.collection('assinaturas').where('pagadorId', '==', pagadorId).get()
   if (extras.empty) return
   const lote = db.batch()
-  extras.docs.forEach((d) => lote.set(d.ref, { status, plano: planoDaSituacao(status), atualizadoEm: agora }, { merge: true }))
+  extras.docs.forEach((d) => lote.set(d.ref, { status, atualizadoEm: agora }, { merge: true }))
   await lote.commit()
 }
 
@@ -139,7 +140,7 @@ export const criarCheckoutAssinatura = onCall(
     const { restauranteId: rid, email, sucessoUrl, cancelUrl } = (req.data ?? {}) as Record<string, string>
     const restauranteId = await exigirDonoOuGestao(req.auth?.uid, rid)
     const atual = (await db.doc(`assinaturas/${restauranteId}`).get()).data()
-    if (planoDaSituacao(atual?.status as string | undefined) === 'pro') {
+    if (estaPago(atual?.status as string | undefined)) {
       throw new HttpsError('already-exists', 'Este restaurante já está no Pro. Use o portal da assinatura.')
     }
 
@@ -212,8 +213,8 @@ export const abrirLojaExtra = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
   const pagadorId = (minha?.pagadorId as string | undefined) ?? restauranteId
   const pagador = pagadorId === restauranteId ? minha : (await db.doc(`assinaturas/${pagadorId}`).get()).data()
   const status = pagador?.status as Situacao | undefined
-  if (planoDaSituacao(status) !== 'pro' || !pagador?.subscriptionId) {
-    throw new HttpsError('failed-precondition', 'Loja extra é do plano Pro', { motivo: 'plano_pro' })
+  if (!estaPago(status) || !pagador?.subscriptionId) {
+    throw new HttpsError('failed-precondition', 'Loja extra precisa do Pro assinado. No teste é uma loja só.', { motivo: 'plano_pro' })
   }
   if (((rede.lojas ?? []) as unknown[]).length >= MAX_LOJAS) {
     throw new HttpsError('resource-exhausted', `A rede já tem ${MAX_LOJAS} lojas`)
@@ -270,7 +271,7 @@ export const abrirLojaExtra = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
     papel: 'franqueador',
     conviteStatus: 'ativo',
   })
-  lote.set(db.doc(`assinaturas/${novoId}`), { plano: 'pro', status, pagadorId, criadoEm: agora, atualizadoEm: agora })
+  lote.set(db.doc(`assinaturas/${novoId}`), { status, pagadorId, criadoEm: agora, atualizadoEm: agora })
   lote.set(db.doc(`redes/${redeId}`), { lojas: FieldValue.arrayUnion(loja) }, { merge: true })
   await lote.commit()
   return loja
@@ -352,7 +353,6 @@ export const stripeWebhook = onRequest(
           await assinaturaRef.set(
             {
               status,
-              plano: planoDaSituacao(status),
               lojas: lojasDaAssinatura(obj),
               customerId: (obj.customer as string) ?? null,
               subscriptionId: (obj.id as string) ?? null,
@@ -364,10 +364,10 @@ export const stripeWebhook = onRequest(
           )
         } else if (evento.type === 'invoice.paid') {
           status = 'ativa'
-          await assinaturaRef.set({ status, plano: 'pro', ultimaFaturaPagaEm: agora, eventoEm }, { merge: true })
+          await assinaturaRef.set({ status, ultimaFaturaPagaEm: agora, eventoEm }, { merge: true })
         } else if (evento.type === 'invoice.payment_failed') {
           status = 'pagamento_falhou'
-          await assinaturaRef.set({ status, plano: planoDaSituacao(status), atualizadoEm: agora, eventoEm }, { merge: true })
+          await assinaturaRef.set({ status, atualizadoEm: agora, eventoEm }, { merge: true })
         }
         if (status) await propagarParaExtras(restauranteId, status, agora)
       }
