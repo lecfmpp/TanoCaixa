@@ -182,7 +182,7 @@ export function Caixa() {
       {porDia.length === 0 ? (
         <Cartao>
           <p className="py-6 text-center text-sm text-tinta-4">
-            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por “Lançar” → “Lançar vendas”.' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : 'nesse mês'}.`}
+            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por “Lançar” → “Lançar vendas”.' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : estado.janela === 'periodo' ? 'nesse período' : 'nesse mês'}.`}
           </p>
         </Cartao>
       ) : (
