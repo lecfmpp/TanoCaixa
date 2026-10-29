@@ -4,6 +4,7 @@ import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
+import { getAssinatura, planoDaAssinatura, type Plano } from './planos'
 import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
@@ -53,6 +54,16 @@ export function useTenant() {
   const { sessao } = useAuth()
   const loja = useLojaAtiva()
   return loja ?? sessao?.tenantId ?? DEMO_TENANT
+}
+
+/** Plano (Grátis ou Pro) da loja aberta. A demonstração mostra o Pro. */
+export function usePlano() {
+  const t = useTenant()
+  const { sessao } = useAuth()
+  const demo = !!sessao?.demo || t.startsWith('demo-')
+  const q = useQuery({ queryKey: [t, 'assinatura'], queryFn: () => getAssinatura(t), enabled: !demo })
+  const plano: Plano = demo ? 'pro' : planoDaAssinatura(q.data)
+  return { plano, pro: plano === 'pro', assinatura: q.data ?? null, carregando: !demo && q.isLoading }
 }
 
 /** Tenant do login, ignorando a troca de loja. Usado pela própria rede. */
@@ -185,28 +196,28 @@ export function useCriarRede() {
   })
 }
 
-/** Abre uma loja nova dentro da rede. */
+/** Abre uma loja nova dentro da rede (loja extra do Pro, cobrada no Stripe). */
 export function useAbrirLoja() {
   const { sessao } = useAuth()
   const rede = useRede()
+  const t = useTenant()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (p: { nome: string; bairro: string; cidade: string }) => {
       if (!sessao || !rede.data) throw new Error('sem rede')
       return abrirLoja({
-        rede: rede.data,
-        uid: sessao.usuario.id,
+        restauranteId: t,
         nome: p.nome,
         bairro: p.bairro,
         cidade: p.cidade || 'Rio de Janeiro',
         // Loja própria da rede: franqueada quando a rede é franquia.
         tipoNegocio: rede.data.tipo === 'franquia' ? 'franqueada' : 'multi_loja',
-        aliquotaImposto: 0.06,
-        // Loja nova começa sem meta; o dono define no Plano do mês.
-        metaFaturamento: 0,
       })
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rede'] })
+      qc.invalidateQueries({ queryKey: [t, 'assinatura'] })
+    },
   })
 }
 

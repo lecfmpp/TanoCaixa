@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { eventoEhMaisNovo, statusDoStripe, urlSegura } from './assinatura'
+import { eventoEhMaisNovo, itensDaAssinatura, planoDaSituacao, statusDoStripe, totalMensalCentavos, urlSegura } from './assinatura'
 
 test('status do Stripe vira o nosso; o que não conhecemos NÃO libera nada', () => {
   assert.equal(statusDoStripe('active'), 'ativa')
@@ -30,4 +30,21 @@ test('evento antigo não sobrescreve o mais novo', () => {
   assert.equal(eventoEhMaisNovo(200, 100), true)
   assert.equal(eventoEhMaisNovo(100, 100), true)
   assert.equal(eventoEhMaisNovo(50, 100), false)
+})
+
+test('só assinatura ativa (ou cobrando de novo) vira Pro; o resto é Grátis', () => {
+  assert.equal(planoDaSituacao('ativa'), 'pro')
+  assert.equal(planoDaSituacao('pagamento_falhou'), 'pro')
+  assert.equal(planoDaSituacao('pendente'), 'gratis')
+  assert.equal(planoDaSituacao('cancelada'), 'gratis')
+  assert.equal(planoDaSituacao('gratis'), 'gratis')
+  assert.equal(planoDaSituacao(undefined), 'gratis')
+})
+
+test('primeira loja R$ 149, cada loja extra R$ 79', () => {
+  assert.deepEqual(itensDaAssinatura(1), { principal: 1, extras: 0 })
+  assert.deepEqual(itensDaAssinatura(3), { principal: 1, extras: 2 })
+  assert.deepEqual(itensDaAssinatura(0), { principal: 1, extras: 0 })
+  assert.equal(totalMensalCentavos(1), 14900)
+  assert.equal(totalMensalCentavos(3), 14900 + 2 * 7900)
 })

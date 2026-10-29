@@ -284,6 +284,7 @@ export {
   criarCheckoutAssinatura,
   portalAssinatura,
   stripeWebhook,
+  abrirLojaExtra,
 } from './stripe'
 
 /* ------------------- Gemini Vision (foto → lançamento) ------------------- */

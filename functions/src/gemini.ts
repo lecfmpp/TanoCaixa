@@ -11,6 +11,8 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
+import { exigirPro } from './plano'
+import { ehDemo } from './whatsapp'
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY')
 
@@ -198,11 +200,18 @@ export const analisarFoto = onCall(
       throw new HttpsError('unauthenticated', 'Faça login para usar a análise por foto.')
     }
 
-    const { imagemBase64, mimeType, tipo } = (req.data ?? {}) as {
+    const { imagemBase64, mimeType, tipo, restauranteId } = (req.data ?? {}) as {
       imagemBase64?: string
       mimeType?: string
       tipo?: TipoFoto
+      restauranteId?: string
     }
+    // Foto da nota com IA é do Pro. App antigo não manda o restaurante: cai no do perfil.
+    const rid = restauranteId || ((await getFirestore().doc(`users/${req.auth.uid}`).get()).data()?.restauranteId as string | undefined)
+    if (!rid) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+    const membro = await getFirestore().doc(`restaurants/${rid}/membros/${req.auth.uid}`).get()
+    if (!membro.exists && !ehDemo(rid)) throw new HttpsError('permission-denied', 'Você não é da equipe deste restaurante')
+    await exigirPro(rid, 'A foto da nota com IA')
 
     if (!imagemBase64 || !tipo) {
       throw new HttpsError('invalid-argument', 'imagemBase64 e tipo são obrigatórios.')

@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Check, Loader2, Camera, Sparkles, ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { extrairDadosDeFoto, prepararFoto, type DadosExtraidosFoto } from '@/lib/gemini'
+import { usePlano, useTenant } from '@/data/hooks'
+import { AvisoPro } from '@/components/ui/SeloPro'
 
 interface SeletorFotoProps {
   tipo: 'despesa' | 'produto' | 'estoque'
@@ -25,6 +27,8 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
   const [erro, setErro] = useState('')
   const [preview, setPreview] = useState('')
   const [segundos, setSegundos] = useState(0)
+  const restauranteId = useTenant()
+  const { pro, carregando } = usePlano()
 
   // Cronômetro só enquanto trabalha — alimenta o aviso de "tá demorando".
   useEffect(() => {
@@ -54,7 +58,7 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
       const { base64, mimeType } = await prepararFoto(arquivo)
       if (!base64) throw new Error('Não conseguimos abrir esse arquivo. Tente outra foto.')
       setFase('lendo')
-      onExtrair(await extrairDadosDeFoto(base64, tipo, mimeType))
+      onExtrair(await extrairDadosDeFoto(base64, tipo, restauranteId, mimeType))
     } catch (err) {
       setErro((err as Error).message || 'Erro ao analisar a foto. Tente novamente.')
       setFase('escolher')
@@ -84,7 +88,19 @@ export function CapturaFoto({ tipo, onExtrair, onCancelar }: SeletorFotoProps) {
           className="sr-only"
         />
 
-        {trabalhando ? (
+        {!pro && !carregando ? (
+          <div className="flex flex-col gap-3 p-4">
+            <AvisoPro
+              className="border-0 p-2"
+              titulo="Foto com IA"
+              texto={`No Pro você tira a foto ${ALVO[tipo].de} e a IA preenche o lançamento. No Grátis, é só preencher à mão.`}
+              aoClicar={onCancelar}
+            />
+            <button onClick={onCancelar} className="text-sm font-semibold text-tinta-3 hover:text-tinta">
+              ← Voltar
+            </button>
+          </div>
+        ) : trabalhando ? (
           <TrabalhandoNaFoto tipo={tipo} fase={fase} preview={preview} segundos={segundos} />
         ) : (
           <div className="flex flex-col gap-4 p-6">

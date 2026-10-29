@@ -10,6 +10,8 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
+import { SeloPro } from '@/components/ui/SeloPro'
+import { ehErroDePlano, LIMITE_EQUIPE_GRATIS } from '@/data/planos'
 import { Campo } from '@/components/ui/Campo'
 import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
 import { brl, quando } from '@/lib/format'
@@ -22,6 +24,7 @@ import {
   useSalvarMembro,
   useRemoverMembro,
   useSalvarRestaurante,
+  usePlano,
 } from '@/data/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
@@ -333,6 +336,7 @@ function Equipe() {
   const salvar = useSalvarMembro()
   const remover = useRemoverMembro()
   const { adicionarToast } = useUI()
+  const { pro } = usePlano()
 
   const gestao = permissoes?.gerenciaEquipe ?? 'nao'
   const podeGerenciar = gestao !== 'nao'
@@ -348,8 +352,12 @@ function Equipe() {
     try {
       const resp = await criarConviteFn({ restauranteId: sessao.tenantId, papel: papelNovo })
       setLinkGerado(resp.data.url)
-    } catch {
-      adicionarToast({ tipo: 'sistema', titulo: 'Não deu pra gerar o convite', texto: 'Tenta de novo em instantes.' })
+    } catch (e) {
+      if (ehErroDePlano(e)) {
+        adicionarToast({ tipo: 'sistema', titulo: 'Equipe cheia no Grátis', texto: `No Grátis a equipe vai até ${LIMITE_EQUIPE_GRATIS} pessoas. No Pro não tem limite.` })
+      } else {
+        adicionarToast({ tipo: 'sistema', titulo: 'Não deu pra gerar o convite', texto: 'Tenta de novo em instantes.' })
+      }
     } finally {
       setGerando(false)
     }
@@ -425,6 +433,11 @@ function Equipe() {
       {podeGerenciar && (
         <div className="mt-4 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-fundo-app p-4">
           <span className="rotulo text-tinta-4">Convidar alguém pra equipe</span>
+          {!pro && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-tinta-3">
+              <SeloPro /> No Grátis a equipe vai até {LIMITE_EQUIPE_GRATIS} pessoas, contando você. No Pro não tem limite.
+            </p>
+          )}
           <p className="mt-1 text-xs text-tinta-4">
             Gera um link único já com o papel definido. Você manda por WhatsApp (ou onde preferir) — a pessoa cria a conta e entra direto neste restaurante.
           </p>
