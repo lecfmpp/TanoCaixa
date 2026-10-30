@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { partesDoDia, partesNaJanela, recebimentoValido, somarPartes } from './recebimentos.ts'
+import { aReceber, partesDoDia, partesNaJanela, recebimentoValido, somarPartes } from './recebimentos.ts'
 
 const dia = (data, canais, id = `fech-${data}`) => ({ id, data, canais })
 
@@ -44,4 +44,20 @@ test('a mesma venda conta uma vez em cada base; o total não muda de lugar nem s
   const out = somarPartes(partesNaJanela(dias, 'recebimento', '2026-10-01', '2026-10-31'))
   const nov = somarPartes(partesNaJanela(dias, 'recebimento', '2026-11-01', '2026-11-30'))
   assert.equal(out + nov, 1650)
+})
+
+test('quem recebe no dia já nasce recebido; app fica a receber até alguém marcar', () => {
+  const ps = partesDoDia(
+    dia('2026-10-27', [
+      { canal: 'balcao', valorBruto: 1000 },
+      { canal: 'apps', valorBruto: 400, recebimentoEm: '2026-11-03' },
+      { canal: 'whatsapp', valorBruto: 150, recebimentoEm: '2026-10-29', recebidoEm: '2026-10-30T12:00:00.000Z' },
+    ]),
+  )
+  assert.deepEqual(ps.map((p) => [p.canal, p.recebido, p.recebidoEm]), [
+    ['balcao', true, undefined],
+    ['apps', false, undefined],
+    ['whatsapp', true, '2026-10-30'],
+  ])
+  assert.equal(somarPartes(aReceber(ps)), 400)
 })

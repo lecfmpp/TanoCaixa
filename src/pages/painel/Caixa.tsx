@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { useUI } from '@/ui/UIProvider'
 import { brl, dataCurta, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
+import { useDesfazerRecebimento, useReceitaDia, useRemoverReceitaDia, useRestaurarReceitaDia, useRestaurante } from '@/data/hooks'
 import { agora } from '@/data/derive'
 import { SeletorJanela, ddmm, diaDaSemana, nomeDaJanela, useJanela } from '@/components/ui/SeletorJanela'
-import { partesNaJanela, somarPartes, type BaseReceita } from '@/data/recebimentos'
+import { aReceber as pendentes, partesNaJanela, somarPartes, type BaseReceita, type ParteRecebida } from '@/data/recebimentos'
+import { ModalRecebimento, type ContaAReceber } from '@/components/pagamento/ModalRecebimento'
 import { useAuth } from '@/auth/AuthContext'
 import { mensagemDeErro } from '@/lib/erros'
 import { CANAIS_APPS, LINHAS_RECEITA, type CanalVenda } from '@/data/planoContas'
@@ -47,6 +48,8 @@ export function Caixa() {
   const [base, setBase] = useState<BaseReceita>('venda')
   const remover = useRemoverReceitaDia()
   const restaurar = useRestaurarReceitaDia()
+  const desfazerRecebimento = useDesfazerRecebimento()
+  const [recebendo, setRecebendo] = useState<ContaAReceber | null>(null)
   const dados = useReceitaDia().data
   const todas = useMemo(() => [...(dados ?? [])].sort((a, b) => (a.data < b.data ? 1 : -1)), [dados])
   const podeApagar = permissoes?.lancaDespesa ?? false
@@ -54,8 +57,9 @@ export function Caixa() {
   const partes = useMemo(() => partesNaJanela(todas, base, de, ate), [todas, base, de, ate])
   const total = somarPartes(partes)
   const diaPorId = useMemo(() => new Map(todas.map((r) => [r.id, r])), [todas])
-  const recebido = somarPartes(partes.filter((p) => p.recebimento <= hoje))
-  const aReceber = total - recebido
+  // "A receber" é o que paga depois (apps) e ninguém confirmou que caiu.
+  const aReceber = somarPartes(pendentes(partes))
+  const recebido = total - aReceber
 
   /** Cartões: um por dia da base escolhida, do mais novo pro mais antigo. */
   const porDia = useMemo(() => {
@@ -72,6 +76,29 @@ export function Caixa() {
   const loja = (r: ReceitaDiaDoc) => r.recebimentos.reduce((s, x) => s + x.valor, 0)
   const appsJanela = partes.filter((p) => CANAIS_APPS.includes(p.canal as CanalVenda)).reduce((s, p) => s + p.valor, 0)
   const diasLancados = new Set(partes.map((p) => p.diaId)).size
+
+  /** Abre o "Confirmar recebimento", ou pergunta se quer voltar pra "a receber". */
+  function alternarRecebido(p: ParteRecebida) {
+    const r = diaPorId.get(p.diaId)
+    if (!r) return
+    const canal = p.canal as CanalVenda
+    const nome = nomeDoCanal(canal)
+    if (!p.recebido) return setRecebendo({ r, canal, nome, valor: p.valor, previsto: p.recebimento })
+    confirmar({
+      gravidade: 'atencao',
+      titulo: 'Desmarcar o recebimento?',
+      texto: `${nome} da venda de ${ddmm(p.venda)} volta pra “a receber”.`,
+      resumo: [{ rot: 'Valor', val: brl(p.valor) }],
+      rotuloConfirmar: 'Voltar pra a receber',
+      onConfirmar: async () => {
+        try {
+          await desfazerRecebimento.mutateAsync({ r, canal })
+        } catch (e) {
+          adicionarToast({ tipo: 'erro', titulo: 'Não deu pra desmarcar', texto: mensagemDeErro(e, 'Tente de novo.') })
+        }
+      },
+    })
+  }
 
   /** Apagar o lançamento de um dia: confirma, mostra o que some e deixa o "Desfazer". */
   function pedirExclusao(r: ReceitaDiaDoc) {
@@ -155,7 +182,7 @@ export function Caixa() {
       {porDia.length === 0 ? (
         <Cartao>
           <p className="py-6 text-center text-sm text-tinta-4">
-            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por “Lançar” → “Lançar vendas”.' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : 'nesse mês'}.`}
+            {todas.length === 0 ? 'Nenhuma venda lançada ainda. Comece por “Lançar” → “Lançar vendas”.' : `Nenhuma ${base === 'venda' ? 'venda' : 'receita a receber'} ${estado.janela === 'dia' ? 'nesse dia' : estado.janela === 'semana' ? 'nessa semana' : estado.janela === 'periodo' ? 'nesse período' : 'nesse mês'}.`}
           </p>
         </Cartao>
       ) : (
@@ -171,21 +198,36 @@ export function Caixa() {
                 </span>
                 <span className="mono text-sm font-bold text-tinta">{brl(totalDia)}</span>
               </div>
-              {lista.map((p) => (
-                <div key={`${p.diaId}-${p.canal}`} className="flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-tinta">{nomeDoCanal(p.canal as CanalVenda)}</div>
-                    <div className="text-xs text-tinta-4">
-                      {base === 'recebimento'
-                        ? `venda de ${ddmm(p.venda)}`
-                        : p.recebimento > p.venda
-                          ? p.recebimento <= hoje ? `recebido em ${ddmm(p.recebimento)}` : `recebe em ${ddmm(p.recebimento)}`
-                          : 'recebido no dia'}
+              {lista.map((p) => {
+                // Só o que paga depois da venda (apps, delivery) tem o que marcar.
+                const marcavel = p.recebimento > p.venda
+                const pendente = !p.recebido
+                return (
+                  <div key={`${p.diaId}-${p.canal}`} className={cn('flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0', marcavel && p.recebido && 'bg-mata/[0.04]')}>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold text-tinta">{nomeDoCanal(p.canal as CanalVenda)}</div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-tinta-4">
+                        {!marcavel ? (
+                          <span>recebido no dia</span>
+                        ) : pendente ? (
+                          <span className={cn('font-bold', p.recebimento < hoje ? 'text-telha-alerta' : 'text-tinta-4')}>
+                            {p.recebimento < hoje ? `atrasado · previsto ${ddmm(p.recebimento)}` : `a receber ${p.recebimento === hoje ? 'hoje' : `em ${ddmm(p.recebimento)}`}`}
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-mata">recebido{p.recebidoEm ? ` ${ddmm(p.recebidoEm)}` : ''}</span>
+                        )}
+                        {base === 'recebimento' && <span>venda de {ddmm(p.venda)}</span>}
+                        {marcavel && (
+                          <button onClick={() => alternarRecebido(p)} className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-mar hover:underline">
+                            {pendente ? <><CheckCircle2 size={12} /> Marcar como recebido</> : 'Desmarcar recebimento'}
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    <div className={cn('mono font-bold', marcavel && p.recebido ? 'text-tinta-3' : 'text-tinta')} style={{ fontSize: 16 }}>{brl(p.valor)}</div>
                   </div>
-                  <div className="mono font-bold text-tinta" style={{ fontSize: 16 }}>{brl(p.valor)}</div>
-                </div>
-              ))}
+                )
+              })}
               {base === 'venda' &&
                 ids.map((id) => {
                   const r = diaPorId.get(id)
@@ -241,6 +283,8 @@ export function Caixa() {
           )
         })
       )}
+
+      {recebendo && <ModalRecebimento conta={recebendo} aoFechar={() => setRecebendo(null)} />}
     </div>
   )
 }
