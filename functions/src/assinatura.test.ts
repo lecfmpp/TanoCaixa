@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { eventoEhMaisNovo, statusDoStripe, urlSegura } from './assinatura'
+import { acessoDaAssinatura, eventoEhMaisNovo, fimDoTeste, itensDaAssinatura, statusDoStripe, totalMensalCentavos, urlSegura } from './assinatura'
 
 test('status do Stripe vira o nosso; o que não conhecemos NÃO libera nada', () => {
   assert.equal(statusDoStripe('active'), 'ativa')
@@ -30,4 +30,24 @@ test('evento antigo não sobrescreve o mais novo', () => {
   assert.equal(eventoEhMaisNovo(200, 100), true)
   assert.equal(eventoEhMaisNovo(100, 100), true)
   assert.equal(eventoEhMaisNovo(50, 100), false)
+})
+
+test('pago, no teste ou vencido: o teste dura 14 dias', () => {
+  const hoje = new Date('2026-10-29T12:00:00Z')
+  const fim = fimDoTeste(hoje)
+  assert.equal(fim, '2026-11-12T12:00:00.000Z')
+  assert.equal(acessoDaAssinatura('ativa', undefined, hoje), 'pago')
+  assert.equal(acessoDaAssinatura('pagamento_falhou', fim, hoje), 'pago')
+  assert.equal(acessoDaAssinatura('teste', fim, hoje), 'teste')
+  assert.equal(acessoDaAssinatura('teste', fim, new Date('2026-11-13T00:00:00Z')), 'vencido')
+  assert.equal(acessoDaAssinatura('cancelada', undefined, hoje), 'vencido')
+  assert.equal(acessoDaAssinatura(undefined, undefined, hoje), 'vencido')
+})
+
+test('primeira loja R$ 149, cada loja extra R$ 79', () => {
+  assert.deepEqual(itensDaAssinatura(1), { principal: 1, extras: 0 })
+  assert.deepEqual(itensDaAssinatura(3), { principal: 1, extras: 2 })
+  assert.deepEqual(itensDaAssinatura(0), { principal: 1, extras: 0 })
+  assert.equal(totalMensalCentavos(1), 14900)
+  assert.equal(totalMensalCentavos(3), 14900 + 2 * 7900)
 })

@@ -51,6 +51,13 @@ service cloud.firestore {
       }
     }
 
+    // Assinatura (teste de 14 dias / Pro): só o servidor grava (webhook do Stripe e
+    // functions, com Admin SDK). A equipe da loja lê pra saber o que está liberado.
+    match /assinaturas/{rid} {
+      allow read: if ehDemo(rid) || souMembro(rid);
+      allow write: if false;
+    }
+
     // Redes (franquia ou várias lojas do mesmo dono) — só o dono da rede.
     // A leitura dos números de cada loja continua governada por memberUids
     // do restaurante, então entrar numa rede não dá acesso a nada sozinho.

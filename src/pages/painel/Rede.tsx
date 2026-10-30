@@ -9,7 +9,10 @@ import { brl, brlInteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useUI } from '@/ui/UIProvider'
 import { useNavigate } from 'react-router-dom'
-import { useRede, useContextosDaRede, useCriarRede, useAbrirLoja, useRestaurante, useTenantDoLogin } from '@/data/hooks'
+import { useRede, useContextosDaRede, useCriarRede, useAbrirLoja, usePlano, useRestaurante, useTenantDoLogin } from '@/data/hooks'
+import { AvisoPro } from '@/components/ui/SeloPro'
+import { ehErroDePlano } from '@/data/planos'
+import { PRECO_LOJA_EXTRA } from '@/data/preco'
 import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { dreDoMes } from '@/data/derive'
 import { GRUPO } from '@/data/planoContas'
@@ -228,26 +231,52 @@ function PainelDaRede({
 
 export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
   const abrir = useAbrirLoja()
+  const { pago } = usePlano()
   const { adicionarToast } = useUI()
   const [nome, setNome] = useState('')
   const [bairro, setBairro] = useState('')
 
   async function confirmar() {
     if (!nome.trim()) return
-    await abrir.mutateAsync({ nome: nome.trim(), bairro: bairro.trim(), cidade: 'Rio de Janeiro' })
-    adicionarToast({ tipo: 'sucesso', titulo: 'Loja aberta', texto: `${nome} já entrou no consolidado da rede.` })
+    try {
+      await abrir.mutateAsync({ nome: nome.trim(), bairro: bairro.trim(), cidade: 'Rio de Janeiro' })
+    } catch (e) {
+      adicionarToast({
+        tipo: 'erro',
+        titulo: ehErroDePlano(e) ? 'Loja extra precisa do Pro assinado' : 'A loja não foi aberta',
+        // A function já responde em português (cartão recusado, plano…).
+        texto: (e instanceof Error && e.message) || 'Tente de novo em instantes.',
+      })
+      return
+    }
+    adicionarToast({ tipo: 'sucesso', titulo: 'Loja aberta', texto: `${nome} já entrou no consolidado da rede. + R$ ${PRECO_LOJA_EXTRA}/mês na assinatura.` })
     setNome('')
     setBairro('')
     aoFechar()
   }
 
+  if (!pago) {
+    return (
+      <AvisoPro
+        className="m-4"
+        titulo="Loja extra"
+        texto={`O teste vale pra uma loja. Com o Pro assinado, cada loja a mais da rede sai por + R$ ${PRECO_LOJA_EXTRA}/mês, na mesma assinatura.`}
+      />
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-3 border-t border-divisoria bg-preenchimento/30 px-4 py-4 cel:flex-row cel:items-end">
-      <div className="flex-1"><Campo rotulo="Nome da loja" placeholder="Zaatar Tijuca" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-      <div className="flex-1"><Campo rotulo="Bairro" placeholder="Tijuca" value={bairro} onChange={(e) => setBairro(e.target.value)} /></div>
-      <Button variante="primario" onClick={confirmar} disabled={abrir.isPending || !nome.trim()}>
-        {abrir.isPending ? 'Abrindo…' : 'Abrir'}
-      </Button>
+    <div className="border-t border-divisoria bg-preenchimento/30 px-4 py-4">
+      <div className="flex flex-col gap-3 cel:flex-row cel:items-end">
+        <div className="flex-1"><Campo rotulo="Nome da loja" placeholder="Zaatar Tijuca" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+        <div className="flex-1"><Campo rotulo="Bairro" placeholder="Tijuca" value={bairro} onChange={(e) => setBairro(e.target.value)} /></div>
+        <Button variante="primario" onClick={confirmar} disabled={abrir.isPending || !nome.trim()}>
+          {abrir.isPending ? 'Cobrando e abrindo…' : `Abrir por + R$ ${PRECO_LOJA_EXTRA}/mês`}
+        </Button>
+      </div>
+      <p className="mt-2 text-xs text-tinta-4">
+        Cada loja extra soma R$ {PRECO_LOJA_EXTRA}/mês na sua assinatura. A parte deste mês é cobrada agora, no cartão da assinatura.
+      </p>
     </div>
   )
 }
