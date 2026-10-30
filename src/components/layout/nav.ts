@@ -11,6 +11,8 @@ export interface ItemNav {
   emBreve?: boolean
   /** Página existe (rota e links diretos seguem valendo), mas some do menu por enquanto. */
   oculto?: boolean
+  /** Mostra "!" enquanto faturamento e meta não forem conferidos (`numerosPendentes`). */
+  alertaNumeros?: boolean
 }
 
 /** Itens do menu, cada um atrelado a uma permissão de seção. */
@@ -28,6 +30,6 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/cmv', rotulo: 'CMV', chave: 'veDRE', emBreve: true },
   { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
-  { para: '/painel/metas', rotulo: 'Metas e números', chave: 'veAjustes' },
+  { para: '/painel/metas', rotulo: 'Metas e números', chave: 'veAjustes', alertaNumeros: true },
   { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]

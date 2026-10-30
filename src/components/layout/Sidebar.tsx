@@ -4,8 +4,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
 import { useAuth } from '@/auth/AuthContext'
-import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
-import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
+import { numerosPendentes, useRede, useRestaurante } from '@/data/hooks'
 import { temRede } from '@/types'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
@@ -17,9 +16,8 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   // criou a rede. Loja única não vê o item.
   const cfg = useRestaurante().data
   const rede = useRede().data
-  const lojaAtiva = useLojaAtiva()
-  const tenantDoLogin = useTenantDoLogin()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
+  const pendente = numerosPendentes(cfg)
   const itens = itensNav.filter((i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
 
   return (
@@ -27,26 +25,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       <div className="px-6 pt-6 pb-6">
         <Logo tom="claro" tamanho={18} href="/painel" />
       </div>
-
-      {/* Trocar de loja — o painel inteiro passa a ser da loja escolhida */}
-      {rede && rede.lojas.length > 1 && (
-        <div className="px-4 pb-4">
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
-            Loja
-          </label>
-          <select
-            value={lojaAtiva ?? tenantDoLogin}
-            onChange={(e) => definirLojaAtiva(e.target.value === tenantDoLogin ? null : e.target.value)}
-            className="w-full rounded-botao border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-creme outline-none focus:border-white/40"
-          >
-            {rede.lojas.map((l) => (
-              <option key={l.restauranteId} value={l.restauranteId} className="text-tinta">
-                {l.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* O menu ocupa o meio inteiro: o card de progresso da contagem que ficava
        * ancorado aqui embaixo comia a altura da lista e escondia os últimos
@@ -78,6 +56,14 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
               }
             >
               {item.rotulo}
+              {item.alertaNumeros && pendente && (
+                <span
+                  title="Falta conferir faturamento e meta"
+                  className="ml-2 inline-grid h-[18px] w-[18px] place-items-center rounded-full bg-sol align-middle text-[11px] font-extrabold text-noite"
+                >
+                  !
+                </span>
+              )}
               {item.emBreve && (
                 <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
               )}

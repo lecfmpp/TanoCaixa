@@ -16,6 +16,8 @@ import { GRUPO } from '@/data/planoContas'
 import type { LojaComContexto } from '@/data/hooks'
 import { MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
+import { emailValido } from '@/data/assinatura'
+import { PRECO_EXPANSAO } from '@/data/preco'
 
 export function Rede() {
   const rede = useRede()
@@ -231,23 +233,40 @@ export function FormAbrirLoja({ aoFechar }: { aoFechar: () => void }) {
   const { adicionarToast } = useUI()
   const [nome, setNome] = useState('')
   const [bairro, setBairro] = useState('')
+  const [gestor, setGestor] = useState('')
+  const gestorInvalido = gestor.trim() !== '' && !emailValido(gestor)
 
   async function confirmar() {
-    if (!nome.trim()) return
-    await abrir.mutateAsync({ nome: nome.trim(), bairro: bairro.trim(), cidade: 'Rio de Janeiro' })
-    adicionarToast({ tipo: 'sucesso', titulo: 'Loja aberta', texto: `${nome} já entrou no consolidado da rede.` })
+    if (!nome.trim() || gestorInvalido) return
+    const { convite } = await abrir.mutateAsync({ nome: nome.trim(), bairro: bairro.trim(), cidade: 'Rio de Janeiro', gestorEmail: gestor })
+    adicionarToast({
+      tipo: convite && !convite.enviado ? 'atencao' : 'sucesso',
+      titulo: 'Loja aberta',
+      texto: !convite
+        ? `${nome} já entrou na rede. A assinatura passa a contar mais uma loja.`
+        : convite.enviado
+          ? `Convite enviado para ${gestor.trim()}. A assinatura passa a contar mais uma loja.`
+          : `${nome} já entrou na rede, mas o e-mail do gestor não saiu.${convite.url ? ` Mande este link: ${convite.url}` : ''}`,
+    })
     setNome('')
     setBairro('')
+    setGestor('')
     aoFechar()
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-divisoria bg-preenchimento/30 px-4 py-4 cel:flex-row cel:items-end">
-      <div className="flex-1"><Campo rotulo="Nome da loja" placeholder="Zaatar Tijuca" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-      <div className="flex-1"><Campo rotulo="Bairro" placeholder="Tijuca" value={bairro} onChange={(e) => setBairro(e.target.value)} /></div>
-      <Button variante="primario" onClick={confirmar} disabled={abrir.isPending || !nome.trim()}>
-        {abrir.isPending ? 'Abrindo…' : 'Abrir'}
-      </Button>
+    <div className="flex flex-col gap-3 border-t border-divisoria bg-preenchimento/30 px-4 py-4">
+      <div className="flex flex-col gap-3 cel:flex-row cel:items-end">
+        <div className="flex-1"><Campo rotulo="Nome da loja" placeholder="Zaatar Tijuca" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+        <div className="flex-1"><Campo rotulo="Bairro" placeholder="Tijuca" value={bairro} onChange={(e) => setBairro(e.target.value)} /></div>
+        <div className="flex-1"><Campo rotulo="E-mail do gestor · opcional" type="email" placeholder="gerente@email.com" value={gestor} destaque={gestorInvalido} onChange={(e) => setGestor(e.target.value)} /></div>
+        <Button variante="primario" onClick={confirmar} disabled={abrir.isPending || !nome.trim() || gestorInvalido}>
+          {abrir.isPending ? 'Abrindo…' : 'Abrir'}
+        </Button>
+      </div>
+      <p className="text-xs text-tinta-4">
+        O gestor recebe um convite por e-mail e vê só esta loja. A loja entra na Expansão da assinatura (R$ {PRECO_EXPANSAO}/mês por loja a mais).
+      </p>
     </div>
   )
 }

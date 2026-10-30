@@ -1,28 +1,20 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
-import { TituloPasso, CaixaViva, CampoTexto, Rotulo, LinhaPontilhada } from './ui'
+import { Check, Plus, X } from 'lucide-react'
+import { TituloPasso, CampoTexto, Rotulo } from './ui'
 import { Chip } from '@/components/ui/Chip'
-import { Switch } from '@/components/ui/Switch'
-import { Button } from '@/components/ui/Button'
-import { Avatar } from '@/components/ui/Avatar'
-import { HorarioSemana } from '@/components/ui/HorarioSemana'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
-import { pctDaMeta, TAXA_APP_TETO_PADRAO, type RespostasOnboarding } from '@/data/hooks'
+import type { LojaNova, RespostasOnboarding } from '@/data/hooks'
+import { DIAS_TESTE, emailValido } from '@/data/assinatura'
+import { PRECO_EXPANSAO, PRECO_LOJA, totalMensal } from '@/data/preco'
+import { cn } from '@/lib/cn'
 import { TIPOS_NEGOCIO, temRede } from '@/types'
 
 type Upd = (p: Partial<RespostasOnboarding>) => void
-import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
-import { cn } from '@/lib/cn'
 
-const soDigitos = (s: string) => Number(s.replace(/\D/g, '') || 0)
+/* ------------------------------ O restaurante ----------------------------- */
 
-/* -------------------------------- Passo 1 ------------------------------- */
-
-const OPERACOES = ['Só delivery', 'Delivery + salão', 'Só salão', 'Buffet / eventos']
-const COZINHAS = ['Árabe', 'Boteco', 'Pizza', 'Japonês', 'Outro']
-
-export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
+export function PassoRestaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
   const franqueada = r.tipoNegocio === 'franqueada'
   const rede = temRede(r.tipoNegocio)
   return (
@@ -35,10 +27,7 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
           value={r.nome}
           onChange={(e) => upd({ nome: e.target.value })}
         />
-        <div className="grid grid-cols-2 gap-3">
-          <CampoTexto rotulo="Bairro" placeholder="Onde fica a loja" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
-          <CampoTexto rotulo="Quantas lojas" placeholder="1" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
-        </div>
+        <CampoTexto rotulo="Bairro" placeholder="Onde fica a loja" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
 
         {/* Tipo de negócio — define o DRE (linha de franqueadora) e a visão de rede */}
         <div>
@@ -87,428 +76,118 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
           </div>
         )}
 
-        <div>
-          <Rotulo>Como você opera</Rotulo>
-          <div className="flex flex-wrap gap-2">
-            {OPERACOES.map((o) => (
-              <Chip key={o} rotulo={o} selecionado={r.operacao === o} aoClicar={() => upd({ operacao: o })} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Rotulo>Tipo de comida</Rotulo>
-          <div className="flex flex-wrap gap-2">
-            {COZINHAS.map((o) => (
-              <Chip key={o} rotulo={o} selecionado={r.cozinha === o} aoClicar={() => upd({ cozinha: o })} />
-            ))}
-          </div>
-        </div>
-
-        <CampoTexto
-          rotulo="CNPJ · opcional agora"
-          placeholder="00.000.000/0001-00"
-          inputMode="numeric"
-          value={r.cnpj}
-          onChange={(e) => upd({ cnpj: mascararCNPJ(e.target.value) })}
-        />
-      </div>
-    </div>
-  )
-}
-
-/* -------------------------------- Passo 2 ------------------------------- */
-
-const CANAIS = [
-  { id: 'apps', nome: 'Apps de delivery', dica: 'você lança o total do dia junto com o fechamento' },
-  { id: 'whatsapp', nome: 'WhatsApp / site próprio', dica: 'o mais lucrativo pra você' },
-  { id: 'balcao', nome: 'Balcão e retirada', dica: 'maquininha ou Pix na loja' },
-]
-
-export function Passo2Canais({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
-  const sel = new Set(r.canais)
-  const alterna = (id: string) => {
-    const n = new Set(r.canais)
-    n.has(id) ? n.delete(id) : n.add(id)
-    upd({ canais: [...n] })
-  }
-  return (
-    <div>
-      <TituloPasso
-        titulo="Por onde você vende?"
-        sub="Marca tudo que usa hoje. Cada canal vira uma linha das suas vendas."
-      />
-      <div className="flex flex-col gap-2.5">
-        {CANAIS.map((c) => {
-          const on = sel.has(c.id)
-          return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => alterna(c.id)}
-              className={cn(
-                'flex items-center gap-3 rounded-campo border bg-superficie px-4 py-3.5 text-left transition',
-                on ? 'border-mar ring-2 ring-mar/15' : 'border-[rgba(46,95,115,0.14)] hover:border-mar/40',
-              )}
-            >
-              <span
-                className={cn(
-                  'grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-2 transition',
-                  on ? 'border-mar bg-mar text-creme' : 'border-tinta-5',
-                )}
-              >
-                {on && <Check size={13} strokeWidth={3} />}
-              </span>
-              <span>
-                <span className="block text-sm font-bold text-tinta">{c.nome}</span>
-                {c.dica && <span className="block text-xs text-tinta-4">{c.dica}</span>}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <CampoTexto
-          rotulo="Ticket médio"
-          prefixo="R$"
-          placeholder="Quanto um cliente gasta"
-          inputMode="numeric"
-          value={r.ticket}
-          onChange={(e) => upd({ ticket: apenasDigitos(e.target.value) })}
-        />
-        <CampoTexto
-          rotulo="Pedidos por dia"
-          placeholder="Média de um dia normal"
-          inputMode="numeric"
-          value={r.pedidos}
-          onChange={(e) => upd({ pedidos: apenasDigitos(e.target.value) })}
-        />
-      </div>
-
-      <div className="mt-5">
-        <Rotulo>Dias e horários de funcionamento</Rotulo>
-        <p className="-mt-1 mb-2 text-xs text-tinta-4">
-          A gente usa isso pra saber quando a loja tá aberta. No botão "Aplicar em todos os dias",
-          você repete o horário de um dia pros outros.
-        </p>
-        <HorarioSemana valor={r.horarios} aoMudar={(h) => upd({ horarios: h })} />
-      </div>
-    </div>
-  )
-}
-
-/* -------------------------------- Passo 3 ------------------------------- */
-
-export function Passo3Numeros({
-  folha,
-  contasFixas,
-  onFolha,
-  onContasFixas,
-  pontoEquilibrio,
-  faturamento,
-  pessoas,
-  onFaturamento,
-  onPessoas,
-}: {
-  folha: number
-  contasFixas: number
-  onFolha: (n: number) => void
-  onContasFixas: (n: number) => void
-  pontoEquilibrio: number
-  faturamento: string
-  pessoas: string
-  onFaturamento: (v: string) => void
-  onPessoas: (v: string) => void
-}) {
-  return (
-    <div>
-      <TituloPasso
-        titulo="Os números de partida"
-        sub="Chute redondo já serve. Depois do primeiro mês o app corrige sozinho."
-      />
-      <div className="flex flex-col gap-5">
-        <CampoTexto rotulo="Faturamento de um mês normal" prefixo="R$" placeholder="Tudo que entra no mês" inputMode="numeric" value={faturamento} onChange={(e) => onFaturamento(e.target.value)} />
-        <div className="grid grid-cols-2 gap-3">
-          <CampoTexto
-            rotulo="Folha por mês"
-            prefixo="R$"
-            placeholder="Salários e encargos"
-            inputMode="numeric"
-            value={inteiro(folha)}
-            onChange={(e) => onFolha(soDigitos(e.target.value))}
+        {rede ? (
+          <SuasLojas r={r} upd={upd} />
+        ) : (
+          <CampoGestor
+            rotulo="E-mail de quem gerencia a loja · opcional"
+            valor={r.gestorEmail}
+            aoMudar={(v) => upd({ gestorEmail: v })}
+            dica="Deixe em branco se o gestor é você. Se for outra pessoa, ela recebe um convite por e-mail e entra só nesta loja."
           />
-          <CampoTexto rotulo="Pessoas na equipe" placeholder="Quantas trabalham aqui" value={pessoas} onChange={(e) => onPessoas(apenasDigitos(e.target.value))} inputMode="numeric" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <CampoTexto
-            rotulo="Contas fixas do mês"
-            prefixo="R$"
-            placeholder="Aluguel, luz, água, gás"
-            inputMode="numeric"
-            value={inteiro(contasFixas)}
-            onChange={(e) => onContasFixas(soDigitos(e.target.value))}
-          />
-          <CampoTexto rotulo="Estoque parado hoje · se souber" prefixo="R$" placeholder="Quanto tem guardado" inputMode="numeric" />
-        </div>
+        )}
       </div>
-
-      <CaixaViva rotulo="Já dá pra dizer">
-        Você precisa vender uns <strong className="font-bold">{brlInteiro(pontoEquilibrio)}</strong> por
-        mês pra não ter prejuízo.
-      </CaixaViva>
     </div>
   )
 }
 
-/* -------------------------------- Passo 4 ------------------------------- */
+/* -------------------------------- Lojas -------------------------------- */
 
-const PAPEIS = ['Gerente', 'Estoque', 'Só lançar nota', 'Contador']
+const LOJA_VAZIA: LojaNova = { nome: '', bairro: '', gestorEmail: '' }
 
-export function Passo4Equipe({ nomeDono }: { nomeDono?: string }) {
-  const [telConvite, setTelConvite] = useState('')
-  const nome = (nomeDono || '').trim()
+function CampoGestor({ rotulo, valor, aoMudar, dica }: { rotulo: string; valor: string; aoMudar: (v: string) => void; dica?: string }) {
+  const invalido = valor.trim() !== '' && !emailValido(valor)
   return (
     <div>
-      <TituloPasso
-        titulo="Quem mais mexe nisso com você?"
-        sub="Cada um vê só o que precisa. Ninguém vê seu lucro sem você deixar."
-      />
-      <div className="flex flex-col gap-2.5">
-        {/* Só você — a equipe entra pelos convites, não por gente de exemplo. */}
-        <LinhaMembro
-          inicial={(nome[0] || 'V').toUpperCase()}
-          cor="#2E5F73"
-          nome={nome ? `${nome} (você)` : 'Você'}
-          info="vê tudo, inclusive o lucro"
-          papel="dono"
-        />
-      </div>
-
-      <div className="mt-5 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-4">
-        <Rotulo>Convidar mais alguém</Rotulo>
-        <div className="flex flex-col gap-2.5 cel:flex-row">
-          <input
-            placeholder="Celular de quem você quer convidar"
-            inputMode="tel"
-            value={telConvite}
-            onChange={(e) => setTelConvite(mascararTelefone(e.target.value))}
-            className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-fundo-app px-3.5 py-2.5 text-[15px] text-tinta outline-none placeholder:text-tinta-5 focus:border-mar"
-          />
-          <select
-            className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-fundo-app px-3 py-2.5 text-sm text-tinta-2 outline-none focus:border-mar"
-            defaultValue="Gerente"
-          >
-            {PAPEIS.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-          <Button variante="secundario">Enviar convite</Button>
-        </div>
-      </div>
+      <CampoTexto rotulo={rotulo} type="email" placeholder="gerente@email.com" value={valor} onChange={(e) => aoMudar(e.target.value)} />
+      {invalido ? (
+        <p className="mt-1.5 text-xs font-semibold text-telha-alerta">Confira o e-mail — falta algo.</p>
+      ) : (
+        dica && <p className="mt-1.5 text-xs text-tinta-4">{dica}</p>
+      )}
     </div>
   )
 }
 
-function LinhaMembro({
-  inicial,
-  cor,
-  nome,
-  info,
-  papel,
-}: {
-  inicial: string
-  cor: string
-  nome: string
-  info: string
-  papel: string
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
-      <Avatar inicial={inicial} cor={cor} tamanho={36} />
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold text-tinta">{nome}</div>
-        <div className="truncate text-xs text-tinta-4">{info}</div>
-      </div>
-      <span className="rounded-chip bg-preenchimento px-2.5 py-1 text-xs font-bold text-tinta-2 capitalize">
-        {papel}
-      </span>
-    </div>
-  )
-}
-
-/* -------------------------------- Passo 5 ------------------------------- */
-
-/** Campo de despesa em R$ com o % da meta calculado sozinho embaixo. */
-function CampoDespesa({
-  rotulo,
-  valor,
-  onValor,
-  meta,
-}: {
-  rotulo: string
-  valor: number
-  onValor: (n: number) => void
-  meta: string
-}) {
+/** Várias lojas: a desta conta + as outras, cada uma com o e-mail do seu gestor. */
+function SuasLojas({ r, upd }: { r: RespostasOnboarding; upd: Upd }) {
+  const mudar = (i: number, patch: Partial<LojaNova>) =>
+    upd({ outrasLojas: r.outrasLojas.map((l, j) => (j === i ? { ...l, ...patch } : l)) })
+  const total = 1 + r.outrasLojas.filter((l) => l.nome.trim()).length
   return (
     <div>
-      <CampoTexto
-        grande
-        destaque
-        rotulo={rotulo}
-        prefixo="R$"
-        inputMode="numeric"
-        value={inteiro(valor)}
-        onChange={(e) => onValor(soDigitos(e.target.value))}
-      />
-      <p className="mt-1 text-xs text-tinta-4">≈ {pctDaMeta(valor, meta)}% da meta de faturamento</p>
-    </div>
-  )
-}
-
-export function Passo5Metas({
-  meta,
-  onMeta,
-  contasFixas,
-  onContasFixas,
-  folha,
-  onFolha,
-  mercadoria,
-  onMercadoria,
-  sobraPct,
-  sobraReais,
-}: {
-  meta: string
-  onMeta: (v: string) => void
-  contasFixas: number
-  onContasFixas: (n: number) => void
-  folha: number
-  onFolha: (n: number) => void
-  mercadoria: number
-  onMercadoria: (n: number) => void
-  sobraPct: number
-  sobraReais: number
-}) {
-  return (
-    <div>
-      <TituloPasso
-        titulo="Suas metas do primeiro mês"
-        sub="Já deixamos preenchido com o que você disse antes. Ajusta se quiser."
-      />
-
-      <Rotulo>Receita</Rotulo>
-      <CampoTexto
-        grande
-        rotulo="Meta de faturamento"
-        prefixo="R$"
-        placeholder="Quanto quer faturar no mês"
-        inputMode="numeric"
-        value={meta}
-        onChange={(e) => onMeta(e.target.value)}
-      />
-      <p className="mt-1.5 text-xs text-tinta-4">Um degrau acima de um mês normal, sem apertar demais.</p>
-
-      <LinhaPontilhada rotulo="despesas" />
-
-      <div className="flex flex-col gap-4">
-        <CampoDespesa rotulo="Aluguel e contas" valor={contasFixas} onValor={onContasFixas} meta={meta} />
-        <CampoDespesa rotulo="Pessoal" valor={folha} onValor={onFolha} meta={meta} />
-        <CampoDespesa rotulo="Compras · estoque" valor={mercadoria} onValor={onMercadoria} meta={meta} />
-      </div>
-
-      <LinhaPontilhada rotulo="taxa de app" />
-
-      <p className="pretty text-sm text-tinta-3">
-        A comissão dos apps de delivery e a taxa da maquininha você lança como despesa. O teto começa em{' '}
-        <strong className="font-bold text-tinta-2">{TAXA_APP_TETO_PADRAO}%</strong> e dá pra ajustar depois no Plano do
-        mês.
+      <Rotulo>Suas lojas</Rotulo>
+      <p className="-mt-1 mb-3 text-xs text-tinta-4">
+        Você vê todas e troca de uma pra outra no topo do painel. Cada gestor recebe um convite por e-mail e vê só a loja
+        dele. Pode cadastrar agora ou depois, em Rede.
       </p>
+      <div className="flex flex-col gap-2.5">
+        <div className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie p-3.5">
+          <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-tinta">
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-mar text-[11px] text-creme">1</span>
+            {r.nome.trim() || 'Esta loja'}
+            <span className="text-xs font-medium text-tinta-4">· {r.bairro.trim() || 'a do cadastro'}</span>
+          </div>
+          <CampoGestor rotulo="E-mail do gestor · opcional" valor={r.gestorEmail} aoMudar={(v) => upd({ gestorEmail: v })} dica="Em branco = você mesmo gerencia." />
+        </div>
 
-      <LinhaPontilhada />
+        {r.outrasLojas.map((l, i) => (
+          <div key={i} className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie p-3.5">
+            <div className="mb-2.5 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-bold text-tinta">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-mar text-[11px] text-creme">{i + 2}</span>
+                Loja {i + 2}
+              </span>
+              <button
+                type="button"
+                onClick={() => upd({ outrasLojas: r.outrasLojas.filter((_, j) => j !== i) })}
+                className="grid h-7 w-7 place-items-center rounded-botao text-tinta-4 hover:bg-preenchimento hover:text-tinta"
+                aria-label={`Tirar a loja ${i + 2}`}
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <CampoTexto rotulo="Nome da loja" placeholder="Ex: Tijuca" value={l.nome} onChange={(e) => mudar(i, { nome: e.target.value })} />
+                <CampoTexto rotulo="Bairro" placeholder="Onde fica" value={l.bairro} onChange={(e) => mudar(i, { bairro: e.target.value })} />
+              </div>
+              <CampoGestor rotulo="E-mail do gestor · opcional" valor={l.gestorEmail} aoMudar={(v) => mudar(i, { gestorEmail: v })} />
+            </div>
+          </div>
+        ))}
 
-      <div className="flex items-center justify-between rounded-cartao bg-mar px-5 py-3.5 text-creme">
-        <span className="text-sm font-semibold">Sobra prevista</span>
-        <span className="mono text-sm font-bold">
-          {sobraPct}%{sobraReais > 0 ? ` · ${brlInteiro(sobraReais)}` : ''}
-        </span>
+        <button
+          type="button"
+          onClick={() => upd({ outrasLojas: [...r.outrasLojas, { ...LOJA_VAZIA }] })}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-campo border border-dashed border-mar/40 px-4 py-3 text-sm font-bold text-mar transition hover:border-mar hover:bg-mar/5',
+          )}
+        >
+          <Plus size={16} /> Adicionar outra loja
+        </button>
       </div>
+      <p className="mt-2.5 text-xs text-tinta-4">
+        {DIAS_TESTE} dias grátis. Depois, Pro R$ {PRECO_LOJA}/mês com 1 loja + Expansão R$ {PRECO_EXPANSAO}/mês por loja a
+        mais — com {total} {total === 1 ? 'loja' : 'lojas'}, R$ {totalMensal(total).toLocaleString('pt-BR')}/mês.
+      </p>
     </div>
   )
 }
 
-/* -------------------------------- Passo 6 ------------------------------- */
-
-export function Passo6Avisos({
-  avisos,
-  onAvisos,
-}: {
-  avisos: { whatsapp: boolean; email: boolean; sms: boolean }
-  onAvisos: (a: { whatsapp: boolean; email: boolean; sms: boolean }) => void
-}) {
-  return (
-    <div>
-      <TituloPasso titulo="Onde te avisar" sub="A gente só chama a atenção quando importa — sem spam." />
-      <div className="flex flex-col gap-2">
-        <LinhaAviso
-          nome="WhatsApp"
-          dica="alerta quando um teto chega perto"
-          ligado={avisos.whatsapp}
-          aoTrocar={(v) => onAvisos({ ...avisos, whatsapp: v })}
-        />
-        <LinhaAviso
-          nome="E-mail"
-          dica="resumo toda segunda de manhã"
-          ligado={avisos.email}
-          aoTrocar={(v) => onAvisos({ ...avisos, email: v })}
-        />
-        <LinhaAviso
-          nome="SMS"
-          dica="só emergência, se faltar internet"
-          ligado={avisos.sms}
-          aoTrocar={(v) => onAvisos({ ...avisos, sms: v })}
-        />
-      </div>
-    </div>
-  )
-}
-
-function LinhaAviso({
-  nome,
-  dica,
-  ligado,
-  aoTrocar,
-}: {
-  nome: string
-  dica: string
-  ligado: boolean
-  aoTrocar: (v: boolean) => void
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
-      <div>
-        <div className="text-sm font-bold text-tinta">{nome}</div>
-        <div className="text-xs text-tinta-4">{dica}</div>
-      </div>
-      <Switch ligado={ligado} aoTrocar={aoTrocar} rotulo={nome} />
-    </div>
-  )
-}
-
-/* -------------------------------- Passo 7 ------------------------------- */
+/* ------------------------------ Tudo pronto ----------------------------- */
 
 const TIPOS_IMPORT: TipoImport[] = ['produtos', 'despesas', 'estoque']
 
-export function Passo7Pronto({ r }: { r: RespostasOnboarding }) {
+export function PassoPronto({ r }: { r: RespostasOnboarding }) {
   const [tipoImp, setTipoImp] = useState<TipoImport>('produtos')
-  const meta = soDigitos(r.meta)
-  // Só o que a pessoa de fato respondeu — nada de item marcado por nós.
+  const outras = temRede(r.tipoNegocio) ? r.outrasLojas.filter((l) => l.nome.trim()) : []
+  const gestores = [r.gestorEmail, ...outras.map((l) => l.gestorEmail)].filter(emailValido).length
   const feitos = [
     r.nome.trim() ? `${r.nome.trim()} cadastrado` : 'Restaurante cadastrado',
-    r.canais.length
-      ? `${r.canais.length} ${r.canais.length === 1 ? 'canal de venda marcado' : 'canais de venda marcados'}`
-      : null,
-    meta ? `Meta de ${brlInteiro(meta)} e tetos definidos` : 'Tetos de gasto no padrão (dá pra ajustar no Plano do mês)',
+    TIPOS_NEGOCIO.find((t) => t.id === r.tipoNegocio)?.nome,
+    outras.length ? `${outras.length + 1} lojas cadastradas` : null,
+    gestores ? `${gestores} ${gestores === 1 ? 'gestor recebe' : 'gestores recebem'} o convite por e-mail` : null,
   ].filter((f): f is string => !!f)
   return (
     <div>
@@ -529,6 +208,26 @@ export function Passo7Pronto({ r }: { r: RespostasOnboarding }) {
           </li>
         ))}
       </ul>
+
+      <div className="mt-3 flex items-start gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-4 py-3">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-mar text-xs font-extrabold text-creme" aria-hidden>
+          {DIAS_TESTE}
+        </span>
+        <span className="text-sm text-tinta-2">
+          <strong className="font-bold text-tinta">{DIAS_TESTE} dias grátis pra testar tudo.</strong> Depois, é só assinar
+          o Pro (R$ {PRECO_LOJA}/mês) pra continuar usando.
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-start gap-3 rounded-campo border border-sol/60 bg-superficie px-4 py-3">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sol text-sm font-extrabold text-noite" aria-hidden>
+          !
+        </span>
+        <span className="text-sm text-tinta-2">
+          <strong className="font-bold text-tinta">Faturamento e meta ficam pra depois.</strong> No painel, abra{' '}
+          <strong className="font-bold">Metas e números</strong> — o "!" no menu mostra que falta conferir.
+        </span>
+      </div>
 
       <div className="mt-6 rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-5">
         <span className="rotulo text-insight-rotulo">Primeira missão</span>
