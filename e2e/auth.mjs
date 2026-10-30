@@ -201,16 +201,14 @@ await passo('Verificação de e-mail: link enviado e confirmado', async () => {
 })
 
 // 4. Onboarding
-await passo('Onboarding: 8 passos até o painel', async () => {
+await passo('Onboarding: 2 passos até o painel', async () => {
   if (cadastro.alvo !== 'url') return { status: 'não testado', detalhe: 'sem sessão (Firestore indisponível)' }
-  await page.getByText('passo 1 de 8').waitFor()
+  await page.getByText('passo 1 de 2').waitFor()
   const nome = await page.locator('input').first().inputValue()
   if (nome !== 'Boteco E2E') throw new Error(`nome do restaurante não veio do cadastro ("${nome}")`)
   await print('03-onboarding')
-  for (let i = 1; i < 8; i++) {
-    await page.getByRole('button', { name: 'Continuar' }).click()
-    await page.getByText(`passo ${i + 1} de 8`).waitFor()
-  }
+  await page.getByRole('button', { name: 'Continuar' }).click()
+  await page.getByText('passo 2 de 2').waitFor()
   await page.getByRole('button', { name: 'Ver meu painel' }).click()
   await page.waitForURL('**/painel', { timeout: 15000 })
   await page.waitForTimeout(1500)

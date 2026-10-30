@@ -4,7 +4,7 @@ import { Check, ArrowRight, Star, Volume2, VolumeX } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { fotos } from '@/lib/fotos'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
-import { DESCONTO_LOJA, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
+import { DESCONTO_LOJA, PRECO_EXPANSAO, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
 import { cn } from '@/lib/cn'
 
 /** Demonstração publicada no canal do YouTube (é a mesma que toca no hero). */
@@ -418,7 +418,7 @@ function Preco() {
   return (
     <section id="preco" className="mx-auto max-w-6xl px-5 py-16">
       <span className="rotulo text-telhado">Preço</span>
-      <h2 className="mt-2" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>Um plano só, por loja</h2>
+      <h2 className="mt-2" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.025em' }}>Um plano só: o Pro</h2>
       <p className="mt-2 text-tinta-3">14 dias de graça, sem cartão. Cancela quando quiser, leva seus dados junto.</p>
       <div className="mt-10 grid items-stretch gap-4 tab:grid-cols-[1fr_380px]">
         <div className="rounded-cartao-g border border-[rgba(46,95,115,0.12)] bg-superficie p-6">
@@ -438,12 +438,16 @@ function Preco() {
         </div>
         <div className="flex flex-col rounded-cartao-g border border-mar bg-mar p-6 text-creme shadow-cartao">
           <span className="mb-3 self-start rounded-chip bg-sol px-2.5 py-1 text-xs font-bold text-noite">R$ {DESCONTO_LOJA} de desconto por enquanto</span>
-          <h3 style={{ fontSize: 20, fontWeight: 800 }}>Por loja</h3>
-          <p className="mt-1 text-sm text-creme/80">Duas lojas? É só multiplicar por dois.</p>
+          <h3 style={{ fontSize: 20, fontWeight: 800 }}>Pro</h3>
+          <p className="mt-1 text-sm text-creme/80">Tudo liberado, com 1 loja.</p>
           <div className="mt-5 flex flex-wrap items-end gap-x-3 gap-y-1">
             <span className="mono mb-1.5 text-creme/60 line-through" style={{ fontSize: 22 }}>R$ {PRECO_LOJA_CHEIO}</span>
             <span className="mono" style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em' }}>R$ {PRECO_LOJA}</span>
-            <span className="mb-2 text-sm text-creme/70">/loja/mês</span>
+            <span className="mb-2 text-sm text-creme/70">/mês</span>
+          </div>
+          <div className="mt-4 rounded-botao border border-white/15 bg-white/8 px-3.5 py-2.5 text-sm">
+            <span className="font-bold">Expansão</span> <span className="text-creme/70">· opcional</span>
+            <div className="text-creme/80">+ R$ {PRECO_EXPANSAO}/mês por loja a mais.</div>
           </div>
           <p className="mt-2 text-xs text-creme/70">Preço de lançamento. Quem assina agora trava esse valor.</p>
           <Link to="/criar" className="mt-auto rounded-botao bg-sol px-4 py-3 text-center text-sm font-bold text-noite transition hover:brightness-95" style={{ marginTop: 28 }}>Testar 14 dias de graça</Link>
@@ -460,8 +464,8 @@ function FAQ() {
     ['Precisa conectar o iFood?', 'Não. Você tira foto das notas e digita o fechamento do dia, apps incluídos. A integração automática com iFood e Uber Eats está chegando.'],
     ['Minha equipe vê meu lucro?', 'Só quem você deixar. O gerente vê o CMV e o estoque, mas não vê o lucro, a folha nem o faturamento total.'],
     ['Meus dados ficam seguros?', 'Ficam criptografados e são seus. Cancela quando quiser e leva tudo junto. Seguimos a LGPD.'],
-    ['Quanto custa e como é cobrado?', 'R$ 149 por loja, por mês (de R$ 249, com R$ 100 de desconto por enquanto). Duas lojas, R$ 298. A cobrança é pelo Stripe, só depois dos 14 dias de teste.'],
-    ['E o PDV e o CMV por ficha técnica?', 'Estão em construção e entram como “em breve”, fora do plano de R$ 149. O que está nas telas acima já funciona hoje.'],
+    ['Quanto custa e como é cobrado?', 'O Pro custa R$ 149 por mês com 1 loja (de R$ 249, com R$ 100 de desconto por enquanto). Tem mais lojas? A Expansão, opcional, soma R$ 79 por loja a mais: duas lojas, R$ 228. A cobrança é pelo Stripe, só depois dos 14 dias de teste.'],
+    ['E o PDV e o CMV por ficha técnica?', 'Estão em construção e entram como “em breve”, fora do Pro. O que está nas telas acima já funciona hoje.'],
     ['Quanto tempo leva pra configurar?', '40 segundos pro cadastro. O resto você resolve com uma foto ou importando a sua planilha.'],
   ]
   return (

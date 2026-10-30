@@ -3,7 +3,8 @@ import { recebimentoValido } from './recebimentos'
 import { doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
-import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
+import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede, type RedeDoc } from './rede'
+import { convidarGestor, emailValido } from './assinatura'
 import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
   listarSolicitacoes,
@@ -13,7 +14,6 @@ import {
   type TipoSolicitacao,
 } from './solicitacoes'
 import { diaDeHoje, inventarioAte, type Contexto } from './derive'
-import type { DiaHorario } from '@/components/ui/HorarioSemana'
 import { DEMO_TENANT, REDE_DEMO, origemAtual } from './tenant'
 import { useLojaAtiva } from './lojaAtiva'
 import { useAuth } from '@/auth/AuthContext'
@@ -193,9 +193,9 @@ export function useAbrirLoja() {
   const rede = useRede()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (p: { nome: string; bairro: string; cidade: string }) => {
+    mutationFn: async (p: { nome: string; bairro: string; cidade: string; gestorEmail?: string }) => {
       if (!sessao || !rede.data) throw new Error('sem rede')
-      return abrirLoja({
+      const loja = await abrirLoja({
         rede: rede.data,
         uid: sessao.usuario.id,
         nome: p.nome,
@@ -207,8 +207,22 @@ export function useAbrirLoja() {
         // Loja nova começa sem meta; o dono define no Plano do mês.
         metaFaturamento: 0,
       })
+      // Gestor da loja: convite por e-mail. Se não sair, devolve o link pro dono mandar.
+      let convite: { url?: string; enviado: boolean } | null = null
+      if (p.gestorEmail && emailValido(p.gestorEmail)) {
+        try {
+          convite = await convidarGestor(loja.restauranteId, p.gestorEmail)
+        } catch (e) {
+          console.warn('convite gestor:', e)
+          convite = { enviado: false }
+        }
+      }
+      return { loja, convite }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rede'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rede'] })
+      qc.invalidateQueries({ queryKey: ['assinatura'] })
+    },
   })
 }
 
@@ -1583,10 +1597,15 @@ export function useDesfazer() {
  * O dono ajusta depois no Plano do mês. */
 export const TAXA_APP_TETO_PADRAO = 12
 
+/**
+ * O onboarding só pergunta o que muda o app desde o primeiro dia: nome, bairro
+ * e a natureza do negócio (que decide o DRE e a visão de rede). Faturamento,
+ * meta e gastos do mês ficam em "Metas e números", marcados com "!" até o dono
+ * conferir — ver `numerosPendentes`.
+ */
 export interface RespostasOnboarding {
   nome: string
   bairro: string
-  lojas: string
   /** Loja única, várias lojas, franqueada ou franqueadora. */
   tipoNegocio: TipoNegocio
   /** Nome da bandeira/rede, quando opera mais de uma loja. */
@@ -1594,35 +1613,23 @@ export interface RespostasOnboarding {
   /** % da receita bruta pagos à franqueadora. */
   royalties: number
   fundoPromocao: number
-  operacao: string
-  cozinha: string
-  cnpj: string
-  canais: string[]
-  ticket: string
-  pedidos: string
-  horarios: DiaHorario[]
-  faturamento: string
-  folha: number
-  contasFixas: number
-  mercadoria: number
-  pessoas: string
-  meta: string
-  avisos: { whatsapp: boolean; email: boolean; sms: boolean }
+  /** E-mail de quem gerencia esta loja (opcional — o dono pode ser o gestor). */
+  gestorEmail: string
+  /** Outras lojas da rede, cadastradas já no onboarding (ou depois, em Rede). */
+  outrasLojas: LojaNova[]
 }
 
-/** % de um valor em R$/mês sobre a meta de faturamento (base dos tetos).
- * `meta` vem mascarado como dígitos formatados (ex.: "50.000"), não no
- * padrão decimal BR do numeroBR — por isso só limpa os dígitos. */
-export function pctDaMeta(valor: number, meta: string): number {
-  const base = Number(meta.replace(/\D/g, '')) || 50000
-  return base > 0 ? Math.round((valor / base) * 100) : 0
+export interface LojaNova {
+  nome: string
+  bairro: string
+  gestorEmail: string
 }
 
-const OP_MAP: Record<string, string> = {
-  'Só delivery': 'delivery',
-  'Delivery + salão': 'delivery_salao',
-  'Só salão': 'salao',
-  'Buffet / eventos': 'buffet',
+/** O que o onboarding conseguiu fazer além de gravar o restaurante. */
+export interface ResultadoOnboarding {
+  lojasCriadas: number
+  /** Convites de gestor que não saíram por e-mail: o link vai pro dono mandar. */
+  convitesSemEmail: { loja: string; email: string; url?: string }[]
 }
 
 /** Grava as respostas do onboarding no restaurante do usuário (tenant real). */
@@ -1631,29 +1638,20 @@ export function usePersistirOnboarding() {
   const { sessao } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (r: RespostasOnboarding) => {
+    mutationFn: async (r: RespostasOnboarding): Promise<ResultadoOnboarding> => {
+      const resultado: ResultadoOnboarding = { lojasCriadas: 0, convitesSemEmail: [] }
       await setRestaurante(t, {
         nome: r.nome || 'Meu restaurante',
         bairro: r.bairro,
         cidade: 'Rio de Janeiro',
-        tipoOperacao: (OP_MAP[r.operacao] ?? 'delivery_salao') as never,
-        tipoCozinha: r.cozinha,
-        cnpj: r.cnpj,
         regimeTributario: 'simples',
         aliquotaImposto: 0.06,
-        // Em branco = sem meta (0). Nada de meta de exemplo numa conta real.
-        metaFaturamento: Number(r.meta.replace(/\D/g, '')) || 0,
-        // Tetos por grupo do DRE — o que o onboarding não pergunta (ou a pessoa
-        // pulou) fica no padrão, em vez de virar teto de 0%.
-        tetos: {
-          ...TETOS_PADRAO,
-          ...(r.contasFixas > 0 ? { ocupacao: pctDaMeta(r.contasFixas, r.meta) } : {}),
-          ...(r.folha > 0 ? { pessoal: pctDaMeta(r.folha, r.meta) } : {}),
-          ...(r.mercadoria > 0 ? { cmv: pctDaMeta(r.mercadoria, r.meta) } : {}),
-          deducao: TAXA_APP_TETO_PADRAO,
-        },
+        // Sem meta até o dono conferir os números. Tetos no padrão.
+        metaFaturamento: 0,
+        tetos: { ...TETOS_PADRAO, deducao: TAXA_APP_TETO_PADRAO },
         aberturaMes: nomeDoMesAtual(),
         onboardingConcluido: true,
+        numerosConferidos: false,
         // Natureza do negócio: é ela que decide se o DRE tem linha de
         // franqueadora e se existe visão de rede.
         tipoNegocio: r.tipoNegocio,
@@ -1662,22 +1660,14 @@ export function usePersistirOnboarding() {
           r.tipoNegocio === 'franqueada'
             ? { royalties: r.royalties, fundoPromocao: r.fundoPromocao }
             : null,
-        // extras do onboarding (RestauranteDoc tolera campos a mais)
-        numLojas: Number(r.lojas) || 1,
-        faturamentoMensal: Number(r.faturamento.replace(/\D/g, '')) || 0,
-        ticketMedio: numeroBR(r.ticket),
-        pedidosDia: Number(r.pedidos) || 0,
-        horarios: r.horarios,
-        folha: r.folha,
-        contasFixas: r.contasFixas,
-        mercadoria: r.mercadoria,
-        pessoas: Number(r.pessoas) || 0,
-        avisos: r.avisos,
       } as never)
       // Quem opera mais de uma loja já sai do onboarding com a rede criada,
       // com a loja atual como primeira unidade.
+      // Gestores: um e-mail por loja, convite preso ao e-mail.
+      const convites: { restauranteId: string; loja: string; email: string }[] = []
+      if (emailValido(r.gestorEmail)) convites.push({ restauranteId: t, loja: r.nome || 'sua loja', email: r.gestorEmail })
       if (temRede(r.tipoNegocio) && sessao && !sessao.demo) {
-        await criarRede({
+        let rede: RedeDoc = await criarRede({
           uid: sessao.usuario.id,
           nome: r.nomeRede || r.nome || 'Minha rede',
           tipo: r.tipoNegocio === 'franqueadora' ? 'franquia' : 'multi_loja',
@@ -1688,13 +1678,46 @@ export function usePersistirOnboarding() {
             cidade: 'Rio de Janeiro',
           },
         })
+        for (const l of r.outrasLojas.filter((x) => x.nome.trim())) {
+          const loja = await abrirLoja({
+            rede,
+            uid: sessao.usuario.id,
+            nome: l.nome.trim(),
+            bairro: l.bairro.trim(),
+            cidade: 'Rio de Janeiro',
+            tipoNegocio: rede.tipo === 'franquia' ? 'franqueada' : 'multi_loja',
+            aliquotaImposto: 0.06,
+            metaFaturamento: 0,
+          })
+          rede = { ...rede, lojas: [...rede.lojas, loja] }
+          resultado.lojasCriadas++
+          if (emailValido(l.gestorEmail)) convites.push({ restauranteId: loja.restauranteId, loja: loja.nome, email: l.gestorEmail })
+        }
       }
+      // Convite que falha não segura o onboarding: o dono reenvia em Rede/Ajustes.
+      for (const c of convites) {
+        try {
+          const { url, enviado } = await convidarGestor(c.restauranteId, c.email)
+          if (!enviado) resultado.convitesSemEmail.push({ loja: c.loja, email: c.email, url })
+        } catch (e) {
+          console.warn('convite gestor:', e)
+          resultado.convitesSemEmail.push({ loja: c.loja, email: c.email })
+        }
+      }
+      return resultado
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [t, 'restaurante'] })
       qc.invalidateQueries({ queryKey: ['rede'] })
+      qc.invalidateQueries({ queryKey: ['assinatura'] })
     },
   })
+}
+
+/** Faturamento e meta ainda não conferidos em "Metas e números" (menu e Dashboard mostram "!").
+ * Contas anteriores a essa flag não têm o campo — já passaram pelos números no onboarding antigo. */
+export function numerosPendentes(cfg: RestauranteDoc | null | undefined): boolean {
+  return cfg?.numerosConferidos === false
 }
 
 /** Salva campos soltos da configuração do restaurante (tipo de negócio, taxas…). */

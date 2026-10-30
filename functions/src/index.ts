@@ -284,13 +284,15 @@ export {
   criarCheckoutAssinatura,
   portalAssinatura,
   stripeWebhook,
+  statusAssinatura,
+  lojasDaRedeNaAssinatura,
 } from './stripe'
 
 /* ------------------- Gemini Vision (foto → lançamento) ------------------- */
 export { analisarFoto, perguntarEstoque } from './gemini'
 
 /* ----------------------------- Convites de equipe ------------------------ */
-export { criarConvite, verConvite, aceitarConvite } from './convites'
+export { criarConvite, verConvite, aceitarConvite, convidarGestor } from './convites'
 
 /* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
 export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'

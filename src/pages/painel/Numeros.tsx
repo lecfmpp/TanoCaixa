@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthContext'
 import { usePeriodo } from '@/ui/periodo'
 import { ehCompra } from '@/data/compras'
-import { useContexto, usePlanoMes, useRestaurante } from '@/data/hooks'
+import { numerosPendentes, useContexto, usePlanoMes, useRestaurante } from '@/data/hooks'
 import { MES_REF, diasNoMesRef, diasDoFiltro, noPeriodo, periodoAnterior, resumoInicio, type Contexto } from '@/data/derive'
 import type { PlanoMesDoc } from '@/data/planoMes'
 import type { RestauranteDoc } from '@/data/types'
@@ -152,6 +152,22 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <SectionHeader titulo="Dashboard" subtitulo={subtitulo} foto={fotos.bondinho} periodo={periodo} aoTrocarPeriodo={setPeriodo} />
+
+      {/* O onboarding não pergunta faturamento nem meta: lembra de conferir. */}
+      {numerosPendentes(cfg) && permissoes?.veAjustes && (
+        <Link
+          to="/painel/metas"
+          className="flex items-center gap-3 rounded-cartao border border-sol/60 bg-superficie px-4 py-3 transition hover:border-sol"
+        >
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sol text-sm font-extrabold text-noite" aria-hidden>
+            !
+          </span>
+          <span className="min-w-0 flex-1 text-sm text-tinta-2">
+            <strong className="font-bold text-tinta">Confira seus números.</strong> Faturamento e meta do mês ainda estão em branco.
+          </span>
+          <span className="shrink-0 text-sm font-bold text-mar">Conferir →</span>
+        </Link>
+      )}
 
       {/* KPIs: Sobrou (único preenchido) · Entrou · Saiu */}
       <div className="gap-3.5" style={GRADE(250)}>
