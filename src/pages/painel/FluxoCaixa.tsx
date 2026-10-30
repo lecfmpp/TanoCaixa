@@ -101,7 +101,7 @@ export function FluxoCaixa() {
 
       {porDia.length === 0 ? (
         <Cartao>
-          <p className="py-6 text-center text-sm text-tinta-4">Nenhuma conta {janela === 'dia' ? 'pra esse dia' : janela === 'semana' ? 'nessa semana' : 'nesse mês'}. 🎉</p>
+          <p className="py-6 text-center text-sm text-tinta-4">Nenhuma conta {janela === 'dia' ? 'pra esse dia' : janela === 'semana' ? 'nessa semana' : janela === 'periodo' ? 'nesse período' : 'nesse mês'}. 🎉</p>
         </Cartao>
       ) : (
         porDia.map(([dia, lista]) => {

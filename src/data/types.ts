@@ -149,8 +149,11 @@ export interface ReceitaDiaDoc extends Autoria {
   data: string // ISO dia
   /** Trilha de quem lançou as vendas do dia e quando — do primeiro ao último. */
   historico?: LancamentoDeVendas[]
-  /** `recebimentoEm`: dia em que o dinheiro do canal cai (apps pagam depois). Sem ele, cai no dia da venda. Não muda o DRE. */
-  canais: { canal: CanalVenda; valorBruto: number; taxa: number; pedidos: number; recebimentoEm?: string }[]
+  /**
+   * `recebimentoEm`: dia em que o dinheiro do canal cai (apps pagam depois). Sem ele, cai no dia da venda.
+   * `recebidoEm`/`recebidoPorNome`: quem confirmou que caiu e quando ("Marcar como recebido"). Nada disso muda o DRE.
+   */
+  canais: { canal: CanalVenda; valorBruto: number; taxa: number; pedidos: number; recebimentoEm?: string; recebidoEm?: string; recebidoPorNome?: string }[]
   recebimentos: { forma: string; valor: number }[]
   sangria: number
   totalDia: number

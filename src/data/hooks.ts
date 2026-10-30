@@ -28,7 +28,9 @@ import {
   contaDeCmvDoProduto,
   aplicarPlanoDeContas,
   CONTA,
+  LINHAS_RECEITA,
   TETOS_PADRAO,
+  type CanalVenda,
   type Tetos,
   type CategoriaDespesa,
   type ContaPersonalizada,
@@ -868,6 +870,11 @@ export function useCriarFechamento() {
 
       // Trilha: se o dia já tinha lançamento, ele continua na lista.
       const anterior = (await repo.receitaDia.listar(t)).find((r) => r.id === id)
+      // Relançar o dia não desfaz o "recebido" de um canal que já caiu.
+      const canaisFinais = canais.map((c) => {
+        const antes = anterior?.canais.find((a) => a.canal === c.canal)
+        return antes?.recebidoEm ? { ...c, recebidoEm: antes.recebidoEm, recebidoPorNome: antes.recebidoPorNome ?? '' } : c
+      })
       const historicoAnterior =
         anterior?.historico ??
         (anterior
@@ -881,7 +888,7 @@ export function useCriarFechamento() {
       const receita = {
         id,
         data: hoje,
-        canais,
+        canais: canaisFinais,
         recebimentos: [
           { forma: 'pix', valor: pix },
           { forma: 'cartao', valor: cartao },
@@ -941,6 +948,62 @@ export function useRestaurarReceitaDia() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'receita_dia'] }),
   })
 }
+
+/**
+ * "Marcar como recebido": o dinheiro de um canal (app, delivery) caiu. Grava
+ * quem confirmou e o dia no próprio canal do dia de vendas. Não mexe no DRE —
+ * a venda continua contando no dia em que foi feita.
+ */
+export function useMarcarRecebido() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { r: ReceitaDiaDoc; canal: CanalVenda; dia: string }) => {
+      const autor = getAutor()
+      // Recebido hoje: a hora de agora. Em outro dia: meio-dia, pra não virar de dia no fuso.
+      const recebidoEm = p.dia === diaDeHoje() ? autor.criadoEm : `${p.dia}T12:00:00.000Z`
+      const canais = p.r.canais.map((c) => (c.canal === p.canal ? { ...c, recebidoEm, recebidoPorNome: autor.criadoPorNome } : c))
+      await repo.receitaDia.salvar(t, p.r.id, { canais })
+      const valor = p.r.canais.find((c) => c.canal === p.canal)?.valorBruto ?? 0
+      await registrarAtividade(
+        t,
+        { acao: 'recebeu', entidade: `${nomeDoCanalDeVenda(p.canal)} da venda de ${dataBRDe(p.r.data)}`, tipo: 'Recebimento', valor, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Volta o canal pra "a receber" (o desfazer do recebimento). */
+export function useDesfazerRecebimento() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { r: ReceitaDiaDoc; canal: CanalVenda }) => {
+      const canais = p.r.canais.map((c) => (c.canal === p.canal ? { ...c, recebidoEm: '', recebidoPorNome: '' } : c))
+      await repo.receitaDia.salvar(t, p.r.id, { canais })
+      const valor = p.r.canais.find((c) => c.canal === p.canal)?.valorBruto ?? 0
+      await registrarAtividade(
+        t,
+        { acao: 'voltou pra “a receber”', entidade: `${nomeDoCanalDeVenda(p.canal)} da venda de ${dataBRDe(p.r.data)}`, tipo: 'Recebimento', valor, quem: '', quemInicial: '', quemCor: '' },
+        getAutor(),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+const dataBRDe = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
+const nomeDoCanalDeVenda = (canal: CanalVenda) => LINHAS_RECEITA.find((l) => l.canais.includes(canal))?.nome ?? canal
 
 export interface ItemDaNota {
   produtoId: string
