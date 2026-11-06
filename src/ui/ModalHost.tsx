@@ -38,9 +38,10 @@ export function ModalHost() {
           {modal.resumo && modal.resumo.length > 0 && (
             <div className="mt-4 rounded-cartao bg-preenchimento/60 p-3.5">
               {modal.resumo.map((r) => (
-                <div key={r.rot} className="flex items-center justify-between py-1 text-sm">
-                  <span className="text-tinta-3">{r.rot}</span>
-                  <span className="mono font-bold text-tinta">{r.val}</span>
+                <div key={r.rot} className={cn('flex gap-x-3 py-1 text-sm', r.val.length > 22 ? 'flex-col' : 'items-center justify-between')}>
+                  <span className="shrink-0 text-tinta-3">{r.rot}</span>
+                  {/* Valor longo (ex.: domínio) vai para a linha de baixo, com fonte menor, no máximo 2 linhas. */}
+                  <span className={cn('line-clamp-2 min-w-0 font-bold text-tinta [overflow-wrap:anywhere]', r.val.length > 22 ? 'text-[clamp(11px,3.3vw,13px)] leading-snug' : 'mono text-right')}>{r.val}</span>
                 </div>
               ))}
             </div>

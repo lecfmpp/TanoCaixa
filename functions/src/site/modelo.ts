@@ -11,6 +11,20 @@
  * conteúdo dos clientes não divide cookies nem reputação com o painel. */
 export const DOMINIO_SITES = 'tanocaixa.com.br'
 
+/**
+ * "Meu site" está em teste. Libera para estas contas (em qualquer loja) e para
+ * dono/gestão destas lojas. O app (src/auth/site.ts) e as functions usam a
+ * mesma lista, então não dá para publicar por fora da interface.
+ */
+export const CONTAS_COM_SITE = ['lecfmpp@gmail.com', 'suporte@spoonconsultoria.com.br']
+export const RESTAURANTES_COM_SITE = [
+  'rede-aLLMdmXzwX-fausto-burguer-barra-oli-vxgp', // Fausto Burguer Barra Olímpica
+  'fausto-burger-realengo-ccda8c', // Fausto Burger Realengo
+]
+export function siteLiberadoPara(email: string, restauranteId: string): boolean {
+  return CONTAS_COM_SITE.includes(email.trim().toLowerCase()) || RESTAURANTES_COM_SITE.includes(restauranteId)
+}
+
 /** Nomes que nunca viram site de cliente. */
 export const SUBDOMINIOS_RESERVADOS = new Set([
   'www', 'app', 'api', 'admin', 'blog', 'painel', 'mail', 'email', 'smtp', 'ftp', 'cdn', 'static',
