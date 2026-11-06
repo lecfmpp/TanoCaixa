@@ -10,6 +10,7 @@
 import type { Firestore } from 'firebase-admin/firestore'
 import { calcularContato, diferencaSegmentos, impressao, PROPRIEDADES, SEGMENTOS, type LojaDaPessoa, type RetratoPessoa } from './contato'
 import { ErroResend, type ClienteResend } from './resend'
+import { TOPICOS, lerPreferencias } from './preferencias'
 
 export async function carregarRetrato(db: Firestore, uid: string): Promise<RetratoPessoa | null> {
   const u = await db.doc(`users/${uid}`).get()
@@ -52,6 +53,7 @@ export async function carregarRetrato(db: Firestore, uid: string): Promise<Retra
     criadoEm: typeof criado === 'string' ? criado : (criado as { toDate?: () => Date })?.toDate?.().toISOString(),
     entrouPor: convite.empty ? 'direto' : 'convite',
     lojas,
+    semEmailsOpcionais: TOPICOS.every((t) => !lerPreferencias(d.emails)[t]),
   }
 }
 
@@ -112,7 +114,7 @@ export async function sincronizar(
   if (!deps.forcar && anterior?.impressao === marca && anterior.contatoId) return 'sem-mudanca'
 
   await garantirPropriedades(resend, cache)
-  const corpo = { first_name: contato.primeiroNome, properties: contato.propriedades }
+  const corpo = { first_name: contato.primeiroNome, unsubscribed: contato.unsubscribed, properties: contato.propriedades }
 
   // Trocou de e-mail: o contato antigo sai (o Resend identifica contato pelo e-mail).
   if (anterior?.contatoId && anterior.email && anterior.email !== contato.email) {

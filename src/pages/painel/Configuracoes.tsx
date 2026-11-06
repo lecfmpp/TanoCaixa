@@ -4,7 +4,6 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Secoes } from '@/components/ui/Acordeao'
 import { Cartao } from '@/components/ui/Cartao'
 import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
-import { EmailsQueRecebo } from '@/components/ajustes/EmailsQueRecebo'
 import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
 import {
   Equipe,
@@ -107,7 +106,6 @@ export function Configuracoes() {
         {atual === 'notificacoes' && (
           <Secoes>
             <OndeTeAvisar />
-            <EmailsQueRecebo />
             {whatsappLiberado ? <LembretesWhatsapp semGrupo={<SemGrupo />} /> : <WhatsappEmBreve />}
           </Secoes>
         )}

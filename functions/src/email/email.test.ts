@@ -55,6 +55,14 @@ test('dono em teste: propriedades e segmentos de dono em teste', () => {
   assert.deepEqual(c.segmentos, [SEGMENTOS.todos, SEGMENTOS.donos, SEGMENTOS.donosEmTeste].sort())
 })
 
+test('quem desligou todos os e-mails opcionais vai como descadastrado pro Resend', () => {
+  const lojas = [{ rid: 'r1', papel: 'dono', assinatura: { status: 'teste' as const, testeAte: FIM }, diasLancados: 1, membros: 1 }]
+  const ligado = calcularContato(pessoa(lojas), AGORA)!
+  const desligado = calcularContato({ ...pessoa(lojas), semEmailsOpcionais: true }, AGORA)!
+  assert.equal(ligado.unsubscribed, false)
+  assert.equal(desligado.unsubscribed, true)
+})
+
 test('caixa e cozinha: nenhum dado de cobrança nem de faturamento', () => {
   const c = calcularContato(
     pessoa([

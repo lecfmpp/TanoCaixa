@@ -66,7 +66,9 @@ export const enviarEmailDeAcesso = onCall({ secrets: [RESEND_API_KEY] }, async (
     const uid = req.auth?.uid
     const atual = (req.auth?.token.email ?? '').toLowerCase()
     if (!uid || !atual) throw new HttpsError('unauthenticated', 'Faça login primeiro')
-    nome = primeiroNome(req.auth?.token.name as string | undefined, atual)
+    // O token pode ser de antes do updateProfile (cadastro agora): lê o nome na conta.
+    const nomeConta = (req.auth?.token.name as string | undefined) || (await auth.getUser(uid).catch(() => null))?.displayName || undefined
+    nome = primeiroNome(nomeConta, atual)
     if (tipo === 'verificacao') {
       para = atual
       id = 'acesso-verificacao'

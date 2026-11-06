@@ -49,15 +49,20 @@ const HISTORICO_INICIAL = 12
  * (pages/painel/Configuracoes.tsx) distribui estas seções pelas abas.
  */
 
-/** "Onde te avisar": canais e o que chega em cada um. */
+/** "Onde te avisar": canais e o que chega em cada um, mais os e-mails que a pessoa recebe. */
 export function OndeTeAvisar() {
   const [whatsapp, setWhatsapp] = useState(true)
   const [sms, setSms] = useState(false)
   return (
-    <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
-      <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
-      <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
-    </Secao>
+    <>
+      <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
+        <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
+        <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
+      </Secao>
+
+      {/* E-mails de dicas, recado e novidades (LGPD) */}
+      <EmailsQueRecebo />
+    </>
   )
 }
 

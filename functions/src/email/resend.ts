@@ -84,9 +84,9 @@ export function clienteResend(o: OpcoesCliente) {
     enviar: (e: EmailSaida, chaveIdempotencia?: string) =>
       chamar<{ id?: string }>('POST', '/emails', e, chaveIdempotencia ? { 'Idempotency-Key': chaveIdempotencia } : undefined),
 
-    criarContato: (c: { email: string; first_name?: string; properties?: Record<string, string | number | null> }) =>
+    criarContato: (c: { email: string; first_name?: string; unsubscribed?: boolean; properties?: Record<string, string | number | null> }) =>
       chamar<{ id: string }>('POST', '/contacts', c),
-    atualizarContato: (contato: string, c: { email?: string; first_name?: string; properties?: Record<string, string | number | null> }) =>
+    atualizarContato: (contato: string, c: { email?: string; first_name?: string; unsubscribed?: boolean; properties?: Record<string, string | number | null> }) =>
       chamar<{ id: string }>('PATCH', `/contacts/${id(contato)}`, c),
     buscarContato: (contato: string) => chamar<{ id: string; email: string }>('GET', `/contacts/${id(contato)}`),
     removerContato: (contato: string) => chamar<unknown>('DELETE', `/contacts/${id(contato)}`),

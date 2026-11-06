@@ -89,6 +89,8 @@ export interface RetratoPessoa {
   criadoEm?: string
   entrouPor?: 'convite' | 'direto'
   lojas: LojaDaPessoa[]
+  /** Desligou todos os e-mails opcionais (dicas, recado, novidades). */
+  semEmailsOpcionais?: boolean
 }
 
 export function situacaoDaLoja(a: AssinaturaDaLoja | undefined, agora: Date): SituacaoLoja {
@@ -105,6 +107,8 @@ const GRAVIDADE: SituacaoLoja[] = ['pagamento_falhou', 'sem_assinatura', 'cancel
 export interface ContatoCalculado {
   email: string
   primeiroNome: string
+  /** Vai pro Resend: quem desligou tudo não entra em Broadcast nenhum. */
+  unsubscribed: boolean
   propriedades: Record<string, string | number | null>
   segmentos: string[]
 }
@@ -186,7 +190,7 @@ export function calcularContato(r: RetratoPessoa, agora: Date): ContatoCalculado
   const parado = !ultimoUso || agora.getTime() - Date.parse(`${ultimoUso}T12:00:00-03:00`) >= seteDias
   if (lojasUso.length && contaVelha && parado) seg.add(SEGMENTOS.inativos7)
 
-  return { email, primeiroNome: primeiroNome(r.nome, email), propriedades, segmentos: [...seg].sort() }
+  return { email, primeiroNome: primeiroNome(r.nome, email), unsubscribed: !!r.semEmailsOpcionais, propriedades, segmentos: [...seg].sort() }
 }
 
 /** O que mudar nos segmentos "TNC · …" do contato (os de outros projetos ficam intocados). */
@@ -201,5 +205,5 @@ export function diferencaSegmentos(desejados: string[], atuais: string[]): { ent
 /** Impressão digital do que vai pro Resend: igual à última → não precisa chamar a API. */
 export function impressao(c: ContatoCalculado): string {
   const props = Object.keys(c.propriedades).sort().map((k) => `${k}=${c.propriedades[k]}`)
-  return JSON.stringify([c.email, c.primeiroNome, props, c.segmentos])
+  return JSON.stringify([c.email, c.primeiroNome, props, c.segmentos, c.unsubscribed])
 }
