@@ -5,6 +5,7 @@
  * "vencido há 3 dias", "vence hoje", "vence em 2 dias".
  * ------------------------------------------------------------------ */
 import { ehCompra } from './compras'
+import { chaveDaConta } from './fluxo'
 import type { DespesaDoc } from './types'
 
 /** Até quantos dias à frente um vencimento vira lembrete. */
@@ -58,13 +59,13 @@ export function rotuloVencimento(dias: number): string {
 /**
  * Tudo que está em aberto e tem vencimento, do mais atrasado ao mais distante.
  * Nota com mais de um lançamento (alimento + bebida) aparece como UMA linha:
- * quem paga o boleto paga a nota inteira.
+ * quem paga o boleto paga a nota inteira. Nota parcelada: uma linha por parcela.
  */
 export function vencimentosEmAberto(despesas: DespesaDoc[], hoje: string): Vencimento[] {
   const grupos = new Map<string, DespesaDoc[]>()
   for (const d of despesas) {
     if (d.status === 'pago' || !d.dataVencimento) continue
-    const chave = ehCompra(d) && d.notaId ? d.notaId : d.id
+    const chave = chaveDaConta(d)
     grupos.set(chave, [...(grupos.get(chave) ?? []), d])
   }
   return [...grupos.entries()]

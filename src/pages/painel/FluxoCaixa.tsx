@@ -144,7 +144,7 @@ function Linha({ conta: c, hoje, aoMarcar, mostrarData }: { conta: ContaDoFluxo;
       <div className="min-w-0 flex-1">
         <div className={cn('truncate font-semibold', c.pago ? 'text-tinta-3' : 'text-tinta')}>{c.fornecedor}</div>
         <div className="truncate text-xs text-tinta-4">
-          {[c.descricao, CONTA[c.categoria]?.nome, c.natureza === 'nota' ? 'nota fiscal' : null].filter(Boolean).join(' · ')}
+          {[c.parcela ? `Parcela ${c.parcela.numero} de ${c.parcela.total}` : null, c.descricao, CONTA[c.categoria]?.nome, c.natureza === 'nota' ? (c.numeroNota ? `NF ${c.numeroNota}` : 'nota fiscal') : null].filter(Boolean).join(' · ')}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {c.pago ? (

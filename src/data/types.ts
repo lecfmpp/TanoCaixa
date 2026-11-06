@@ -115,6 +115,10 @@ export interface DespesaDoc extends Autoria {
   notaId?: string
   /** Número impresso na nota fiscal (o do fornecedor, não o `notaId` interno). */
   numeroNota?: string
+  /** Parcela deste lançamento (1, 2, 3…) quando o boleto da nota tem vários vencimentos. */
+  parcela?: number
+  /** Quantas parcelas a nota tem. Sem o campo (ou 1): nota à vista / vencimento único. */
+  parcelas?: number
   /** Desconto e acréscimo da nota INTEIRA (iguais em todos os lançamentos dela);
    *  o `valorTotal` de cada lançamento já carrega a sua parte proporcional. */
   descontoNota?: number
