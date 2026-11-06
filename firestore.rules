@@ -21,6 +21,14 @@ service cloud.firestore {
       return logado() && (request.auth.uid in dadosRestaurante(rid).memberUids);
     }
 
+    function mudou(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
+    }
+    function souDonoDe(rid) {
+      return souMembro(rid)
+        && get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(request.auth.uid)).data.papel in ['dono', 'franqueador'];
+    }
+
     // Perfil do usuário: só o próprio.
     match /users/{userId} {
       allow read, write: if logado() && request.auth.uid == userId;
@@ -44,7 +52,14 @@ service cloud.firestore {
       allow read, write: if ehDemo(rid);
       allow read: if souMembro(rid);
       allow create: if logado() && (request.auth.uid in request.resource.data.memberUids);
-      allow update, delete: if souMembro(rid);
+      // Membro edita os dados da loja, mas a lista de quem entra (memberUids)
+      // e quem criou (criadoPor) não: entrar na loja é só por convite (Cloud
+      // Functions). O dono pode tirar gente da lista, nunca pôr.
+      allow update: if souMembro(rid) && !mudou(['criadoPor']) && (
+        !mudou(['memberUids'])
+        || (souDonoDe(rid) && request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet()).size() == 0)
+      );
+      allow delete: if souDonoDe(rid);
 
       // Tudo da loja, menos a equipe (regras próprias logo abaixo).
       match /{colecao}/{document=**} {
@@ -59,11 +74,8 @@ service cloud.firestore {
       //  - quem cria a loja cria o próprio cadastro (como dono/franqueador).
       // Convites entram pelas Cloud Functions (Admin SDK, fora destas regras).
       match /membros/{uid} {
-        function papelDe(u) {
-          return get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(u)).data.papel;
-        }
         function souDonoDaLoja() {
-          return logado() && souMembro(rid) && papelDe(request.auth.uid) in ['dono', 'franqueador'];
+          return souDonoDe(rid);
         }
         function criouALoja() {
           return logado() && dadosRestaurante(rid).criadoPor == request.auth.uid;
