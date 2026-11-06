@@ -29,7 +29,7 @@ if (acao === 'publicar') {
   for (const d of CATALOGO) {
     const alias = aliasDe(d.id)
     const { html, variaveis } = htmlDoTemplate(d.id)
-    const corpo = { name: `[Tá no Caixa] ${d.segmento} · ${d.id}`, subject: d.assunto, html, variables: variaveis }
+    const corpo = { name: `[Tá no Caixa] ${d.id}`.slice(0, 50), subject: d.assunto, html, variables: variaveis }
     let id = existentes.get(alias)
     if (id) await resend.atualizarTemplate(id, corpo)
     else id = (await resend.criarTemplate({ ...corpo, alias, from: REMETENTE, reply_to: RESPONDER_PARA })).id
