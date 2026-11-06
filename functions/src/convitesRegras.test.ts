@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { lojasDoConvite, pedidoDeLojas, podeConvidar, type ConviteDoc } from './convitesRegras'
+import { emailConfere, lojasDoConvite, pedidoDeLojas, podeConvidar, type ConviteDoc } from './convitesRegras'
 
 test('convite por loja: só as lojas marcadas, cada uma com seu papel', () => {
   assert.deepEqual(
@@ -50,4 +50,11 @@ test('convite antigo (sem lojas) vira uma loja só', () => {
   assert.deepEqual(lojasDoConvite(base), [{ restauranteId: 'a', restauranteNome: 'Loja A', papel: 'caixa' }])
   const novo = { ...base, lojas: [{ restauranteId: 'b', restauranteNome: 'Loja B', papel: 'gestao' }] }
   assert.deepEqual(lojasDoConvite(novo), novo.lojas)
+})
+
+test('convite de gestor preso a e-mail: só o e-mail certo aceita', () => {
+  assert.equal(emailConfere({}, 'qualquer@x.com'), true)
+  assert.equal(emailConfere({ email: 'gestor@x.com' }, 'Gestor@X.com '), true)
+  assert.equal(emailConfere({ email: 'gestor@x.com' }, 'outro@x.com'), false)
+  assert.equal(emailConfere({ email: 'gestor@x.com' }, ''), false)
 })

@@ -27,6 +27,8 @@ export interface ConviteDoc {
   status: 'pendente' | 'aceito' | 'revogado'
   usadoPor?: string
   aceitoEm?: string
+  /** Convite de gestor (convidarGestor): só quem entrar com este e-mail aceita. */
+  email?: string
 }
 
 /** Lojas do convite, inclusive dos convites gerados antes do convite por loja. */
@@ -67,3 +69,8 @@ export function pedidoDeLojas(data: unknown): { restauranteId: string; papel: st
   return lojas
 }
 
+
+/** Convite preso a e-mail: só aceita quem entrou com aquele e-mail. */
+export function emailConfere(c: Pick<ConviteDoc, 'email'>, emailDoLogin: string): boolean {
+  return !c.email || c.email.trim().toLowerCase() === emailDoLogin.trim().toLowerCase()
+}

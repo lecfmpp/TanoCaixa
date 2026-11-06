@@ -17,7 +17,7 @@
 import { randomBytes } from 'node:crypto'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
-import { lojasDoConvite, pedidoDeLojas, podeConvidar, type ConviteDoc, type LojaDoConvite } from './convitesRegras'
+import { emailConfere, lojasDoConvite, pedidoDeLojas, podeConvidar, type ConviteDoc, type LojaDoConvite } from './convitesRegras'
 
 const db = getFirestore()
 
@@ -89,6 +89,9 @@ export const aceitarConvite = onCall(async (req) => {
     if (!snap.exists) throw new HttpsError('not-found', 'Convite não encontrado ou expirado')
     const c = snap.data() as ConviteDoc
     if (c.status !== 'pendente') throw new HttpsError('failed-precondition', 'Esse convite já foi usado')
+    if (!emailConfere(c, email)) {
+      throw new HttpsError('failed-precondition', `Esse convite é para ${c.email}. Entre com esse e-mail`)
+    }
     const lojas = lojasDoConvite(c)
 
     // Quem já tinha conta continua abrindo na loja de antes; o seletor de
