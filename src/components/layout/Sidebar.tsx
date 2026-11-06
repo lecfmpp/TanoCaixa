@@ -52,16 +52,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-4">
         {itens.map((item) => (
           <li key={item.para}>
-            {item.recurso === 'pdv' ? (
-              <span
-                aria-disabled
-                title="O PDV está chegando"
-                className="block cursor-not-allowed rounded-botao px-4 py-2.5 text-[15px] font-medium text-creme/40"
-              >
-                {item.rotulo}
-                <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
-              </span>
-            ) : (
             <NavLink
               to={item.para}
               end={item.para === '/painel'}
@@ -80,7 +70,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
                 <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
               )}
             </NavLink>
-            )}
           </li>
         ))}
       </ul>
