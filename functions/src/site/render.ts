@@ -68,6 +68,14 @@ function logo(c: SiteConfig, cls: string): string {
   return `<div class="logo ${cls}">${u ? `<img src="${esc(u)}" alt="${esc(c.nome)}">` : esc(c.sigla)}</div>`
 }
 
+/** " · entrega 30–45 min · taxa R$ 4,99", só com o que estiver preenchido. */
+function entregaTaxa(l: LojaSite): string {
+  return [l.tempoEntrega.trim() && 'entrega ' + l.tempoEntrega.trim(), l.taxa.trim() && 'taxa ' + l.taxa.trim()]
+    .filter(Boolean)
+    .map((x) => ' · ' + esc(x))
+    .join('')
+}
+
 function taxaMin(lojas: LojaSite[]): string {
   const num = (t: string) => Number(t.replace(/[^\d,]/g, '').replace(',', '.')) || Infinity
   return [...lojas].sort((a, b) => num(a.taxa) - num(b.taxa))[0]?.taxa ?? ''
@@ -262,7 +270,7 @@ function painelPedido(x: Ctx, onde: 'pop' | 'cel'): string {
           : ''
       const vazio = !apps && !zap ? `<p class="subt">Essa loja ainda não informou os apps de pedido.</p>` : ''
       return `<div data-da-loja="${i}"${i === x.sel ? ' data-on' : ''} style="display:flex;flex-direction:column;gap:12px">
-<div class="subt" style="font-size:${onde === 'cel' ? 13 : 14}px"><span data-st="t${i}">${esc(st.lojas[i].texto)}</span> · entrega ${esc(l.tempoEntrega)} · taxa ${esc(l.taxa)}</div>
+<div class="subt" style="font-size:${onde === 'cel' ? 13 : 14}px"><span data-st="t${i}">${esc(st.lojas[i].texto)}</span>${entregaTaxa(l)}</div>
 <div style="display:flex;flex-direction:column;gap:8px">${apps}${zap}${vazio}</div></div>`
     })
     .join('')
@@ -300,7 +308,7 @@ function heroPc(x: Ctx): string {
 <div class="pil">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="longo">${esc(x.st.longo)}</span></div>
 <h1 class="tit">${esc(c.nome)}</h1>
 ${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}
-<div class="meta">${nota ? `<span><b>${esc(nota.valor)}</b> <span>${esc(nota.rotulo)}</span></span>` : ''}${l0 ? `<span><b>${esc(l0.tempoEntrega)}</b> <span>de entrega</span></span><span><span>taxa a partir de</span> <b>${esc(taxaMin(lojas))}</b></span>` : ''}</div>
+<div class="meta">${nota ? `<span><b>${esc(nota.valor)}</b> <span>${esc(nota.rotulo)}</span></span>` : ''}${l0?.tempoEntrega.trim() ? `<span><b>${esc(l0.tempoEntrega)}</b> <span>de entrega</span></span>` : ''}${taxaMin(lojas).trim() ? `<span><span>taxa a partir de</span> <b>${esc(taxaMin(lojas))}</b></span>` : ''}</div>
 <div class="bts"><a class="btn pri" href="#lojas" data-abrir-pedir>Pedir agora</a>${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>Pedir pelo WhatsApp</a>` : ''}</div>
 ${todos.length ? `<div class="disp">Disponível em ${todos.map((a) => `<span>${ponto(a.cor, 9)}${esc(a.nome)}</span>`).join('')}</div>` : ''}
 </div><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="1200" height="960"')}</div></section>`
@@ -313,7 +321,14 @@ function capaCel(x: Ctx): string {
   return `<section class="capa so-cel"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="780" height="500"')}</div>
 <div class="capa-txt">${logo(c, '')}<div><h1 class="tit um">${esc(c.nome)}</h1>${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}</div>
 <div class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="longo">${esc(x.st.longo)}</span></div>
-${l0 ? `<div class="faixa">${nota ? `<div><b>${esc(nota.valor)}</b><span>${esc(nota.rotulo)}</span></div>` : ''}<div><b>${esc(l0.tempoEntrega)}</b><span>de entrega</span></div><div><b>${esc(taxaMin(lojas))}</b><span>taxa a partir de</span></div></div>` : ''}
+${(() => {
+    const cels = [
+      nota ? `<div><b>${esc(nota.valor)}</b><span>${esc(nota.rotulo)}</span></div>` : '',
+      l0?.tempoEntrega.trim() ? `<div><b>${esc(l0.tempoEntrega)}</b><span>de entrega</span></div>` : '',
+      taxaMin(lojas).trim() ? `<div><b>${esc(taxaMin(lojas))}</b><span>taxa a partir de</span></div>` : '',
+    ].filter(Boolean)
+    return cels.length ? `<div class="faixa" style="grid-template-columns:repeat(${cels.length},minmax(0,1fr))">${cels.join('')}</div>` : ''
+  })()}
 </div></section>`
 }
 
@@ -373,7 +388,7 @@ function secLojas(x: Ctx): string {
       return `<div class="loja${i === x.sel ? ' on' : ''}" data-escolher="${i}" role="button" tabindex="0">
 <div class="cab"><b class="um">${esc(l.nome)}</b><span class="st">${ponto(st.lojas[i].aberta ? COR_ABERTO : COR_FECHADO, 8, `data-dot="${i}"`)}<span data-st="c${i}">${esc(st.lojas[i].curto)}</span></span></div>
 ${l.endereco ? `<div class="subt">${esc(l.endereco)}</div>` : ''}
-<div style="font-size:14px">${esc(textoDias(l.dias))}, ${esc(horaTexto(l.abre))} às ${esc(horaTexto(l.fecha))} · entrega ${esc(l.tempoEntrega)} · taxa ${esc(l.taxa)}</div>
+<div style="font-size:14px">${esc(textoDias(l.dias))}, ${esc(horaTexto(l.abre))} às ${esc(horaTexto(l.fecha))}${entregaTaxa(l)}</div>
 ${apps.length ? `<div class="apps">${apps.map((a) => `<a href="${esc(a.url)}" ${ext}><span>${ponto(a.cor)}${esc(a.nome)}</span></a>`).join('')}</div>` : ''}
 <div class="lks">${l.endereco ? `<a href="${esc(rota(l))}" ${ext} data-ev="rota">Como chegar ↗</a>` : ''}${wa(l) ? `<a href="${esc(wa(l))}" ${ext}>WhatsApp ↗</a>` : ''}</div></div>`
     })
@@ -569,7 +584,7 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
         .map((a) => `<a class="gr pri" href="${esc(a.url)}" ${ext} data-ev="pedido" data-app="${a.k}"><span class="bola" style="background:${a.cor};border:2px solid var(--onPri)"></span><span class="x">Pedir no ${esc(a.nome)}</span><span>↗</span></a>`)
         .join('')
       const zap = wa(l) ? `<a class="gr ctn" href="${esc(wa(l))}" ${ext}><span class="bola" style="background:${COR_WHATSAPP}"></span><span class="x">Pedir pelo WhatsApp</span><span>↗</span></a>` : ''
-      return `<div data-da-loja="${i}"${i === 0 ? ' data-on' : ''} style="width:100%;display:flex;flex-direction:column;gap:10px">${apps}${zap}<div class="subt" style="font-size:13px">Loja ${esc(l.nome)} · entrega ${esc(l.tempoEntrega)} · taxa ${esc(l.taxa)}</div></div>`
+      return `<div data-da-loja="${i}"${i === 0 ? ' data-on' : ''} style="width:100%;display:flex;flex-direction:column;gap:10px">${apps}${zap}<div class="subt" style="font-size:13px">Loja ${esc(l.nome)}${entregaTaxa(l)}</div></div>`
     })
     .join('')
   const promo = promoAtiva(c, hoje)
@@ -607,7 +622,7 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
 .lf{padding:16px 20px 22px;text-align:center;font-size:12px;color:var(--sub)}</style>`
   const corpo = `<div class="wrap"><div class="lc"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high"')}</div></div>
 <div class="lb">${logo(c, '')}<div style="display:flex;flex-direction:column;gap:6px;align-items:center"><h1 class="tit" style="font-size:30px">${esc(c.nome)}</h1>${c.slogan ? `<div class="subt" style="font-size:15px;max-width:30ch">${esc(c.slogan)}</div>` : ''}
-${lojas.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:14px;margin-top:4px"><span class="st">${ponto(st.lojas[0].aberta ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="sel"')}<span data-st="sel">${esc(st.lojas[0].texto)}</span></span>${nota ? `<span><b>${esc(nota.valor)}</b> · ${esc(lojas[0].tempoEntrega)}</span>` : ''}</div>` : ''}</div>
+${lojas.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:14px;margin-top:4px"><span class="st">${ponto(st.lojas[0].aberta ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="sel"')}<span data-st="sel">${esc(st.lojas[0].texto)}</span></span>${nota ? `<span><b>${esc(nota.valor)}</b>${lojas[0].tempoEntrega.trim() ? ' · ' + esc(lojas[0].tempoEntrega) : ''}</span>` : ''}</div>` : ''}</div>
 ${seg}${botoes}${promo}<div style="width:100%;display:flex;flex-direction:column;gap:8px">${links}</div>${ig}</div>
 <div class="lf">${esc(o.dominio)}/links · feito com <a href="https://tanocaixa.com" ${ext}>Tá no Caixa</a></div></div>`
   return documento(x, `${c.nome} · Links para pedir`, c.slogan || `Peça ${c.nome} no app que preferir.`, corpo, extraCss)

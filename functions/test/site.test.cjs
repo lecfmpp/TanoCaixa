@@ -93,6 +93,16 @@ test('render: seção oculta some; promo do dia some no dia seguinte', () => {
   assert.ok(!html.includes('id="promo"'))
 })
 
+test('render: sem taxa e tempo, não mostra rótulos vazios', () => {
+  const d = dados()
+  d.config.lojas[0].taxa = ''
+  d.config.lojas[0].tempoEntrega = ''
+  const html = r.renderSite(d, { dominio: 'x.tanocaixa.com.br' })
+  assert.ok(!html.includes('taxa a partir de'))
+  assert.ok(!html.includes('entrega  ·'))
+  assert.ok(!html.includes('de entrega'))
+})
+
 test('render: página de links', () => {
   const html = r.renderLinks(dados(), { dominio: 'fausto.tanocaixa.com.br' })
   assert.ok(html.includes('Pedir no iFood'))
