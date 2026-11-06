@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { eventoEhMaisNovo, statusDoStripe, urlSegura } from './assinatura'
+import { eventoEhMaisNovo, statusDoStripe, urlSegura, fimDoTesteDaConta, situacaoDoPainel, FIM_DO_TESTE } from './assinatura'
 
 test('status do Stripe vira o nosso; o que não conhecemos NÃO libera nada', () => {
   assert.equal(statusDoStripe('active'), 'ativa')
@@ -30,4 +30,22 @@ test('evento antigo não sobrescreve o mais novo', () => {
   assert.equal(eventoEhMaisNovo(200, 100), true)
   assert.equal(eventoEhMaisNovo(100, 100), true)
   assert.equal(eventoEhMaisNovo(50, 100), false)
+})
+
+test('teste grátis vai até 25/11 (Brasília) pra todo mundo; teste mais longo fica', () => {
+  assert.equal(fimDoTesteDaConta(undefined), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('2026-11-12T05:12:41.139Z'), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('lixo'), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('2026-12-04T10:00:00.000Z'), '2026-12-04T10:00:00.000Z')
+  // 25/11 23:59 em Brasília ainda é dia 25
+  assert.equal(new Date(FIM_DO_TESTE).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }), '25/11/2026')
+})
+
+test('situação da barra: ativa some, pagamento falhou avisa, teste conta os dias', () => {
+  const agora = new Date('2026-11-06T15:00:00.000Z')
+  assert.deepEqual(situacaoDoPainel('ativa', FIM_DO_TESTE, agora), { situacao: 'ativa', diasRestantes: 0 })
+  assert.deepEqual(situacaoDoPainel('pagamento_falhou', FIM_DO_TESTE, agora), { situacao: 'pagamento_falhou', diasRestantes: 0 })
+  assert.deepEqual(situacaoDoPainel('teste', FIM_DO_TESTE, agora), { situacao: 'teste', diasRestantes: 20 })
+  assert.deepEqual(situacaoDoPainel(undefined, FIM_DO_TESTE, agora), { situacao: 'teste', diasRestantes: 20 })
+  assert.deepEqual(situacaoDoPainel('cancelada', FIM_DO_TESTE, new Date('2026-11-27T00:00:00.000Z')), { situacao: 'teste_acabou', diasRestantes: 0 })
 })

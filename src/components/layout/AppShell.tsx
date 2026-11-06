@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useSearchParams } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { BarraTeste } from '@/components/assinatura/BarraTeste'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
@@ -57,6 +58,9 @@ export function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Aviso do teste grátis pro dono, acima de tudo */}
+        <BarraTeste />
+
         {/* Topo só no mobile/tablet */}
         <header className="flex items-center justify-between border-b border-divisoria bg-superficie px-4 py-3 tab:hidden">
           <Logo tom="escuro" tamanho={20} href="/painel" />
