@@ -21,14 +21,6 @@ service cloud.firestore {
       return logado() && (request.auth.uid in dadosRestaurante(rid).memberUids);
     }
 
-    function mudou(campos) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
-    }
-    function souDonoDe(rid) {
-      return souMembro(rid)
-        && get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(request.auth.uid)).data.papel in ['dono', 'franqueador'];
-    }
-
     // Perfil do usuário: só o próprio.
     match /users/{userId} {
       allow read, write: if logado() && request.auth.uid == userId;
@@ -45,6 +37,15 @@ service cloud.firestore {
     // vários: a matriz e as lojas da rede de demonstração.
     function ehDemo(rid) {
       return rid.matches('demo-.*');
+    }
+
+    // Campos que a escrita mexe, e se quem escreve é dono/franqueador da loja.
+    function mudou(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
+    }
+    function souDonoDe(rid) {
+      return souMembro(rid)
+        && get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(request.auth.uid)).data.papel in ['dono', 'franqueador'];
     }
 
     // Restaurantes reais — só os membros.
