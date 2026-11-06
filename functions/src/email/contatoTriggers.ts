@@ -66,7 +66,7 @@ export const contatoResendAssinatura = onDocumentWritten({ document: 'assinatura
 })
 
 export const conferirContatosResend = onSchedule(
-  { schedule: '0 6 * * *', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 540 },
+  { schedule: '0 6 * * *', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 1800 },
   async () => {
     const usuarios = await getFirestore().collection('users').select().get()
     await sincronizarUids(

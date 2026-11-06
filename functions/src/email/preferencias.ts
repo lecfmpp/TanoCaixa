@@ -7,6 +7,8 @@
  *
  * Todo e-mail que não é transacional leva um link de descadastro
  * assinado (HMAC), que funciona sem login: /emails?u=&t=&s=
+ * O cabeçalho List-Unsubscribe (Gmail/Yahoo, um clique) aponta pra
+ * /api/descadastrar?u=&t=&s= — a função descadastrarUmClique.
  * ------------------------------------------------------------------ */
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { Topico } from './catalogo'
@@ -30,12 +32,19 @@ export function lerPreferencias(emails: unknown): Preferencias {
   }
 }
 
+// A assinatura usa a RESEND_API_KEY como segredo: trocar a chave invalida
+// os links de descadastro de todos os e-mails já enviados.
 const assinar = (uid: string, topico: string, segredo: string) =>
   createHmac('sha256', `tnc-descadastro:${segredo}`).update(`${uid}|${topico}`).digest('base64url').slice(0, 22)
 
 export function linkDescadastro(uid: string, topico: Topico | 'tudo', segredo: string): string {
   const q = new URLSearchParams({ u: uid, t: topico, s: assinar(uid, topico, segredo) })
   return `${URL_SITE}/emails?${q.toString()}`
+}
+
+/** Mesmo link, no endereço que responde ao POST de um clique (RFC 8058). */
+export function linkUmClique(linkPagina: string): string {
+  return linkPagina.replace(`${URL_SITE}/emails?`, `${URL_SITE}/api/descadastrar?`)
 }
 
 export function conferirDescadastro(uid: string, topico: string, assinatura: string, segredo: string): boolean {

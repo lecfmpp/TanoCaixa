@@ -25,6 +25,12 @@ import { clienteResend } from './resend'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const LIMITE_POR_HORA = 3
+/**
+ * Erros do Admin SDK pra e-mail sem conta (o generatePasswordResetLink usa
+ * 'auth/email-not-found'). No "esqueci a senha" viram sucesso, pra resposta
+ * não revelar quem tem conta.
+ */
+export const CONTA_INEXISTENTE = new Set(['auth/user-not-found', 'auth/email-not-found'])
 
 /** Link do Firebase (…/__/auth/action?mode=…&oobCode=…) → mesmo código no nosso domínio. */
 export function linkNoNossoDominio(linkFirebase: string): string {
@@ -90,7 +96,7 @@ export const enviarEmailDeAcesso = onCall({ secrets: [RESEND_API_KEY] }, async (
     link = linkNoNossoDominio(await gerar())
   } catch (e) {
     // Conta inexistente no "esqueci a senha": responde ok mesmo assim.
-    if (tipo === 'senha' && (e as { code?: string }).code === 'auth/user-not-found') return { ok: true }
+    if (tipo === 'senha' && CONTA_INEXISTENTE.has((e as { code?: string }).code ?? '')) return { ok: true }
     console.error(`acesso ${id}:`, (e as Error).message)
     throw new HttpsError('internal', 'Não deu para gerar o link agora')
   }

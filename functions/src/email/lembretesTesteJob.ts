@@ -1,6 +1,8 @@
 /* ------------------------------------------------------------------ *
  * Job das 9h (Brasília): lembretes do fim do teste.
- * Lê `assinaturas`, acha as lojas cujo teste acaba em 7, 2, 0 dias ou
+ * Lê todas as lojas reais (`restaurants`) e a assinatura de cada uma — loja
+ * que nunca passou pelo Stripe não tem doc em `assinaturas` e conta como
+ * teste até FIM_DO_TESTE. Acha as lojas cujo teste acaba em 7, 2, 0 dias ou
  * acabou ontem, agrupa por dono (um e-mail por dono, com a lista de lojas)
  * e envia uma vez só por dono+passo+data de fim.
  * Isentas (Loja Teste), demos e lojas assinadas ficam de fora; a situação é
@@ -17,27 +19,27 @@ import { clienteResend } from './resend'
 import { EMAIL_TESTE_PARA, modoAtual, RESEND_API_KEY } from './params'
 
 export const lembretesFimDoTeste = onSchedule(
-  { schedule: '0 9 * * *', timeZone: 'America/Sao_Paulo', secrets: [RESEND_API_KEY], timeoutSeconds: 300 },
+  { schedule: '0 9 * * *', timeZone: 'America/Sao_Paulo', secrets: [RESEND_API_KEY], timeoutSeconds: 1800 },
   async () => {
     const db = getFirestore()
     const agora = new Date()
     const porDono = new Map<string, { dono: Dono; passo: PassoTeste; testeAte: string; lojas: LojaDoLembrete[] }>()
 
-    const assinaturas = await db.collection('assinaturas').get()
-    for (const a of assinaturas.docs) {
-      const rid = a.id
+    const [lojas, assinaturas] = await Promise.all([db.collection('restaurants').get(), db.collection('assinaturas').get()])
+    const assinaturaDe = new Map(assinaturas.docs.map((a) => [a.id, a.data() as AssinaturaDaLoja]))
+    for (const lojaDoc of lojas.docs) {
+      const rid = lojaDoc.id
       if (ehLojaDemo(rid)) continue
-      const dados = a.data() as AssinaturaDaLoja
+      const dados: AssinaturaDaLoja = assinaturaDe.get(rid) ?? {}
       const testeAte = fimDoTesteDaConta(dados.testeAte)
       const passo = passoDoTeste(testeAte, agora)
       if (!passo || !passoCombinaComSituacao(passo, situacaoDaLoja(dados, agora))) continue
 
-      const [loja, donos, dias] = await Promise.all([
-        db.doc(`restaurants/${rid}`).get(),
+      const [donos, dias] = await Promise.all([
         donosDaLoja(db, rid),
         db.collection(`restaurants/${rid}/receita_dia`).count().get(),
       ])
-      const item: LojaDoLembrete = { rid, nome: (loja.data()?.nome as string | undefined) ?? 'sua loja', diasLancados: dias.data().count }
+      const item: LojaDoLembrete = { rid, nome: (lojaDoc.data()?.nome as string | undefined) ?? 'sua loja', diasLancados: dias.data().count }
       for (const dono of donos) {
         const k = `${dono.uid}|${passo}|${diaSP(new Date(testeAte))}`
         const atual = porDono.get(k) ?? { dono, passo, testeAte, lojas: [] }

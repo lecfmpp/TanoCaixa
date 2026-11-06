@@ -22,6 +22,11 @@ const pessoa = (lojas: RetratoPessoa['lojas'], extra: Partial<RetratoPessoa> = {
 
 /* ------------------------------ situação ------------------------------ */
 
+test('loja sem doc de assinatura (nunca passou pelo Stripe) conta como teste até o fim do teste', () => {
+  assert.equal(situacaoDaLoja(undefined, new Date('2026-11-18T12:00:00Z')), 'teste')
+  assert.equal(situacaoDaLoja({}, new Date('2026-11-27T12:00:00Z')), 'sem_assinatura')
+})
+
 test('situação da loja: isenta, ativa, falhou, cancelada, teste e teste vencido', () => {
   assert.equal(situacaoDaLoja({ isenta: true, status: 'ativa' }, AGORA), 'isenta')
   assert.equal(situacaoDaLoja({ status: 'ativa' }, AGORA), 'ativa')

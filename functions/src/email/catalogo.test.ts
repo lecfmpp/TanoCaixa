@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CATALOGO, htmlDoTemplate, renderizar, sobrouVariavel, variaveisNoTexto } from './catalogo'
-import { conferirDescadastro, lerPreferencias, linkDescadastro } from './preferencias'
+import { conferirDescadastro, lerPreferencias, linkDescadastro, linkUmClique } from './preferencias'
+import { paraResend } from './enviarUmaVez'
 import { passoInatividade, proximoPasso, SEQUENCIAS } from './sequencias'
 import { semanasDoRecado, variaveisRecado, variaveisRecadoRede } from './recado'
 import { dentroDoLimite, linkNoNossoDominio } from './acesso'
@@ -100,6 +101,16 @@ test('descadastro: link assinado confere; adulterado não', () => {
   assert.equal(conferirDescadastro('u1', 'recado', s, 'segredo'), false)
   assert.equal(conferirDescadastro('u1', 'dicas', s, 'outro'), false)
   assert.equal(conferirDescadastro('u1', 'qualquer', s, 'segredo'), false)
+})
+
+test('descadastro de um clique: cabeçalho aponta pra /api/descadastrar com a mesma assinatura', () => {
+  const pagina = linkDescadastro('u1', 'dicas', 'segredo')
+  const umClique = new URL(linkUmClique(pagina))
+  assert.equal(umClique.pathname, '/api/descadastrar')
+  assert.equal(umClique.search, new URL(pagina).search)
+  const saida = paraResend({ chave: 'k', para: 'a@b.com', email: { assunto: 'x', html: '', text: '', template: { id: 't' } } as never, tipo: 'uso', descadastro: pagina }, false) as { headers?: Record<string, string> }
+  assert.equal(saida.headers?.['List-Unsubscribe'], `<${umClique.toString()}>`)
+  assert.equal(saida.headers?.['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click')
 })
 
 /* ----------------------------- sequências ----------------------------- */

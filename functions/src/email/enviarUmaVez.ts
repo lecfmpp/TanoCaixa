@@ -12,6 +12,7 @@ import type { Firestore } from 'firebase-admin/firestore'
 import type { EmailPronto } from './catalogo'
 import { aplicarModo, type ModoEmail } from './envio'
 import { REMETENTE, RESPONDER_PARA } from './layout'
+import { linkUmClique } from './preferencias'
 import { ErroResend, type ClienteResend, type EmailSaida } from './resend'
 
 export type ResultadoEnvio = 'enviado' | 'ja-enviado' | 'desligado' | 'falhou'
@@ -46,7 +47,7 @@ export function paraResend(p: PedidoEnvio, porTemplate: boolean): EmailSaida {
     reply_to: RESPONDER_PARA,
     subject: p.assunto ?? p.email.assunto,
     tags: [{ name: 'tipo', value: p.tipo.replace(/[^A-Za-z0-9_-]/g, '_') }],
-    ...(p.descadastro ? { headers: { 'List-Unsubscribe': `<${p.descadastro}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
+    ...(p.descadastro ? { headers: { 'List-Unsubscribe': `<${linkUmClique(p.descadastro)}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
   }
   return porTemplate ? { ...base, template: p.email.template } : { ...base, html: p.email.html, text: p.email.text }
 }

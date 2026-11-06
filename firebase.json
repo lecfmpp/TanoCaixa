@@ -25,6 +25,13 @@
           }
         },
         {
+          "source": "/api/descadastrar",
+          "function": {
+            "functionId": "descadastrarUmClique",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }

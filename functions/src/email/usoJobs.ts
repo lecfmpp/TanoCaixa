@@ -11,7 +11,7 @@
  * Tudo respeita users/{uid}.emails (dicas/recado/novidades) e EMAILS_MODO.
  * ------------------------------------------------------------------ */
 import { onSchedule } from 'firebase-functions/v2/scheduler'
-import { onCall, HttpsError } from 'firebase-functions/v2/https'
+import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https'
 import { defineString } from 'firebase-functions/params'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { renderizar } from './catalogo'
@@ -81,12 +81,13 @@ export async function usoDeUmaPessoa(db: Firestore, d: DepsEnvio, uid: string, a
     { chave: `${uid}_uso_${id}${chaveExtra}`, para: contato.email, email: renderizar(id, vars, { descadastro }), tipo: `uso_${id}`, uid, descadastro },
     d,
   )
-  if (r === 'enviado') await estadoRef.set({ enviados: [...estado.enviados, id], ultimoEm: agora.toISOString() }, { merge: true })
+  // No modo teste o e-mail foi pra caixa de teste: não avança a sequência da pessoa.
+  if (r === 'enviado' && d.modo !== 'teste') await estadoRef.set({ enviados: [...estado.enviados, id], ultimoEm: agora.toISOString() }, { merge: true })
   return `${id}:${r}`
 }
 
 export const emailsDeUso = onSchedule(
-  { schedule: '0 10 * * *', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 540 },
+  { schedule: '0 10 * * *', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 1800 },
   async () => {
     const agora = new Date()
     if (agora.getTime() < Date.parse(`${USO_A_PARTIR.value()}T00:00:00-03:00`)) {
@@ -159,7 +160,7 @@ export async function recadoDeUmaPessoa(db: Firestore, d: DepsEnvio, retrato: Re
 }
 
 export const recadoDeSegunda = onSchedule(
-  { schedule: '0 8 * * 1', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 540 },
+  { schedule: '0 8 * * 1', timeZone: FUSO, secrets: [RESEND_API_KEY], timeoutSeconds: 1800 },
   async () => {
     const db = getFirestore()
     const d = deps(db)
@@ -182,14 +183,43 @@ export const recadoDeSegunda = onSchedule(
 
 /* ------------------------------ descadastro ----------------------------- */
 
+/** Desliga um tópico (ou todos) de quem veio pelo link assinado. */
+async function aplicarDescadastro(u: string, t: string): Promise<string[]> {
+  const desligar = t === 'tudo' ? TOPICOS : [t]
+  const emails = Object.fromEntries(desligar.map((x) => [x, false]))
+  await getFirestore().doc(`users/${u}`).set({ emails: { ...emails, atualizadoEm: new Date().toISOString(), origem: 'link_email' } }, { merge: true })
+  return desligar
+}
+
 /** Link "Não quero mais receber": desliga um tópico (ou todos) sem precisar de login. */
 export const descadastrarEmail = onCall({ secrets: [RESEND_API_KEY] }, async (req) => {
   const { u, t, s } = (req.data ?? {}) as { u?: string; t?: string; s?: string }
   if (!u || !t || !s || !conferirDescadastro(u, t, s, RESEND_API_KEY.value())) {
     throw new HttpsError('permission-denied', 'Link de descadastro inválido')
   }
-  const desligar = t === 'tudo' ? TOPICOS : [t]
-  const emails = Object.fromEntries(desligar.map((x) => [x, false]))
-  await getFirestore().doc(`users/${u}`).set({ emails: { ...emails, atualizadoEm: new Date().toISOString(), origem: 'link_email' } }, { merge: true })
-  return { ok: true, desligados: desligar }
+  return { ok: true, desligados: await aplicarDescadastro(u, t) }
+})
+
+/**
+ * Cabeçalho List-Unsubscribe (/api/descadastrar?u=&t=&s=).
+ *   POST  descadastro de um clique do Gmail/Yahoo (RFC 8058): desliga e responde 200.
+ *   GET   quem abriu o link no navegador: vai pra página /emails, que confirma.
+ */
+export const descadastrarUmClique = onRequest({ secrets: [RESEND_API_KEY] }, async (req, res) => {
+  const q = req.query as Record<string, string | undefined>
+  const u = String(q.u ?? ''), t = String(q.t ?? ''), s = String(q.s ?? '')
+  if (req.method === 'GET') {
+    res.redirect(302, `/emails?${new URLSearchParams({ u, t, s }).toString()}`)
+    return
+  }
+  if (req.method !== 'POST') {
+    res.status(405).send('Método não aceito')
+    return
+  }
+  if (!u || !t || !s || !conferirDescadastro(u, t, s, RESEND_API_KEY.value())) {
+    res.status(403).send('Link de descadastro inválido')
+    return
+  }
+  await aplicarDescadastro(u, t)
+  res.status(200).send('Descadastrado')
 })
