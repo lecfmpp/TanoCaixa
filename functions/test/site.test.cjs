@@ -80,6 +80,7 @@ test('render: escapa texto, ignora link perigoso, limita título da promo', () =
   assert.ok(html.includes('R$\u00A032,90'))
   assert.ok(!html.includes('Inativo'))
   assert.ok(html.includes('2 por R$&nbsp;49,90'))
+  assert.ok(html.includes('class="stt '))
   assert.ok(html.includes('application/ld+json'))
   assert.ok(html.includes('https://wa.me/5521990000001'))
 })

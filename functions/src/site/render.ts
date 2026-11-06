@@ -8,8 +8,6 @@
  * ------------------------------------------------------------------ */
 import {
   APPS,
-  COR_ABERTO,
-  COR_FECHADO,
   PALETAS,
   PROMO_TITULO_MAX,
   RAIOS,
@@ -50,8 +48,6 @@ const wa = (l: LojaSite) => (l.whatsapp ? 'https://wa.me/' + l.whatsapp : '')
 const rota = (l: LojaSite) => 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(l.endereco)
 const appsDaLoja = (l: LojaSite) =>
   APPS.filter((a) => urlSegura(l.apps[a.k])).map((a) => ({ ...a, url: urlSegura(l.apps[a.k]) }))
-const ponto = (cor: string, tam = 8, attr = '') =>
-  `<span class="pt" ${attr} style="width:${tam}px;height:${tam}px;background:${cor}"></span>`
 /** Logo do app num selo quadrado arredondado (cor da marca). */
 function selo(k: 'ifood' | 'uber' | 'n99' | 'whatsapp', px: number): string {
   const r = Math.round(px * 0.24)
@@ -67,6 +63,11 @@ function selo(k: 'ifood' | 'uber' | 'n99' | 'whatsapp', px: number): string {
 function seloTnc(sub: string): string {
   const url = 'https://tanocaixa.com/?utm_source=site-cliente&utm_medium=rodape&utm_campaign=' + encodeURIComponent(sub)
   return `<a class="tnc" href="${esc(url)}" ${ext} aria-label="Site feito com Tá no Caixa"><svg viewBox="0 0 100 100" width="36" height="36" aria-hidden="true"><rect width="100" height="100" rx="30" fill="#EFAB5C"/><g fill="none" stroke="#1E4354" stroke-width="13" stroke-linecap="round"><path d="M27 24 H73"/><path d="M50 24 V52"/><path d="M33 68 Q50 82 67 68"/></g></svg><span><small>Site feito com</small><strong>Tá no Caixa</strong></span></a>`
+}
+
+/** Selo de status (Aberto/Fechado), bem visível em qualquer paleta. O JS do site atualiza a cor e o texto. */
+function stt(aberta: boolean, chave: string, stKey: string, texto: string, tam: '' | ' grande' | ' peq' = ''): string {
+  return `<span class="stt ${aberta ? 'ab' : 'fe'}${tam}" data-stt="${chave}"><span class="pt"></span><span data-st="${stKey}">${esc(texto)}</span></span>`
 }
 
 const igUrl = (h: string) => 'https://www.instagram.com/' + h.replace(/^@/, '') + '/'
@@ -117,6 +118,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 img{display:block;max-width:100%}
 :focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .pt{display:inline-block;border-radius:50%;flex:none}
+.stt{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:6px 12px 6px 10px;border-radius:999px;font-size:13px;font-weight:700;line-height:1.2;white-space:nowrap;color:#fff;flex:none}
+.stt>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.stt .pt{width:8px;height:8px;background:#fff}
+.stt.ab{background:#1F7A44}.stt.fe{background:#B4462F}
+.stt.ab .pt{animation:pulso 2s ease-in-out infinite}
+.stt.grande{font-size:14px;padding:8px 14px 8px 12px}.stt.peq{font-size:12px;padding:4px 10px 4px 8px}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}60%{box-shadow:0 0 0 6px rgba(255,255,255,0)}}
 .selo-app{display:inline-flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
 .tit{font-family:var(--tit);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.05}
 .h2{font-size:24px;white-space:nowrap}.h3{font-size:19px;letter-spacing:-.01em}
@@ -125,7 +133,7 @@ img{display:block;max-width:100%}
 .logo{border-radius:var(--rl);background:var(--pri);color:var(--onPri);display:flex;align-items:center;justify-content:center;font-family:var(--tit);font-weight:800;overflow:hidden;flex:none}
 .logo img{width:100%;height:100%;object-fit:cover}
 .foto{background:var(--soft);overflow:hidden}.foto img{width:100%;height:100%;object-fit:cover}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--rb);font-weight:700;white-space:nowrap;min-height:44px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 20px;border-radius:var(--rb);font-weight:700;white-space:nowrap;min-height:44px}
 .btn:hover{text-decoration:none;filter:brightness(.97)}
 .pri{background:var(--pri);color:var(--onPri)}
 .acc{background:var(--acc);color:var(--onAcc)}
@@ -139,10 +147,9 @@ img{display:block;max-width:100%}
 .setas{display:flex;gap:8px}
 .so-pc{display:none!important}
 /* topo celular: mesma cor do rodapé, marca o começo da página */
-.topo-cel{background:var(--foot);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;min-height:52px}
+.topo-cel{position:sticky;top:0;z-index:45;background:var(--foot);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 20px;padding-top:max(10px,env(safe-area-inset-top));min-height:56px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
 .topo-cel .logo{width:32px;height:32px;font-size:12px;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
 .topo-cel b{font-family:var(--tit);font-weight:800;font-size:17px;letter-spacing:-.01em;flex:1;min-width:0}
-.topo-cel .st{font-size:13px;color:rgba(255,255,255,.8)}
 /* capa celular */
 .capa .foto{height:250px}
 .capa-txt{padding:0 20px 8px;display:flex;flex-direction:column;gap:14px}
@@ -151,7 +158,7 @@ img{display:block;max-width:100%}
 .slogan{font-size:16px;color:var(--sub);margin:6px 0 0;text-wrap:pretty}
 .st{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;white-space:nowrap}
 .faixa{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--rc);background:var(--sup)}
-.faixa>div{padding:12px 10px;display:flex;flex-direction:column;gap:2px}.faixa>div+div{border-left:1px solid var(--line)}
+.faixa>div{padding:14px 12px;display:flex;flex-direction:column;gap:2px}.faixa>div+div{border-left:1px solid var(--line)}
 .faixa b{font-size:17px}.faixa span{font-size:12px;color:var(--sub)}
 /* conteúdo */
 main{width:100%;max-width:1200px;margin:0 auto;padding:24px 20px 32px;display:flex;flex-direction:column;gap:36px}
@@ -191,8 +198,8 @@ html:not(.js) .cats{display:none}html:not(.js) .cat-nome{display:block;margin:8p
 /* lojas */
 .lojas{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
 .lojas-l{display:flex;flex-direction:column;gap:12px}
-.loja{padding:16px;border-radius:var(--rc);background:var(--sup);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;cursor:pointer}
-.loja.on{border:2px solid var(--pri);padding:15px}
+.loja{padding:18px;border-radius:var(--rc);background:var(--sup);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;cursor:pointer}
+.loja.on{border:2px solid var(--pri);padding:17px}
 .loja .cab b{font-size:17px;font-weight:800}
 .loja .st{font-size:13px}
 .apps{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;font-weight:600}
@@ -208,7 +215,7 @@ html:not(.js) .cats{display:none}html:not(.js) .cat-nome{display:block;margin:8p
 .post a span:last-child{flex:none;color:var(--pri)}
 .pgs{display:flex;flex-wrap:wrap;gap:8px}.pgs span{padding:8px 14px;border-radius:var(--rch);background:var(--soft);font-size:14px;font-weight:600}
 /* rodapé */
-footer{margin-top:auto;background:var(--foot);padding:18px 20px 20px}
+footer{margin-top:auto;background:var(--foot);padding:24px 20px 28px}
 footer .in{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;font-size:13px;color:rgba(255,255,255,.75)}
 footer b{color:#fff}
 /* selo "Feito com Tá no Caixa": fundo próprio, funciona sobre qualquer paleta */
@@ -222,15 +229,15 @@ footer b{color:#fff}
 .fechar{width:44px;height:44px;font-size:24px;color:var(--sub);display:flex;align-items:center;justify-content:center}
 .pedir .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
 .pedir .chip{padding:10px 14px}
-.app{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;border-radius:var(--rs);background:var(--sup);border:1px solid var(--line);font-weight:700;font-size:16px}
+.app{display:flex;align-items:center;gap:12px;min-height:54px;padding:0 18px;border-radius:var(--rs);background:var(--sup);border:1px solid var(--line);font-weight:700;font-size:16px}
 .app:hover{text-decoration:none;border-color:var(--ink)}
 .app .x{flex:1}.app .ab{font-weight:500;font-size:14px;color:var(--sub)}
 .js [data-da-loja]:not([data-on]){display:none!important}
 .barra{position:sticky;bottom:0;z-index:40;background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(0,0,0,.08)}
-.barra .pedir{padding:18px 16px 4px}
+.barra .pedir{padding:20px 20px 4px}
 .barra .pedir[hidden]{display:none}
-.barra-b{padding:12px 16px 18px;display:flex;gap:10px}
-.barra-b .ctn{padding:0 18px;min-height:52px;font-size:15px}
+.barra-b{padding:12px 20px;padding-bottom:max(16px,env(safe-area-inset-bottom));display:flex;gap:12px}
+.barra-b .ctn{padding:0 20px;min-height:52px;font-size:15px}
 .barra-b .pri{flex:1;min-height:52px;font-size:16px}
 .pop{position:absolute;top:calc(100% + 8px);right:max(40px,calc((100% - 1200px)/2 + 40px));width:380px;padding:20px;border-radius:var(--rc);background:var(--sup);border:1px solid var(--line);box-shadow:0 24px 48px rgba(0,0,0,.18)}
 .pop{color:var(--ink)}.pop[hidden]{display:none}.pop .app{background:var(--bg);font-size:15px}
@@ -238,7 +245,7 @@ footer b{color:#fff}
  .so-cel{display:none!important}.so-pc{display:revert!important}.setas.so-pc{display:flex!important}
  .h2{font-size:32px}.h3{font-size:22px}
  .topo{position:sticky;top:0;z-index:40;background:var(--foot);color:#fff}
- .topo>.in{max-width:1200px;margin:0 auto;padding:14px 40px;display:flex;align-items:center;gap:28px}
+ .topo>.in{max-width:1200px;margin:0 auto;padding:16px 40px;display:flex;align-items:center;gap:28px}
  .topo .marca{display:flex;align-items:center;gap:12px}.topo .logo{width:40px;height:40px;font-size:15px}
  .topo .marca b{font-family:var(--tit);font-weight:800;font-size:20px;letter-spacing:-.01em;white-space:nowrap}
  .topo nav{display:flex;gap:24px;font-size:15px;font-weight:600;color:rgba(255,255,255,.8)}
@@ -268,7 +275,7 @@ footer b{color:#fff}
  .mapa{position:sticky;top:90px;height:460px}
  footer{padding:22px 40px}
 }
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}`
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.stt .pt{animation:none}}`
 }
 
 /* -------------------------------- Partes --------------------------------- */
@@ -319,7 +326,7 @@ function topoPc(x: Ctx): string {
   return `<header class="topo so-pc"><div class="in">
 <div class="marca">${logo(c, '')}<b>${esc(c.nome)}</b></div>
 <nav>${nav}</nav><div class="esp"></div>
-<div class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="geral">${esc(x.st.geral)}</span></div>
+${stt(x.st.n > 0, 'g', 'geral', x.st.geral)}
 <a class="btn acc" href="#lojas" data-abrir-pedir>Pedir agora</a></div>
 <div class="pop pedir" id="pop" hidden>${painelPedido(x, 'pop')}</div></header>`
 }
@@ -336,7 +343,7 @@ function heroPc(x: Ctx): string {
   const l0 = lojas[x.sel]
   const todos = APPS.filter((a) => lojas.some((l) => urlSegura(l.apps[a.k])))
   return `<section class="hero so-pc"><div class="c">
-<div class="pil">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="longo">${esc(x.st.longo)}</span></div>
+${stt(x.st.n > 0, 'g', 'longo', x.st.longo, ' grande')}
 <h1 class="tit">${esc(c.nome)}</h1>
 ${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}
 <div class="meta">${nota ? `<span><b>${esc(nota.valor)}</b> <span>${esc(nota.rotulo)}</span></span>` : ''}${l0?.tempoEntrega.trim() ? `<span><b>${esc(l0.tempoEntrega)}</b> <span>de entrega</span></span>` : ''}${taxaMin(lojas).trim() ? `<span><span>taxa a partir de</span> <b>${esc(taxaMin(lojas))}</b></span>` : ''}</div>
@@ -349,10 +356,10 @@ function capaCel(x: Ctx): string {
   const { c, lojas } = x
   const nota = notaTexto(c)
   const l0 = lojas[0]
-  const topo = `<header class="topo-cel so-cel">${logo(c, '')}<b class="um">${esc(c.nome)}</b><span class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="geral">${esc(x.st.geral)}</span></span></header>`
+  const topo = `<header class="topo-cel so-cel">${logo(c, '')}<b class="um">${esc(c.nome)}</b>${stt(x.st.n > 0, 'g', 'geral', x.st.geral)}</header>`
   return `${topo}<section class="capa so-cel"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="780" height="500"')}</div>
 <div class="capa-txt">${logo(c, '')}<div><h1 class="tit um">${esc(c.nome)}</h1>${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}</div>
-<div class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="longo">${esc(x.st.longo)}</span></div>
+<div>${stt(x.st.n > 0, 'g', 'longo', x.st.longo, ' grande')}</div>
 ${(() => {
     const cels = [
       nota ? `<div><b>${esc(nota.valor)}</b><span>${esc(nota.rotulo)}</span></div>` : '',
@@ -418,7 +425,7 @@ function secLojas(x: Ctx): string {
     .map((l, i) => {
       const apps = appsDaLoja(l)
       return `<div class="loja${i === x.sel ? ' on' : ''}" data-escolher="${i}" role="button" tabindex="0">
-<div class="cab"><b class="um">${esc(l.nome)}</b><span class="st">${ponto(st.lojas[i].aberta ? COR_ABERTO : COR_FECHADO, 8, `data-dot="${i}"`)}<span data-st="c${i}">${esc(st.lojas[i].curto)}</span></span></div>
+<div class="cab"><b class="um">${esc(l.nome)}</b>${stt(st.lojas[i].aberta, String(i), 'c' + i, st.lojas[i].curto, ' peq')}</div>
 ${l.endereco ? `<div class="subt">${esc(l.endereco)}</div>` : ''}
 <div style="font-size:14px">${esc(textoDias(l.dias))}, ${esc(horaTexto(l.abre))} às ${esc(horaTexto(l.fecha))}${entregaTaxa(l)}</div>
 ${apps.length ? `<div class="apps">${apps.map((a) => `<a href="${esc(a.url)}" ${ext}><span>${selo(a.k, 18)}${esc(a.nome)}</span></a>`).join('')}</div>` : ''}
@@ -502,7 +509,7 @@ if(!(sel>=0&&sel<D.lojas.length))sel=0;
 function agora(){var o={};new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).forEach(function(p){o[p.type]=p.value});return{dia:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(o.weekday),min:(+o.hour%24)*60+ +o.minute}}
 function status(){if(!D.lojas.length)return;var a=agora(),s=textos(D.lojas,a.dia,a.min);
 Q('[data-st]').forEach(function(el){var k=el.getAttribute('data-st'),v=k==='geral'?s.geral:k==='longo'?s.longo:k==='resumo'?s.resumo:k==='sel'?s.lojas[sel].texto:(s.lojas[+k.slice(1)]||{})[k[0]==='t'?'texto':'curto'];if(v!=null)el.textContent=v});
-Q('[data-dot]').forEach(function(el){var k=el.getAttribute('data-dot'),ab=k==='g'?s.n>0:k==='sel'?s.lojas[sel].aberta:(s.lojas[+k]||{}).aberta;el.style.background=ab?'${COR_ABERTO}':'${COR_FECHADO}'})}
+Q('[data-stt]').forEach(function(el){var k=el.getAttribute('data-stt'),ab=k==='g'?s.n>0:k==='sel'?s.lojas[sel].aberta:!!(s.lojas[+k]||{}).aberta;el.classList.toggle('ab',ab);el.classList.toggle('fe',!ab)})}
 function escolher(i){sel=i;if(!D.previa){try{localStorage.setItem(CH,i)}catch(e){}}
 Q('[data-escolher]').forEach(function(el){var on=+el.getAttribute('data-escolher')===i;el.classList.toggle('on',on);if(el.tagName==='BUTTON')el.setAttribute('aria-pressed',on)});
 Q('[data-da-loja]').forEach(function(el){el.toggleAttribute('data-on',+el.getAttribute('data-da-loja')===i)});
@@ -650,10 +657,10 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
 .pr{width:100%;padding:18px 20px;border-radius:var(--rc);background:var(--acc);color:var(--onAcc);text-align:left;display:flex;flex-direction:column;gap:2px}
 .sec{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 18px;border-radius:var(--rs);background:var(--sup);border:1px solid var(--line);font-weight:700;font-size:16px;text-align:left;width:100%}
 .ver{position:absolute;right:6px;bottom:6px;padding:4px 8px;border-radius:var(--rch);background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:700}
-.lf{padding:16px 20px 22px;text-align:center;font-size:12px;color:var(--sub)}</style>`
+.lf{padding:20px 20px 28px;text-align:center;font-size:12px;color:var(--sub)}</style>`
   const corpo = `<div class="wrap"><div class="lc"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high"')}</div></div>
 <div class="lb">${logo(c, '')}<div style="display:flex;flex-direction:column;gap:6px;align-items:center"><h1 class="tit" style="font-size:30px">${esc(c.nome)}</h1>${c.slogan ? `<div class="subt" style="font-size:15px;max-width:30ch">${esc(c.slogan)}</div>` : ''}
-${lojas.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:14px;margin-top:4px"><span class="st">${ponto(st.lojas[0].aberta ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="sel"')}<span data-st="sel">${esc(st.lojas[0].texto)}</span></span>${nota ? `<span><b>${esc(nota.valor)}</b>${lojas[0].tempoEntrega.trim() ? ' · ' + esc(lojas[0].tempoEntrega) : ''}</span>` : ''}</div>` : ''}</div>
+${lojas.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:14px;margin-top:4px">${stt(st.lojas[0].aberta, 'sel', 'sel', st.lojas[0].texto)}${nota ? `<span><b>${esc(nota.valor)}</b>${lojas[0].tempoEntrega.trim() ? ' · ' + esc(lojas[0].tempoEntrega) : ''}</span>` : ''}</div>` : ''}</div>
 ${seg}${botoes}${promo}<div style="width:100%;display:flex;flex-direction:column;gap:8px">${links}</div>${ig}</div>
 <div class="lf">${seloTnc(c.subdominio)}<div style="margin-top:10px">${esc(o.dominio)}/links</div></div></div>`
   return documento(x, `${c.nome} · Links para pedir`, c.slogan || `Peça ${c.nome} no app que preferir.`, corpo, extraCss)
