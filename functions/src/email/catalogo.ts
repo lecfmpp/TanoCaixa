@@ -30,14 +30,23 @@ export interface DefEmail {
   variaveis: Record<string, string>
 }
 
-const l = (caminho: string, id: string) => comUtm(`${URL_SITE}${caminho}`, `tnc-${id}`, 'botao')
+/**
+ * Link do botão: sempre pra tela que o botão promete (ex.: ?acao=despesa abre a gaveta de despesa,
+ * #equipe abre a seção da equipe). Com `comLoja`, leva a loja do e-mail (?loja=) pra quem tem mais de uma.
+ */
+function l(caminho: string, id: string, comLoja = false): string {
+  const [base, ancora] = caminho.split('#')
+  let u = comUtm(`${URL_SITE}${base}`, `tnc-${id}`, 'botao')
+  if (comLoja) u += '&loja={{{LOJA_ID}}}'
+  return ancora ? `${u}#${ancora}` : u
+}
 const PRECO = 'O plano é R$ 149 por loja/mês, no cartão. Cancela quando quiser, sem multa.'
 const M_DONO_TESTE = 'Você recebe este aviso porque é dono de uma loja no Tá no Caixa em período de teste.'
 const M_ASSINATURA = 'Você recebe este e-mail porque é dono de uma loja com assinatura no Tá no Caixa.'
 const M_ACESSO = 'Você recebe este e-mail porque ele foi pedido na sua conta do Tá no Caixa. Se não foi você, ignore.'
 const M_USO = 'Você recebe este e-mail porque usa o Tá no Caixa na {{{LOJA}}}.'
 const OI = { OI: 'Oi, Maria!' }
-const LOJA = { LOJA: 'Fausto Burger Realengo' }
+const LOJA = { LOJA: 'Fausto Burger Realengo', LOJA_ID: 'EXEMPLO' }
 
 /** Atalho para e-mails de uso (dicas por papel). */
 function uso(
@@ -120,7 +129,7 @@ export const CATALOGO: DefEmail[] = [
     titulo: '{{{NOVO}}} entrou na equipe',
     blocos: [
       { p: '{{{OI}}} {{{NOVO}}} aceitou o convite e já está na {{{LOJA}}} como {{{PAPEL}}}.' },
-      { botao: { texto: 'Ver a equipe', url: l('/painel/ajustes', 'convite-aceito') } },
+      { botao: { texto: 'Ver a equipe', url: l('/painel/ajustes#equipe', 'convite-aceito', true) } },
       { nota: 'Precisa mudar o papel ou tirar alguém? É em Ajustes › Equipe.' },
     ],
     motivo: 'Você recebe este e-mail porque convidou alguém para a {{{LOJA}}}.',
@@ -188,7 +197,7 @@ export const CATALOGO: DefEmail[] = [
     blocos: [
       { p: '{{{NOME_VIRGULA}}}obrigado por assinar o Tá no Caixa. Está tudo liberado, é só seguir lançando.' },
       { lista: ['Valor: {{{VALOR}}} por mês', '{{{PROXIMA}}}', 'O recibo de cada mês chega por e-mail, enviado pelo Stripe.', 'A nota fiscal é emitida à parte e enviada depois.'] },
-      { botao: { texto: 'Abrir o Tá no Caixa', url: l('/painel', 'cobranca-ativa') } },
+      { botao: { texto: 'Abrir o Tá no Caixa', url: l('/painel', 'cobranca-ativa', true) } },
       { nota: 'Para trocar o cartão, ver faturas ou cancelar: Assinatura › Trocar cartão e ver faturas, no app.' },
     ],
     motivo: M_ASSINATURA,
@@ -241,7 +250,7 @@ export const CATALOGO: DefEmail[] = [
       { p: 'Sua conta no Tá no Caixa está criada. Que bom ter você aqui.' },
       { p: 'O Tá no Caixa ajuda você a enxergar o dinheiro do seu restaurante: lance faturamento e despesas (inclusive por foto da nota) e acompanhe lucro, margem e custos no painel.' },
       { p: 'Para começar, lance o faturamento de hoje e uma despesa. Leva poucos minutos.' },
-      { botao: { texto: 'Lançar o dia de hoje', url: l('/painel', 'boas-vindas') } },
+      { botao: { texto: 'Lançar as vendas de hoje', url: l('/painel?acao=fechamento', 'boas-vindas') } },
       { nota: 'As integrações com lojas e plataformas estão marcadas como "Em breve" no app. Quando estiverem prontas, a gente avisa por aqui.' },
     ],
     motivo: 'Você recebe este e-mail porque acabou de criar sua conta no Tá no Caixa.',
@@ -249,80 +258,80 @@ export const CATALOGO: DefEmail[] = [
   },
   uso('dono-d1', 'TNC · Donos (D1, ainda sem venda lançada)', 'Leva 2 minutos: lance o dia de hoje', 'Balcão, iFood, salão: tudo num lançamento só.', 'Lance o dia de hoje', [
     { p: '{{{OI}}} O primeiro passo é lançar as vendas do dia. Você separa por canal (balcão, iFood, salão) e o painel já mostra o que entrou e o que saiu.' },
-    { botao: { texto: 'Lançar as vendas de hoje', url: l('/painel', 'dono-d1') } },
+    { botao: { texto: 'Lançar as vendas de hoje', url: l('/painel?acao=fechamento', 'dono-d1', true) } },
   ]),
   uso('dono-d3', 'TNC · Donos (D3, menos de 3 despesas)', 'Tire foto da nota e pronto', 'A foto da nota vira despesa lançada.', 'A nota vira despesa pela foto', [
     { p: '{{{OI}}} Em vez de digitar, tire uma foto da nota. O Tá no Caixa lê o valor, a data e o fornecedor e lança a despesa para você conferir.' },
     { p: 'Aluguel, contador e outras contas que se repetem todo mês você lança uma vez só, e elas voltam sozinhas.' },
-    { botao: { texto: 'Lançar uma despesa', url: l('/painel/despesas', 'dono-d3') } },
+    { botao: { texto: 'Lançar uma despesa', url: l('/painel/despesas?acao=despesa', 'dono-d3', true) } },
   ]),
   uso('dono-d6', 'TNC · Donos (D6, ainda sozinho na loja)', 'Chame quem fecha o caixa e quem cuida do estoque', 'Cada um vê só o que precisa.', 'Traga sua equipe', [
     { p: '{{{OI}}} Você não precisa lançar tudo sozinho. Convide sua equipe, e cada pessoa vê só a parte dela:' },
     { lista: ['Gestão: vê e lança tudo, como você.', 'Caixa: abre, fecha e confere o caixa. Não vê lucro nem despesas.', 'Cozinha: produtos e estoque. Não vê finanças.'] },
-    { botao: { texto: 'Convidar a equipe', url: l('/painel/ajustes', 'dono-d6') } },
+    { botao: { texto: 'Convidar a equipe', url: l('/painel/ajustes#equipe', 'dono-d6', true) } },
   ]),
   uso('dono-d9', 'TNC · Donos (D9, 5+ dias lançados)', 'Quanto a {{{LOJA}}} precisa vender para empatar', 'Metas e o caminho até o equilíbrio.', 'Quanto falta para empatar', [
     { p: '{{{OI}}} Com alguns dias lançados, o Tá no Caixa já calcula quanto a {{{LOJA}}} precisa vender no mês para pagar todos os custos.' },
     { p: 'Em Metas você vê esse número e quanto falta, dia a dia.' },
-    { botao: { texto: 'Ver minhas metas', url: l('/painel/metas', 'dono-d9') } },
+    { botao: { texto: 'Ver minhas metas', url: l('/painel/metas', 'dono-d9', true) } },
   ]),
   uso('dono-d13', 'TNC · Donos (D13)', 'O Tá no Caixa também te lembra pelo WhatsApp', 'Resumo do dia e lembretes no grupo da loja.', 'Lembretes pelo WhatsApp', [
-    { p: '{{{OI}}} Ligue os lembretes do WhatsApp e receba no grupo da loja o resumo do dia e os avisos de conta a vencer e de dia sem lançamento.' },
-    { botao: { texto: 'Ligar o WhatsApp', url: l('/painel/ajustes', 'dono-d13') } },
+    { p: '{{{OI}}} O Tá no Caixa pode mandar no grupo de WhatsApp da loja o resumo do dia e os avisos de conta a vencer e de dia sem lançamento. Quer ligar? Peça pelo botão (ou responda este e-mail) e a gente configura o grupo da {{{LOJA}}}.' },
+    { botao: { texto: 'Pedir os lembretes no WhatsApp', url: 'mailto:ola@tanocaixa.com?subject=Quero%20os%20lembretes%20no%20WhatsApp' } },
   ]),
   uso('dono-d20', 'TNC · Donos (D20, 20+ dias lançados)', 'Seu primeiro DRE do mês', 'Receita, custos e o que sobrou, em três linhas.', 'Seu primeiro DRE', [
     { p: '{{{OI}}} Com o mês quase todo lançado, o DRE da {{{LOJA}}} já conta a história do mês. Leia de cima para baixo:' },
     { lista: ['Receita: tudo o que entrou.', 'Custos: o que saiu, separado por grupo.', 'Resultado: o que sobrou no fim.'] },
-    { botao: { texto: 'Abrir o DRE', url: l('/painel/dre', 'dono-d20') } },
+    { botao: { texto: 'Abrir o DRE', url: l('/painel/dre', 'dono-d20', true) } },
   ]),
 
   /* ----------------------------- Gestão ----------------------------- */
   uso('gestao-d0', 'TNC · Gestão (entrou, D0)', 'Você agora cuida dos números da {{{LOJA}}}', 'O que dá para fazer como Gestão.', 'Você entrou na {{{LOJA}}} como Gestão', [
     { p: '{{{OI}}} Como Gestão, você vê e lança tudo na {{{LOJA}}}: vendas, despesas, estoque, caixa, DRE e metas.' },
     { p: 'Você também pode chamar pessoas para a equipe.' },
-    { botao: { texto: 'Abrir o painel', url: l('/painel', 'gestao-d0') } },
+    { botao: { texto: 'Abrir o painel', url: l('/painel', 'gestao-d0', true) } },
   ]),
   uso('gestao-d2', 'TNC · Gestão (D2, ainda sem lançamento)', 'A rotina de 5 minutos do fim do dia', 'Lançar, conferir, fotografar.', 'A rotina do fim do dia', [
     { p: '{{{OI}}} Três passos no fim do dia deixam os números da {{{LOJA}}} sempre em dia:' },
     { lista: ['Lance as vendas do dia por canal.', 'Confira o fechamento do caixa.', 'Tire foto das notas do dia.'] },
-    { botao: { texto: 'Lançar o dia', url: l('/painel', 'gestao-d2') } },
+    { botao: { texto: 'Lançar as vendas do dia', url: l('/painel?acao=fechamento', 'gestao-d2', true) } },
   ]),
   uso('gestao-d6', 'TNC · Gestão (D6)', 'Despesas do mês sem susto', 'Contas que se repetem, pagas e a vencer.', 'Despesas sem susto', [
     { p: '{{{OI}}} Em Despesas você marca o que já foi pago e vê o que vence nos próximos dias. Contas fixas você lança uma vez e elas se repetem todo mês.' },
-    { botao: { texto: 'Ver despesas', url: l('/painel/despesas', 'gestao-d6') } },
+    { botao: { texto: 'Ver despesas', url: l('/painel/despesas', 'gestao-d6', true) } },
   ]),
   uso('gestao-d10', 'TNC · Gestão (D10)', 'Ponha o caixa e a cozinha no app', 'Cada um lança a parte dele.', 'Traga o caixa e a cozinha', [
     { p: '{{{OI}}} Quem fecha o caixa e quem cuida do estoque podem lançar direto no celular. Eles não veem lucro nem despesas, só a parte deles.' },
-    { botao: { texto: 'Convidar a equipe', url: l('/painel/ajustes', 'gestao-d10') } },
+    { botao: { texto: 'Convidar a equipe', url: l('/painel/ajustes#equipe', 'gestao-d10', true) } },
   ]),
 
   /* ------------------------------ Caixa ----------------------------- */
   uso('caixa-d0', 'TNC · Caixa (entrou, D0)', 'Seu acesso ao caixa da {{{LOJA}}}', 'Onde abrir e onde fechar o caixa.', 'Seu acesso ao caixa', [
     { p: '{{{OI}}} Você entrou na {{{LOJA}}} para cuidar do caixa. No Tá no Caixa você abre o caixa no começo do turno e fecha no fim, conferindo cada forma de pagamento.' },
     { p: 'Dica: no celular, salve o Tá no Caixa na tela inicial para abrir num toque.' },
-    { botao: { texto: 'Abrir o caixa', url: l('/painel/caixa', 'caixa-d0') } },
+    { botao: { texto: 'Abrir o caixa', url: l('/painel/caixa', 'caixa-d0', true) } },
   ]),
   uso('caixa-d3', 'TNC · Caixa (D3)', 'Fechar o caixa em 4 passos', 'Passo a passo do fechamento.', 'Fechar o caixa em 4 passos', [
     { lista: ['Abra o caixa com o valor de troco.', 'Ao fechar, conte o dinheiro da gaveta.', 'Confira cartão, Pix e apps.', 'Confirme o fechamento.'] },
-    { botao: { texto: 'Ir para o caixa', url: l('/painel/caixa', 'caixa-d3') } },
+    { botao: { texto: 'Ir para o caixa', url: l('/painel/caixa', 'caixa-d3', true) } },
   ]),
   uso('caixa-d10', 'TNC · Caixa (D10)', 'Quando o caixa não bate', 'O que fazer com diferença no fechamento.', 'Quando o caixa não bate', [
     { p: '{{{OI}}} Diferença no fechamento acontece. Antes de confirmar, confira troco, sangrias e pagamentos lançados na forma errada. Se a diferença continuar, anote o motivo no fechamento: quem gerencia a loja vê depois.' },
-    { botao: { texto: 'Ir para o caixa', url: l('/painel/caixa', 'caixa-d10') } },
+    { botao: { texto: 'Ir para o caixa', url: l('/painel/caixa', 'caixa-d10', true) } },
   ]),
 
   /* ----------------------------- Cozinha ---------------------------- */
   uso('cozinha-d0', 'TNC · Cozinha (entrou, D0)', 'O estoque da {{{LOJA}}} agora está com você', 'Produtos, entradas e saídas.', 'O estoque está com você', [
     { p: '{{{OI}}} Você entrou na {{{LOJA}}} para cuidar de produtos e estoque. No Tá no Caixa você vê o que tem, dá entrada no que chega e baixa o que usa.' },
-    { botao: { texto: 'Abrir o estoque', url: l('/painel/estoque', 'cozinha-d0') } },
+    { botao: { texto: 'Abrir o estoque', url: l('/painel/estoque', 'cozinha-d0', true) } },
   ]),
   uso('cozinha-d3', 'TNC · Cozinha (D3)', 'Deu entrada? Lança na hora', 'Entrada de mercadoria pelo celular.', 'Lance na hora', [
     { p: '{{{OI}}} Chegou mercadoria? Lance a entrada na hora, pelo celular. Usou da reserva? Dê a baixa. Assim o estoque da {{{LOJA}}} fica sempre certo.' },
-    { botao: { texto: 'Lançar no estoque', url: l('/painel/estoque', 'cozinha-d3') } },
+    { botao: { texto: 'Lançar no estoque', url: l('/painel/estoque?acao=estoque', 'cozinha-d3', true) } },
   ]),
   uso('cozinha-d8', 'TNC · Cozinha (D8)', 'Pergunte ao estoque', 'O que está acabando? É só perguntar.', 'Pergunte ao estoque', [
     { p: '{{{OI}}} No estoque dá para perguntar em português mesmo: "o que está acabando?" ou "quanto tenho de carne?". O Tá no Caixa responde com o que está lançado.' },
-    { botao: { texto: 'Perguntar ao estoque', url: l('/painel/estoque', 'cozinha-d8') } },
+    { botao: { texto: 'Perguntar ao estoque', url: l('/painel/estoque#perguntar', 'cozinha-d8', true) } },
   ]),
 
   /* --------------------------- Franqueador -------------------------- */
@@ -336,7 +345,7 @@ export const CATALOGO: DefEmail[] = [
   ]),
   uso('franq-d8', 'TNC · Franqueadores (D8, 2+ lojas lançando)', 'Qual loja está puxando a rede', 'Margem, custo e faturamento lado a lado.', 'Qual loja puxa a rede', [
     { p: '{{{OI}}} O comparativo coloca as lojas lado a lado: faturamento, custos e margem. Fica fácil ver quem está indo bem e quem precisa de ajuda.' },
-    { botao: { texto: 'Comparar as lojas', url: l('/painel/rede', 'franq-d8') } },
+    { botao: { texto: 'Comparar as lojas', url: l('/painel/rede#lojas', 'franq-d8') } },
   ]),
 
   /* --------------------------- Recorrentes -------------------------- */
@@ -348,7 +357,7 @@ export const CATALOGO: DefEmail[] = [
       { lista: ['Entrou: {{{ENTROU}}}', 'Saiu: {{{SAIU}}}', 'Saldo: {{{SALDO}}}'] },
       { p: '{{{COMPARACAO}}}' },
       { p: '{{{ALERTA}}}' },
-      { botao: { texto: 'Ver o painel', url: l('/painel', 'recado-semanal') } },
+      { botao: { texto: 'Ver o painel da loja', url: l('/painel', 'recado-semanal', true) } },
     ],
     motivo: 'Você recebe o recado de segunda porque usa o Tá no Caixa na {{{LOJA}}}.',
     variaveis: { ...LOJA, ENTROU: 'R$ 18.400', SAIU: 'R$ 11.250', SALDO: 'R$ 7.150', COMPARACAO: 'Entrou 8% mais que na semana anterior.', ALERTA: 'Sábado ficou sem lançamento.' },
@@ -360,7 +369,7 @@ export const CATALOGO: DefEmail[] = [
     blocos: [
       { lista: ['Lojas: {{{N_LOJAS}}}', 'Faturamento somado: {{{TOTAL}}}', 'Maior faturamento: {{{MELHOR_LOJA}}}'] },
       { p: '{{{SEM_LANCAMENTO}}}' },
-      { botao: { texto: 'Ver a rede', url: l('/painel/rede', 'recado-rede') } },
+      { botao: { texto: 'Ver a rede', url: l('/painel/rede#lojas', 'recado-rede') } },
     ],
     motivo: 'Você recebe o recado de segunda porque acompanha uma rede no Tá no Caixa.',
     variaveis: { N_LOJAS: '3', TOTAL: 'R$ 52.300', MELHOR_LOJA: 'Fausto Burger Barra (R$ 24.100)', SEM_LANCAMENTO: 'Fausto Burger Realengo ficou sem lançamento na semana.' },
@@ -371,7 +380,7 @@ export const CATALOGO: DefEmail[] = [
     titulo: 'A {{{LOJA}}} está sem lançamento',
     blocos: [
       { p: '{{{OI}}} O último lançamento da {{{LOJA}}} foi em {{{DESDE}}}. Lançar a semana de uma vez leva poucos minutos e deixa o painel em dia de novo.' },
-      { botao: { texto: 'Lançar agora', url: l('/painel', 'inativo-7') } },
+      { botao: { texto: 'Lançar as vendas', url: l('/painel?acao=fechamento', 'inativo-7', true) } },
     ],
     motivo: M_USO, variaveis: { ...OI, ...LOJA, DESDE: '28 de outubro' },
   },
@@ -381,7 +390,7 @@ export const CATALOGO: DefEmail[] = [
     titulo: 'Está tudo guardado',
     blocos: [
       { p: '{{{OI}}} Faz três semanas que a {{{LOJA}}} não tem lançamento. Tudo o que você lançou continua lá. Quando quiser voltar, é só abrir o painel.' },
-      { botao: { texto: 'Abrir o painel', url: l('/painel', 'inativo-21') } },
+      { botao: { texto: 'Abrir o painel da loja', url: l('/painel', 'inativo-21', true) } },
       { nota: 'Este é o último lembrete sobre isso.' },
     ],
     motivo: M_USO, variaveis: { ...OI, ...LOJA },

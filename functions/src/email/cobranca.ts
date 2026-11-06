@@ -55,7 +55,7 @@ export function linkPortal(rid: string, campanha: string): string {
 }
 
 export function montarEmailCobranca(e: EmailCobranca, p: { primeiroNome: string; lojaNome: string; rid: string }): EmailPronto {
-  const base = { NOME_VIRGULA: p.primeiroNome ? `${p.primeiroNome}, ` : '', LOJA: p.lojaNome }
+  const base = { NOME_VIRGULA: p.primeiroNome ? `${p.primeiroNome}, ` : '', LOJA: p.lojaNome, LOJA_ID: p.rid }
   if (e.tipo === 'ativa') {
     return renderizar('cobranca-ativa', {
       ...base,

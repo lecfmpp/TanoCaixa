@@ -51,7 +51,7 @@ export function EmailsQueRecebo() {
 
   if (!uid) return null
   return (
-    <Secao titulo="E-mails que recebo" corpoClassName="!pt-1">
+    <Secao id="emails" titulo="E-mails que recebo" corpoClassName="!pt-1">
       {LINHAS.map((l, i) => (
         <div key={l.id} className={cn('flex items-center justify-between py-3', i > 0 && 'border-t border-divisoria')}>
           <div>

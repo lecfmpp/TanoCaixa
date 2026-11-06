@@ -71,7 +71,7 @@ export const conviteEmailAceito = onDocumentUpdated({ document: 'convites/{token
   const [quem, novo] = await Promise.all([nomeDe(db, depois.criadoPor), nomeDe(db, depois.usadoPor)])
   if (!quem.email.includes('@') || depois.usadoPor === depois.criadoPor) return
   const r = resumoDoConvite(depois)
-  const email = renderizar('convite-aceito', { OI: `Oi, ${quem.nome}!`, NOVO: novo.nome, LOJA: r.loja, PAPEL: r.papel })
+  const email = renderizar('convite-aceito', { OI: `Oi, ${quem.nome}!`, NOVO: novo.nome, LOJA: r.loja, LOJA_ID: depois.restauranteId, PAPEL: r.papel })
   const res = await enviarUmaVez({ chave: `convite_aceito_${ev.params.token}`, para: quem.email, email, tipo: 'convite_aceito', uid: depois.criadoPor, restauranteId: depois.restauranteId }, deps(db))
   console.log(`convite aceito ${ev.params.token}: ${res}`)
 })

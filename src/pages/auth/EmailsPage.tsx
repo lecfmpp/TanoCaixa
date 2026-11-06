@@ -49,7 +49,7 @@ export function EmailsPage() {
             Este link não funcionou. Entre no Tá no Caixa e desligue em Ajustes › E-mails que recebo.
           </p>
         )}
-        <Link to="/painel/ajustes" className="text-sm font-bold text-mar hover:underline">
+        <Link to="/painel/ajustes#emails" className="text-sm font-bold text-mar hover:underline">
           Abrir Ajustes
         </Link>
       </div>

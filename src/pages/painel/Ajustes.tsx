@@ -352,6 +352,7 @@ function Equipe() {
 
   return (
     <Secao
+      id="equipe"
       titulo="Quem usa e o que cada um pode"
       resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
     >

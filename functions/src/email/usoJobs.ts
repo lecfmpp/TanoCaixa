@@ -75,7 +75,7 @@ export async function usoDeUmaPessoa(db: Firestore, d: DepsEnvio, uid: string, a
   if (!id) return 'nada'
 
   const nome = primeiroNome(retrato.nome, retrato.email)
-  const vars = { OI: oi(nome), LOJA: loja.nome ?? 'sua loja', DESDE: contato.propriedades.ultima_atividade ? diaPorExtenso(`${contato.propriedades.ultima_atividade}T15:00:00Z`) : '' }
+  const vars = { OI: oi(nome), LOJA: loja.nome ?? 'sua loja', LOJA_ID: loja.rid, DESDE: contato.propriedades.ultima_atividade ? diaPorExtenso(`${contato.propriedades.ultima_atividade}T15:00:00Z`) : '' }
   const descadastro = linkDescadastro(uid, 'dicas', RESEND_API_KEY.value())
   const r = await enviarUmaVez(
     { chave: `${uid}_uso_${id}${chaveExtra}`, para: contato.email, email: renderizar(id, vars, { descadastro }), tipo: `uso_${id}`, uid, descadastro },
@@ -137,7 +137,7 @@ export async function recadoDeUmaPessoa(db: Firestore, d: DepsEnvio, retrato: Re
     const vars = variaveisRecado({ nome: l.nome ?? 'sua loja', entrou: agoraN.entrou, saiu: agoraN.saiu, entrouAntes: antes.entrou, diasComVenda: agoraN.dias.size }, semVenda)
     if (!vars) continue
     const r = await enviarUmaVez(
-      { chave: `${retrato.uid}_recado_${l.rid}_${passada.de}`, para: retrato.email, email: renderizar('recado-semanal', { ...vars, OI: oi(nome) }, { descadastro }), tipo: 'recado', uid: retrato.uid, restauranteId: l.rid, descadastro },
+      { chave: `${retrato.uid}_recado_${l.rid}_${passada.de}`, para: retrato.email, email: renderizar('recado-semanal', { ...vars, OI: oi(nome), LOJA_ID: l.rid }, { descadastro }), tipo: 'recado', uid: retrato.uid, restauranteId: l.rid, descadastro },
       d,
     )
     saidas.push(`loja:${r}`)

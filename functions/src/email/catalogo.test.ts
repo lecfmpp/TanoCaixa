@@ -47,6 +47,28 @@ test('caixa e cozinha: nenhum e-mail fala de lucro, faturamento ou preço', () =
   }
 })
 
+test('botões: cada um leva pra tela que promete, e os da loja levam a loja', () => {
+  const destinos: Record<string, string> = {}
+  for (const d of CATALOGO) {
+    const e = renderizar(d.id, { ...d.variaveis, LOJA_ID: 'r1' })
+    const botoes = [...e.html.matchAll(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].filter((m) => !/^Não quero|^tanocaixa\.com$/.test(m[2]) && !m[1].endsWith('tanocaixa.com'))
+    assert.ok(botoes.length >= 1, `${d.id}: sem botão`)
+    for (const [, href, texto] of botoes) {
+      const url = href.replace(/&amp;/g, '&')
+      destinos[`${d.id}|${texto}`] = url
+      if (/^Lançar/.test(texto)) assert.match(url, /[?&]acao=(fechamento|despesa|estoque)/, `${d.id}: "${texto}" não abre o lançamento`)
+      if (/equipe/i.test(texto)) assert.match(url, /\/painel\/ajustes\?.*#equipe$/, `${d.id}: "${texto}"`)
+      if (/^Assinar/.test(texto)) assert.match(url, /\/painel\/assinatura\?.*assinar=1/, `${d.id}`)
+      if (/cartão/.test(texto)) assert.match(url, /\/painel\/assinatura\?.*portal=1/, `${d.id}`)
+      if (url.includes('{{{') || url.includes('%7B')) assert.fail(`${d.id}: link com variável sobrando`)
+      if (d.variaveis.LOJA_ID && url.includes('/painel') && !url.includes('/painel/rede') && !/[?&]loja=/.test(url) && !url.includes('assinatura')) assert.fail(`${d.id}: "${texto}" não leva a loja`)
+    }
+  }
+  assert.match(destinos['cozinha-d8|Perguntar ao estoque'], /\/painel\/estoque\?.*#perguntar$/)
+  assert.match(destinos['franq-d8|Comparar as lojas'], /\/painel\/rede\?.*#lojas$/)
+  assert.match(destinos['dono-d3|Lançar uma despesa'], /\/painel\/despesas\?acao=despesa&.*loja=r1/)
+})
+
 test('template do Resend: variáveis no lugar e declaradas', () => {
   const t = htmlDoTemplate('teste-d7')
   assert.match(t.html, /\{\{\{DATA_FIM\}\}\}/)
