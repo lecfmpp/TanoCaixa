@@ -52,7 +52,7 @@ export function usePublicarSite() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async () => {
-      const fn = httpsCallable<{ restauranteId: string }, { ok: boolean; subdominio: string; url: string }>(functions, 'publicarSite')
+      const fn = httpsCallable<{ restauranteId: string }, { ok: boolean; subdominio: string; url: string; dominio: 'ativo' | 'emitindo' | 'erro' }>(functions, 'publicarSite')
       return (await fn({ restauranteId: t })).data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'site'] }),

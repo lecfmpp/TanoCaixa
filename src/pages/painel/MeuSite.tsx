@@ -270,7 +270,14 @@ export function MeuSite() {
     try {
       await salvar.mutateAsync(cfg) // garante que o servidor publica o que está na tela
       const r = await publicar.mutateAsync()
-      adicionarToast({ tipo: 'sucesso', titulo: 'Site publicado', texto: `No ar em ${r.subdominio}.${DOMINIO_SITES} (pode levar até 1 minuto).` })
+      const onde = `${r.subdominio}.${DOMINIO_SITES}`
+      adicionarToast(
+        r.dominio === 'ativo'
+          ? { tipo: 'sucesso', titulo: 'Site publicado', texto: `No ar em ${onde} (as mudanças aparecem em até 1 minuto).` }
+          : r.dominio === 'emitindo'
+            ? { tipo: 'sucesso', titulo: 'Site publicado', texto: `${onde} está sendo ativado. Na primeira vez leva de 5 a 30 minutos.` }
+            : { tipo: 'atencao', titulo: 'Site salvo, endereço pendente', texto: `Não deu pra ativar ${onde} agora. Clique em Publicar de novo daqui a pouco.` },
+      )
     } catch (err) {
       adicionarToast({ tipo: 'erro', titulo: 'Não deu pra publicar', texto: String((err as { code?: string }).code ?? '').startsWith('functions/') ? (err as Error).message : mensagemDeErro(err, 'Tenta de novo em instantes.') })
     }

@@ -3,13 +3,14 @@
  *
  *  siteCliente (HTTP): serve {sub}.tanocaixa.com.br e {sub}.tanocaixa.com.br/links.
  *    Lê o Host, resolve o tenant em `sites/{sub}` (documento público, já
- *    publicado) e devolve HTML pronto. Fica atrás de um wildcard
- *    *.tanocaixa.com.br (ver ops/sites-wildcard/README.md). Sem o DNS ainda,
- *    funciona em modo caminho: <url-da-function>/{sub} e /{sub}/links.
+ *    publicado) e devolve HTML pronto. Fica atrás do site do Hosting
+ *    `tanocaixa-lojas` (rewrite ** → siteCliente), que recebe os domínios
+ *    {sub}.tanocaixa.com.br (ver ops/sites-wildcard/README.md). Sem DNS,
+ *    funciona em modo caminho: tanocaixa-lojas.web.app/{sub} e /{sub}/links.
  *
  *  publicarSite (callable): copia o rascunho (restaurants/{rid}/site/config)
  *    para `sites/{sub}` junto com o cardápio, garantindo que o subdomínio é
- *    único. Só dono ou gestão.
+ *    único, e registra {sub}.tanocaixa.com.br no Hosting. Só dono ou gestão.
  * ------------------------------------------------------------------ */
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https'
 import { initializeApp, getApps } from 'firebase-admin/app'
@@ -27,6 +28,7 @@ import {
   type SiteConfig,
 } from './modelo'
 import { renderLinks, renderNaoEncontrado, renderSite } from './render'
+import { registrarDominio, removerDominio, type EstadoDominio } from './dominio'
 
 if (getApps().length === 0) initializeApp()
 const db = getFirestore()
@@ -91,7 +93,9 @@ export const siteCliente = onRequest({ region: 'us-central1', memory: '256MiB', 
   res.status(200).type('html').set('Cache-Control', 'public, max-age=30, s-maxage=60').send(html)
 })
 
-export const publicarSite = onCall({ region: 'us-central1' }, async (req) => {
+// Roda com uma conta própria (Firebase Hosting Admin + Firestore), para as
+// demais functions não ganharem acesso ao Hosting.
+export const publicarSite = onCall({ region: 'us-central1', serviceAccount: 'sites-publicador@tanocaixa.iam.gserviceaccount.com' }, async (req) => {
   const rid = await exigirDonoOuGestao(req.auth?.uid, (req.data as { restauranteId?: string })?.restauranteId)
 
   const [restSnap, cfgSnap, pratosSnap] = await Promise.all([
@@ -132,5 +136,16 @@ export const publicarSite = onCall({ region: 'us-central1' }, async (req) => {
   })
   cache.delete(sub)
   if (anterior) cache.delete(anterior)
-  return { ok: true, subdominio: sub, url: `https://${sub}.${DOMINIO_SITES}` }
+
+  // O site já está publicado no banco; o domínio é o passo seguinte. Se o
+  // Hosting falhar, o restaurante publica de novo e tenta outra vez.
+  let dominio: EstadoDominio = 'erro'
+  try {
+    dominio = await registrarDominio(`${sub}.${DOMINIO_SITES}`)
+    if (anterior && anterior !== sub) await removerDominio(`${anterior}.${DOMINIO_SITES}`).catch((e) => console.warn('removerDominio', e))
+  } catch (e) {
+    console.error('registrarDominio', sub, e)
+  }
+  await cfgSnap.ref.set({ publicado: { dominio } }, { merge: true })
+  return { ok: true, subdominio: sub, url: `https://${sub}.${DOMINIO_SITES}`, dominio }
 })

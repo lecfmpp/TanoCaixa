@@ -1,59 +1,52 @@
-# Sites dos clientes em `*.tanocaixa.com.br`
+# Sites dos clientes em `{sub}.tanocaixa.com.br`
 
-Cada restaurante publica o site pela tela **Meu site** (`/painel/site`) e ele fica no ar em
-`{sub}.tanocaixa.com.br` (e `{sub}.tanocaixa.com.br/links`). Os sites ficam no `.com.br` de
-propósito: o conteúdo dos clientes não divide cookies, sessão nem reputação de e-mail/SEO com o
-app em `tanocaixa.com`.
-
-## Como funciona
+Mesmo modelo do WiseFunnel (`*.wiseform.io`): **só Firebase, sem custo extra**.
 
 ```
 visitante ──► faustoburger.tanocaixa.com.br
-              │  DNS: *.tanocaixa.com.br  A  <IP global do balanceador>
+              │  DNS (Registro.br): *.tanocaixa.com.br  CNAME  tanocaixa-lojas.web.app
               ▼
-   Load Balancer HTTPS global (Google Cloud, mesmo projeto `tanocaixa`)
-   certificado curinga *.tanocaixa.com.br (Certificate Manager) + Cloud CDN
-              │  serverless NEG
+   Firebase Hosting, site `tanocaixa-lojas` (target "lojas" no firebase.json)
+   cada {sub}.tanocaixa.com.br é registrado neste site ao publicar → certificado próprio
+              │  rewrite ** → siteCliente
               ▼
-   Cloud Function `siteCliente` (gen2 / Cloud Run "sitecliente")
-   lê o Host → sites/{sub} no Firestore → HTML pronto (cache 60 s na CDN)
+   Cloud Function `siteCliente`: lê o Host → sites/{sub} no Firestore → HTML (cache 60 s)
 ```
 
-- **Rascunho:** `restaurants/{rid}/site/config` (só membros, regras já existentes).
-- **Publicado:** `sites/{sub}` (leitura pública, escrita só pela function `publicarSite`, que
-  garante que o endereço é único e reservado aos nomes permitidos).
-- **Imagens:** Storage em `sites/{rid}/…` (leitura pública, envio só por membro).
-- Publicar → o site muda em até ~60 s (CDN `s-maxage=60` + cache de 30 s na function).
+- **Rascunho:** `restaurants/{rid}/site/config` (só membros).
+- **Publicado:** `sites/{sub}` (leitura pública; escrita só pela function `publicarSite`).
+- **Imagens:** Storage `sites/{rid}/…` (leitura pública; envio só por membro).
+- **Publicar** (`publicarSite`): grava `sites/{sub}` e registra `{sub}.tanocaixa.com.br` no site
+  `tanocaixa-lojas` pela API do Hosting (`functions/src/site/dominio.ts`). Na 1ª publicação o
+  Firebase emite o certificado em 5–30 min; depois, mudanças aparecem em até ~1 min.
+  Trocar de endereço remove o domínio antigo.
+- Sem registro, um subdomínio **não abre** (erro de certificado) — o curinga é só no DNS.
+- Teste sem DNS: `https://tanocaixa-lojas.web.app/{sub}` e `/{sub}/links`.
 
-### Por que não "custom domain" do Firebase Hosting por cliente?
-O Firebase Hosting não aceita domínio curinga e limita quantos domínios próprios cada projeto
-conecta (cada um com verificação e certificado separados). Serve para 10 clientes, não para
-1.000. O balanceador com certificado curinga resolve qualquer subdomínio novo na hora, sem
-nenhum passo por cliente. Custo fixo aproximado: ~US$ 18/mês da regra de encaminhamento + tráfego.
+## Configuração (uma vez)
 
-## Antes do DNS (testar já)
-A function responde em modo caminho: `https://<url-da-siteCliente>/{sub}` e `/{sub}/links`.
-A URL aparece no fim do `firebase deploy --only functions:siteCliente`.
-
-## Passo a passo (uma vez)
-
-1. Publicar regras e functions:
+1. **Conta de serviço** `sites-publicador` (a `publicarSite` roda com ela, para as outras functions
+   não ganharem acesso ao Hosting):
    ```bash
-   firebase deploy --only firestore:rules,storage,functions:siteCliente,functions:publicarSite --project tanocaixa
+   gcloud iam service-accounts create sites-publicador --project tanocaixa --display-name "Publica sites dos clientes"
+   gcloud projects add-iam-policy-binding tanocaixa --member serviceAccount:sites-publicador@tanocaixa.iam.gserviceaccount.com --role roles/firebasehosting.admin --condition=None
+   gcloud projects add-iam-policy-binding tanocaixa --member serviceAccount:sites-publicador@tanocaixa.iam.gserviceaccount.com --role roles/datastore.user --condition=None
    ```
-   As regras do Storage leem o Firestore (`firestore.get`) para saber quem é membro — na primeira
-   vez o CLI pede para liberar essa permissão; aceite.
-2. Criar o balanceador e o certificado curinga: `ops/sites-wildcard/setup.sh` (precisa de
-   `gcloud` logado com permissão de Owner/Editor no projeto). O script imprime os registros DNS.
-3. No DNS do `tanocaixa.com.br` (Registro.br ou onde estiver):
-   - `CNAME _acme-challenge.tanocaixa.com.br → <valor que o script imprimir>` (autoriza o certificado curinga)
-   - `A *.tanocaixa.com.br → <IP que o script imprimir>`
-   - (opcional) `A tanocaixa.com.br → mesmo IP`, se quiser que a raiz também caia no balanceador
-4. Esperar o certificado ficar `ACTIVE` (15 min a algumas horas):
-   ```bash
-   gcloud certificate-manager certificates describe sites-curinga --project tanocaixa
-   ```
+2. **DNS do `tanocaixa.com.br`** (Registro.br → DNS → Editar zona):
+   | Tipo | Nome | Valor |
+   |---|---|---|
+   | CNAME | `*` | `tanocaixa-lojas.web.app` |
+   | TXT | (raiz) | `hosting-site=tanocaixa-lojas` |
+
+   Se o Registro.br não aceitar `*`, use o DNS da HostGator (como `wiseform.io` e `tanocaixa.com`):
+   troque os servidores DNS do `.com.br` para `ns896/ns897.hostgator.com.br` e crie os mesmos
+   registros na zona de lá.
+3. **Deploy:** `firebase deploy --only hosting:lojas,functions:siteCliente,functions:publicarSite`.
+   O `deploy --only hosting` do GitHub Actions publica os dois sites (app e lojas).
+
+## Limites
+O WiseFunnel tem 108 domínios num único site do Hosting sem problema. Se um dia o Firebase
+limitar, dá para abrir um segundo site (`tanocaixa-lojas-2`) e distribuir.
 
 ## Nomes reservados
-`www, app, api, admin, blog, painel, …` — lista completa em
-`functions/src/site/modelo.ts` (`SUBDOMINIOS_RESERVADOS`). Vale no app e na function.
+`www, app, api, admin, blog, painel, …` — `SUBDOMINIOS_RESERVADOS` em `functions/src/site/modelo.ts`.
