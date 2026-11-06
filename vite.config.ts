@@ -23,6 +23,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Modelo e render do site do cliente, compartilhados com a Cloud Function.
+      '@site': path.resolve(__dirname, './functions/src/site'),
     },
   },
   build: {
