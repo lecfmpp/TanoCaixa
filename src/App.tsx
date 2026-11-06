@@ -28,6 +28,7 @@ import { Metas } from '@/pages/painel/Metas'
 import { Cmv } from '@/pages/painel/Cmv'
 import { Dashboard } from '@/pages/painel/Numeros'
 import { Ajustes } from '@/pages/painel/Ajustes'
+import { MeuSite } from '@/pages/painel/MeuSite'
 import { Perfil } from '@/pages/painel/Perfil'
 import { ConvitePage } from '@/pages/auth/ConvitePage'
 import { Plano } from '@/pages/painel/Plano'
@@ -86,6 +87,7 @@ export default function App() {
                 <Route path="rede" element={<ExigePermissao chave="veRede"><Rede /></ExigePermissao>} />
                 <Route path="franquias" element={<ExigePermissao chave="veRede"><Franquias /></ExigePermissao>} />
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Dashboard /></ExigePermissao>} />
+                <Route path="site" element={<ExigePermissao chave="veAjustes"><MeuSite /></ExigePermissao>} />
                 <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
                 <Route path="pdv" element={<PdvLayout />}>
                   <Route index element={<Navigate to="pedidos" replace />} />
