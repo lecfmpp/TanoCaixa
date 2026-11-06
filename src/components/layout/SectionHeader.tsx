@@ -77,7 +77,7 @@ export function SectionHeader({
           aria-hidden
         />
 
-        <div className="relative z-10 flex min-w-0 items-center gap-4">
+        <div className="relative z-10 flex min-w-0 items-center gap-3 cel:gap-4">
           <LogoDaLoja url={logo} formato={cfgLoja?.logoFormato} />
           <div className="min-w-0">
           <h1

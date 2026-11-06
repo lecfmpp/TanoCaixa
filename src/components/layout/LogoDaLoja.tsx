@@ -26,10 +26,13 @@ export function useFormatoDaLogo(url: string | undefined, salvo: FormatoLogo | u
   return salvo ?? (medido && medido.url === url ? medido.formato : 'horizontal')
 }
 
-/** Tamanho da caixa no header: 56 × 56 (1:1) ou 140 × 56 (5:2). */
+/**
+ * Tamanho da caixa no header. No celular fica menor pra não roubar espaço do
+ * título: 36 × 36 ou 90 × 36. A partir de 700 px: 56 × 56 ou 140 × 56.
+ */
 const CAIXA: Record<FormatoLogo, string> = {
-  quadrado: 'h-14 w-14',
-  horizontal: 'h-14 w-[140px]',
+  quadrado: 'h-9 w-9 cel:h-14 cel:w-14',
+  horizontal: 'h-9 w-[90px] cel:h-14 cel:w-[140px]',
 }
 
 /**
@@ -63,7 +66,7 @@ export function LogoDaLoja({
       {url ? (
         // Posição absoluta dentro da caixa: a imagem nunca passa do tamanho dela,
         // qualquer que seja a proporção ou o tamanho do arquivo.
-        <img src={url} alt="Logo da loja" className="absolute inset-1.5 h-[calc(100%-12px)] w-[calc(100%-12px)] object-contain" />
+        <img src={url} alt="Logo da loja" className="absolute inset-1 h-[calc(100%-8px)] w-[calc(100%-8px)] object-contain cel:inset-1.5 cel:h-[calc(100%-12px)] cel:w-[calc(100%-12px)]" />
       ) : (
         <ImageIcon size={18} aria-hidden />
       )}
