@@ -391,7 +391,7 @@ function QuemMexeu({ feed }: { feed: { id: string; quem: string; quemInicial: st
     <Secao
       titulo="Quem mexeu no quê"
       corpoClassName="flex flex-col !pt-1"
-      acoes={<Link to="/painel/ajustes#historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>}
+      acoes={<Link to="/painel/configuracoes/historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>}
     >
       {feed.length === 0 && (
         <p className="py-3 text-sm text-tinta-4">

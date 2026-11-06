@@ -3,7 +3,7 @@ import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
-import { useConfiguracoesLiberadas, useSiteLiberado } from '@/auth/site'
+import { useSiteLiberado } from '@/auth/site'
 import { useAuth } from '@/auth/AuthContext'
 import { useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
@@ -26,9 +26,8 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const lojas = useLojasAcessiveis()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
   const siteLiberado = useSiteLiberado()
-  const configuracoesLiberadas = useConfiguracoesLiberadas()
   const itens = itensNav.filter(
-    (i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede) && (i.recurso !== 'site' || siteLiberado) && (i.recurso !== 'configuracoes' || configuracoesLiberadas),
+    (i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede) && (i.recurso !== 'site' || siteLiberado),
   )
 
   return (
