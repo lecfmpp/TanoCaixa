@@ -10,11 +10,11 @@ function Miniatura({ url, claro }: { url?: string; claro?: boolean }) {
   return (
     <span
       className={cn(
-        'grid h-5 w-[50px] shrink-0 place-items-center overflow-hidden rounded-[5px] p-0.5',
+        'relative grid h-5 w-[50px] shrink-0 place-items-center overflow-hidden rounded-[5px]',
         url ? 'bg-creme' : claro ? 'bg-white/10 text-creme/70' : 'bg-preenchimento text-tinta-4',
       )}
     >
-      {url ? <img src={url} alt="" className="h-full w-full object-contain" /> : <Store size={14} aria-hidden />}
+      {url ? <img src={url} alt="" className="absolute inset-0.5 h-[calc(100%-4px)] w-[calc(100%-4px)] object-contain" /> : <Store size={14} aria-hidden />}
     </span>
   )
 }

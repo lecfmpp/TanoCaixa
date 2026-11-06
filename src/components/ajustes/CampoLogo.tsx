@@ -99,8 +99,8 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
         )}
       >
         {logo ? (
-          <span className="grid w-full max-w-[260px] place-items-center rounded-campo bg-superficie p-3" style={{ aspectRatio: '5 / 2' }}>
-            <img src={logo} alt="Logo da loja" className="h-full w-full object-contain" />
+          <span className="relative block w-full max-w-[260px] overflow-hidden rounded-campo bg-superficie" style={{ aspectRatio: '5 / 2' }}>
+            <img src={logo} alt="Logo da loja" className="absolute inset-3 h-[calc(100%-24px)] w-[calc(100%-24px)] object-contain" />
           </span>
         ) : (
           <span
