@@ -54,7 +54,8 @@ export function SectionHeader({
   const ref = useRef<HTMLDivElement>(null)
   const { abrirGaveta } = useUI()
   // Logo da loja aberta (cada loja tem a sua).
-  const logo = useRestaurante().data?.logoUrl
+  const cfgLoja = useRestaurante().data
+  const logo = cfgLoja?.logoUrl
 
   useEffect(() => {
     function fora(e: MouseEvent) {
@@ -77,7 +78,7 @@ export function SectionHeader({
         />
 
         <div className="relative z-10 flex min-w-0 items-center gap-4">
-          <LogoDaLoja url={logo} />
+          <LogoDaLoja url={logo} formato={cfgLoja?.logoFormato} />
           <div className="min-w-0">
           <h1
             className="truncate text-creme"

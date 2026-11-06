@@ -33,6 +33,8 @@ export interface RestauranteDoc {
   bandeira?: string
   /** Logo da loja (Storage), mostrada no header. Ver src/data/logo.ts. */
   logoUrl?: string
+  /** Formato da logo enviada: decide a caixa do header (quadrada ou horizontal). */
+  logoFormato?: 'quadrado' | 'horizontal'
   /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
   taxasFranquia?: { royalties: number; fundoPromocao: number }
   /**

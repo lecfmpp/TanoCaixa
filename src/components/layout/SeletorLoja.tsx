@@ -4,17 +4,25 @@ import { Check, ChevronDown, Store } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { getRestaurante } from '@/data/repo'
 import type { LojaAcessivel } from '@/data/hooks'
+import type { FormatoLogo } from '@/data/logo'
+import { useFormatoDaLogo } from './LogoDaLoja'
 
-/** Miniatura da logo (5:2) ou, sem logo, um ícone de loja no mesmo espaço. */
-function Miniatura({ url, claro }: { url?: string; claro?: boolean }) {
+/**
+ * Miniatura da logo: 20 × 20 (quadrada) ou 50 × 20 (horizontal). Sem logo,
+ * um ícone de loja no espaço quadrado.
+ */
+function Miniatura({ url, formato, claro }: { url?: string; formato?: FormatoLogo; claro?: boolean }) {
+  const f = useFormatoDaLogo(url, formato)
+  const quadrada = !!url && f === 'quadrado'
   return (
     <span
       className={cn(
-        'relative grid h-5 w-[50px] shrink-0 place-items-center overflow-hidden rounded-[5px]',
+        'relative grid h-5 shrink-0 place-items-center overflow-hidden rounded-[5px]',
+        quadrada || !url ? 'w-5' : 'w-[50px]',
         url ? 'bg-creme' : claro ? 'bg-white/10 text-creme/70' : 'bg-preenchimento text-tinta-4',
       )}
     >
-      {url ? <img src={url} alt="" className="absolute inset-0.5 h-[calc(100%-4px)] w-[calc(100%-4px)] object-contain" /> : <Store size={14} aria-hidden />}
+      {url ? <img src={url} alt="" className="absolute inset-0.5 h-[calc(100%-4px)] w-[calc(100%-4px)] object-contain" /> : <Store size={13} aria-hidden />}
     </span>
   )
 }
@@ -44,6 +52,7 @@ export function SeletorLoja({
     })),
   })
   const logoDe = (i: number) => docs[i]?.data?.logoUrl
+  const formatoDe = (i: number) => docs[i]?.data?.logoFormato
   const iAtiva = Math.max(0, lojas.findIndex((l) => l.restauranteId === ativa))
   const atual = lojas[iAtiva]
 
@@ -68,7 +77,7 @@ export function SeletorLoja({
         aria-expanded={aberto}
         className="flex w-full items-center gap-2.5 rounded-botao border border-white/15 bg-white/10 px-2.5 py-2 text-left text-sm font-semibold text-creme outline-none transition hover:bg-white/15 focus-visible:border-white/40"
       >
-        <Miniatura url={logoDe(iAtiva)} claro />
+        <Miniatura url={logoDe(iAtiva)} formato={formatoDe(iAtiva)} claro />
         <span className="min-w-0 flex-1 truncate">{atual?.nome ?? 'Loja'}</span>
         <ChevronDown size={16} className={cn('shrink-0 text-creme/70 transition', aberto && 'rotate-180')} />
       </button>
@@ -94,7 +103,7 @@ export function SeletorLoja({
                     selecionada ? 'font-bold text-tinta' : 'font-medium text-tinta-2',
                   )}
                 >
-                  <Miniatura url={logoDe(i)} />
+                  <Miniatura url={logoDe(i)} formato={formatoDe(i)} />
                   <span className="min-w-0 flex-1 truncate">{l.nome}</span>
                   {selecionada && <Check size={15} className="shrink-0 text-mar" />}
                 </button>
