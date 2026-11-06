@@ -3,7 +3,7 @@ import { mensagemDeErro } from '@/lib/erros'
 import { useLocation } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
@@ -105,6 +105,7 @@ export function Ajustes() {
         semMes
       />
 
+      <Secoes>
       {/* Logo da loja — aparece no topo de todas as páginas */}
       <LogoDaLojaCartao />
 
@@ -118,12 +119,11 @@ export function Ajustes() {
       <PlanoDeContas />
 
       {/* Onde te avisar */}
-      <Cartao className="flex flex-col">
-        <h2 className="mb-3 text-[15px] font-bold text-tinta">Onde te avisar</h2>
+      <Secao titulo="Onde te avisar" corpoClassName="!pt-1">
         <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
         <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
         <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
-      </Cartao>
+      </Secao>
 
       {/* Lembretes de rotina no grupo de WhatsApp (só quem tem grupo) */}
       <LembretesWhatsapp />
@@ -132,14 +132,12 @@ export function Ajustes() {
       <Integracoes />
 
       {/* Histórico */}
-      <Cartao id="historico" className="flex flex-col scroll-mt-6">
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-[15px] font-bold text-tinta">Histórico de tudo que foi feito</h2>
-            <p className="mt-1 text-sm text-tinta-3">
-              Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho.
-            </p>
-          </div>
+      <Secao
+        id="historico"
+        titulo="Histórico de tudo que foi feito"
+        descricao="Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho."
+        resumo={`${atividades.length} ${atividades.length === 1 ? 'registro' : 'registros'}`}
+        acoes={
           <button
             onClick={exportarHistorico}
             disabled={!filtrada.length}
@@ -148,9 +146,9 @@ export function Ajustes() {
             <Download size={15} />
             Exportar
           </button>
-        </div>
-
-        <div className="mb-3 mt-1 flex flex-wrap gap-2">
+        }
+      >
+        <div className="mb-3 flex flex-wrap gap-2">
           {filtros.map((f) => (
             <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
           ))}
@@ -186,7 +184,8 @@ export function Ajustes() {
             </button>
           )}
         </div>
-      </Cartao>
+      </Secao>
+      </Secoes>
     </div>
   )
 }
@@ -209,13 +208,9 @@ function LogoDaLojaCartao() {
   const { permissoes } = useAuth()
   const pode = (permissoes?.gerenciaEquipe ?? 'nao') !== 'nao'
   return (
-    <Cartao className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-[15px] font-bold text-tinta">Logo da loja</h2>
-        <p className="text-sm text-tinta-3">Aparece no topo de todas as páginas desta loja.</p>
-      </div>
+    <Secao titulo="Logo da loja" descricao="Aparece no topo de todas as páginas desta loja." abertaPorPadrao>
       <CampoLogo podeEditar={pode} />
-    </Cartao>
+    </Secao>
   )
 }
 
@@ -256,11 +251,12 @@ function SeuNegocio() {
   }
 
   return (
-    <Cartao className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-[15px] font-bold text-tinta">Seu negócio</h2>
-        <p className="text-sm text-tinta-3">Define o que aparece no seu DRE e se você tem visão de rede.</p>
-      </div>
+    <Secao
+      titulo="Seu negócio"
+      descricao="Define o que aparece no seu DRE e se você tem visão de rede."
+      resumo={TIPOS_NEGOCIO.find((t) => t.id === tipo)?.nome}
+      corpoClassName="flex flex-col gap-4"
+    >
       <div className="flex flex-wrap gap-2">
         {TIPOS_NEGOCIO.map((t) => (
           <Chip key={t.id} rotulo={t.nome} selecionado={tipo === t.id} aoClicar={() => trocarTipo(t.id)} />
@@ -300,18 +296,20 @@ function SeuNegocio() {
           </p>
         </div>
       )}
-    </Cartao>
+    </Secao>
   )
 }
 
 function Integracoes() {
   return (
-    <Cartao className="flex flex-col">
-      <div className="flex items-center gap-2">
-        <h2 className="text-[15px] font-bold text-tinta">Integrações</h2>
-        <SeloEmBreve />
-      </div>
-      <p className="mt-1 mb-3 text-sm text-tinta-3">
+    <Secao
+      titulo={
+        <span className="inline-flex items-center gap-2">
+          Integrações <SeloEmBreve />
+        </span>
+      }
+    >
+      <p className="mb-3 text-sm text-tinta-3">
         Por enquanto as vendas entram pelo fechamento do dia (botão "Lançar vendas") e as despesas por foto ou
         planilha. As conexões automáticas abaixo estão chegando.
       </p>
@@ -336,7 +334,7 @@ function Integracoes() {
           </li>
         ))}
       </ul>
-    </Cartao>
+    </Secao>
   )
 }
 
@@ -351,10 +349,12 @@ function Equipe() {
   const ehDono = gestao === 'total'
 
   return (
-    <Cartao className="flex flex-col">
-      <h2 className="text-[15px] font-bold text-tinta">Quem usa e o que cada um pode</h2>
+    <Secao
+      titulo="Quem usa e o que cada um pode"
+      resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
+    >
       {gestao === 'proposta' && (
-        <p className="mt-1 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">
+        <p className="mb-2 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">
           Você pode convidar, mas mudanças de permissão só valem com a aprovação do dono.
         </p>
       )}
@@ -413,7 +413,7 @@ function Equipe() {
           Quem entra por esse link já começa ativo com o papel escolhido — mudanças de permissão depois é que passam pela aprovação do dono.
         </p>
       )}
-    </Cartao>
+    </Secao>
   )
 }
 
