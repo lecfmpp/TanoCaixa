@@ -306,4 +306,4 @@ export { repetirDespesasRecorrentes } from './recorrentesJob'
 export { capturarLead } from './leads'
 
 // Site do cliente: {sub}.tanocaixa.com.br + publicação pela tela Meu site.
-export { siteCliente, publicarSite } from './site'
+export { siteCliente, publicarSite, despublicarSite } from './site'

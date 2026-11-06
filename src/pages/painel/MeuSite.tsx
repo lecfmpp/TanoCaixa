@@ -6,9 +6,10 @@ import { useAuth } from '@/auth/AuthContext'
 import { useSiteLiberado } from '@/auth/site'
 import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
+import { CelebracaoSite } from '@/components/site/CelebracaoSite'
 import { useUI } from '@/ui/UIProvider'
 import { usePratos, useTenant } from '@/data/hooks'
-import { enviarImagemDoSite, mesmoConteudo, subdominioLivre, usePublicarSite, useSalvarSite, useSite } from '@/data/site'
+import { enviarImagemDoSite, mesmoConteudo, subdominioLivre, useDespublicarSite, usePublicarSite, useSalvarSite, useSite } from '@/data/site'
 import { mensagemDeErro } from '@/lib/erros'
 import { cn } from '@/lib/cn'
 import {
@@ -36,6 +37,8 @@ import {
 import { renderLinks, renderSite } from '@site/render'
 
 type Previa = 'celular' | 'links' | 'computador'
+/** Domínios: fonte encolhe no celular e o texto nunca passa de 2 linhas. */
+const CLS_DOMINIO = 'line-clamp-2 text-[clamp(10px,3.1vw,13px)] leading-snug [overflow-wrap:anywhere]'
 const DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 const NOMES_DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 
@@ -81,7 +84,7 @@ function Segmento<T extends string>({ valor, opcoes, aoTrocar }: { valor: T; opc
           type="button"
           onClick={() => aoTrocar(o.id)}
           className={cn(
-            'flex-1 rounded-[10px] px-3 py-1.5 text-sm font-bold transition',
+            'min-w-0 flex-1 rounded-[10px] px-1.5 py-1.5 text-[12px] font-bold leading-tight transition [overflow-wrap:anywhere] sm:px-3 sm:text-sm',
             valor === o.id ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta',
           )}
         >
@@ -199,13 +202,18 @@ function TelaMeuSite() {
   const pratos = useMemo(() => pratosQ ?? [], [pratosQ])
   const salvar = useSalvarSite()
   const publicar = usePublicarSite()
-  const { adicionarToast } = useUI()
+  const despublicar = useDespublicarSite()
+  const { adicionarToast, confirmar } = useUI()
   const [cfg, setCfg] = useState<SiteConfig | null>(null)
   const [previa, setPrevia] = useState<Previa>('celular')
   const [livre, setLivre] = useState<boolean | 'erro' | null>(null)
   const [celula, setCelula] = useState<{ loja: string; app: AppId } | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [avAberto, setAvAberto] = useState<string | null>(null)
+  // Em desenvolvimento, ?comemorar abre a comemoração para ajustar o visual.
+  const [festa, setFesta] = useState<{ url: string; emitindo: boolean } | null>(() =>
+    import.meta.env.DEV && new URLSearchParams(window.location.search).has('comemorar') ? { url: 'https://faustoburger.tanocaixa.com.br', emitindo: true } : null,
+  )
 
   // Carrega o rascunho uma vez; depois o que vale é o que a pessoa edita.
   useEffect(() => {
@@ -269,10 +277,13 @@ function TelaMeuSite() {
     !site.data?.publicado ||
     !mesmoConteudo(publicadoCfg, cfg) ||
     !mesmoConteudo(site.data.publicado.itensIds ?? [], itens.map((i) => i.id))
-  const urlSite = site.data?.publicado ? `https://${site.data.publicado.subdominio}.${DOMINIO_SITES}` : ''
+  const noAr = !!site.data?.publicado?.ativo
+  const urlSite = noAr ? `https://${site.data!.publicado!.subdominio}.${DOMINIO_SITES}` : ''
   const errosPub = errosParaPublicar(cfg)
+  const ocupado = publicar.isPending || despublicar.isPending
 
-  async function publicarAgora() {
+  /** Confere o que dá pra conferir e pede confirmação antes de pôr no ar. */
+  function pedirPublicar() {
     if (!cfg) return
     if (errosPub.length) {
       adicionarToast({ tipo: 'atencao', titulo: 'Falta ajustar antes de publicar', texto: errosPub[0] })
@@ -282,20 +293,71 @@ function TelaMeuSite() {
       adicionarToast({ tipo: 'atencao', titulo: 'Endereço em uso', texto: 'Escolha outro endereço para o site.' })
       return
     }
+    const onde = `${cfg.subdominio}.${DOMINIO_SITES}`
+    confirmar(
+      noAr
+        ? {
+            gravidade: 'neutro',
+            titulo: 'Publicar as alterações?',
+            texto: 'O que está na prévia substitui o site que está no ar. As mudanças aparecem em até 1 minuto.',
+            rotuloConfirmar: 'Publicar alterações',
+            onConfirmar: () => void publicarAgora(),
+          }
+        : {
+            gravidade: 'atencao',
+            titulo: 'Publicar o site?',
+            texto: 'O site fica aberto para qualquer pessoa, do jeito que está na prévia. Dá pra tirar do ar quando quiser.',
+            resumo: [
+              { rot: 'Endereço', val: onde },
+              { rot: 'Lojas', val: String(cfg.lojas.length) },
+              { rot: 'Itens do cardápio', val: String(itens.length) },
+            ],
+            rotuloConfirmar: 'Publicar',
+            onConfirmar: () => void publicarAgora(),
+          },
+    )
+  }
+
+  function pedirDespublicar() {
+    const onde = `${site.data?.publicado?.subdominio}.${DOMINIO_SITES}`
+    confirmar({
+      gravidade: 'destrutivo',
+      titulo: 'Tirar o site do ar?',
+      texto: 'Quem abrir o endereço vai ver "site não encontrado". O que você configurou e o endereço ficam guardados: é só publicar de novo para voltar.',
+      resumo: [{ rot: 'Endereço', val: onde }],
+      rotuloConfirmar: 'Tirar do ar',
+      onConfirmar: () =>
+        void despublicar
+          .mutateAsync()
+          .then(() => adicionarToast({ tipo: 'sucesso', titulo: 'Site fora do ar', texto: 'Pode levar até 1 minuto para sumir de vez.' }))
+          .catch((err) => adicionarToast({ tipo: 'erro', titulo: 'Não deu pra tirar do ar', texto: mensagemDeErro(err, 'Tenta de novo em instantes.') })),
+    })
+  }
+
+  async function publicarAgora() {
+    if (!cfg) return
+    const primeiraVez = !site.data?.publicado // nunca publicou: comemora
     try {
       await salvar.mutateAsync(cfg) // garante que o servidor publica o que está na tela
       const r = await publicar.mutateAsync()
-      const onde = `${r.subdominio}.${DOMINIO_SITES}`
+      if (primeiraVez && r.dominio !== 'erro') {
+        setFesta({ url: r.url, emitindo: r.dominio === 'emitindo' })
+        return
+      }
       adicionarToast(
         r.dominio === 'ativo'
-          ? { tipo: 'sucesso', titulo: 'Site publicado', texto: `No ar em ${onde} (as mudanças aparecem em até 1 minuto).` }
+          ? { tipo: 'sucesso', titulo: 'Site publicado', texto: 'As mudanças aparecem em até 1 minuto.' }
           : r.dominio === 'emitindo'
-            ? { tipo: 'sucesso', titulo: 'Site publicado', texto: `${onde} está sendo ativado. Na primeira vez leva de 5 a 30 minutos.` }
-            : { tipo: 'atencao', titulo: 'Site salvo, endereço pendente', texto: `Não deu pra ativar ${onde} agora. Clique em Publicar de novo daqui a pouco.` },
+            ? { tipo: 'sucesso', titulo: 'Site publicado', texto: 'O endereço está sendo ativado. Na primeira vez leva de 5 a 30 minutos.' }
+            : { tipo: 'atencao', titulo: 'Site salvo, endereço pendente', texto: 'Não deu pra ativar o endereço agora. Publique de novo daqui a pouco.' },
       )
     } catch (err) {
       adicionarToast({ tipo: 'erro', titulo: 'Não deu pra publicar', texto: String((err as { code?: string }).code ?? '').startsWith('functions/') ? (err as Error).message : mensagemDeErro(err, 'Tenta de novo em instantes.') })
     }
+  }
+
+  function fecharFesta() {
+    setFesta(null)
   }
 
   function mover(i: number, dir: -1 | 1) {
@@ -321,33 +383,42 @@ function TelaMeuSite() {
     }
   }
 
-  const statusLinha = site.data?.publicado
-    ? `Publicado em ${site.data.publicado.subdominio}.${DOMINIO_SITES} · ${pendente ? 'alterações não publicadas' : 'tudo publicado'}`
-    : 'Ainda não publicado'
+  const statusLinha = noAr ? (pendente ? 'No ar · alterações não publicadas' : 'No ar · tudo publicado') : 'Não publicado · só você vê a prévia'
 
   return (
     <div className="flex flex-col gap-4">
+      {festa && <CelebracaoSite url={festa.url} emitindo={festa.emitindo} aoFechar={fecharFesta} />}
       {/* Cabeçalho */}
-      <div className="relative overflow-hidden rounded-cartao-g bg-mar px-5 py-5 text-creme sm:px-6">
+      <div className="relative overflow-clip rounded-cartao-g bg-mar px-5 py-5 text-creme sm:px-6">
         <div className="pointer-events-none absolute -right-8 -top-14 h-36 w-36 rounded-full bg-sol" aria-hidden />
         <div className="relative flex flex-wrap items-center gap-4">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[220px] flex-1">
             <h1 className="text-2xl font-extrabold tracking-tight">Meu site</h1>
-            <p className="mt-0.5 flex items-center gap-2 text-sm text-creme/80">
-              <span className={cn('h-2 w-2 rounded-full', site.data?.publicado ? (pendente ? 'bg-sol' : 'bg-[#7fd39b]') : 'bg-creme/50')} />
-              {statusLinha}
-              {salvar.isPending && <span className="text-creme/60">· salvando…</span>}
+            <p className="mt-0.5 flex items-center gap-2 text-[13px] text-creme/80 sm:text-sm">
+              <span className={cn('h-2 w-2 shrink-0 rounded-full', noAr ? (pendente ? 'bg-sol' : 'bg-[#7fd39b]') : 'bg-creme/50')} />
+              <span className="line-clamp-2">
+                {statusLinha}
+                {salvar.isPending && <span className="text-creme/60"> · salvando…</span>}
+              </span>
             </p>
+            {noAr && <p className={cn(CLS_DOMINIO, 'mt-0.5 font-bold text-creme')}>{site.data!.publicado!.subdominio}.{DOMINIO_SITES}</p>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Publicado / não publicado: sempre com confirmação */}
+            <label className={cn('inline-flex items-center gap-2.5 rounded-botao bg-white/10 px-3.5 py-2 text-sm font-bold', ocupado && 'opacity-60')}>
+              <span>{despublicar.isPending ? 'Tirando do ar…' : publicar.isPending ? 'Publicando…' : noAr ? 'Publicado' : 'Não publicado'}</span>
+              <Switch ligado={noAr} rotulo="Site publicado" aoTrocar={(v) => !ocupado && (v ? pedirPublicar() : pedirDespublicar())} />
+            </label>
             {urlSite && (
               <a href={urlSite} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 rounded-botao border border-creme/40 px-4 py-2.5 text-sm font-bold hover:bg-white/10">
                 Ver site <ExternalLink size={14} />
               </a>
             )}
-            <Button variante="lancar" onClick={publicarAgora} disabled={publicar.isPending || (!pendente && !!site.data?.publicado)}>
-              {publicar.isPending ? 'Publicando…' : pendente || !site.data?.publicado ? 'Publicar alterações' : 'Publicado'}
-            </Button>
+            {noAr && pendente && (
+              <Button variante="lancar" onClick={pedirPublicar} disabled={ocupado}>
+                Publicar alterações
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -358,11 +429,11 @@ function TelaMeuSite() {
           <Bloco titulo="Endereço">
             <div
               className={cn(
-                'flex items-center rounded-campo border bg-superficie px-3 text-sm focus-within:border-mar focus-within:ring-2 focus-within:ring-mar/15',
+                'flex items-center rounded-campo border bg-superficie px-3 text-[13px] sm:text-sm focus-within:border-mar focus-within:ring-2 focus-within:ring-mar/15',
                 erroSub || livre === false ? 'border-telha-alerta/60' : 'border-[rgba(46,95,115,0.14)]',
               )}
             >
-              <span className="text-tinta-4">https://</span>
+              <span className="hidden text-tinta-4 sm:inline">https://</span>
               <input
                 value={sub}
                 onChange={(e) => mudar({ subdominio: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30) })}
@@ -370,7 +441,7 @@ function TelaMeuSite() {
                 aria-label="Endereço do site"
                 spellCheck={false}
               />
-              <span className="shrink-0 text-tinta-4">.{DOMINIO_SITES}</span>
+              <span className="shrink-0 text-[11px] text-tinta-4 sm:text-sm">.{DOMINIO_SITES}</span>
             </div>
             <div className="text-xs">
               {erroSub ? (
@@ -386,8 +457,8 @@ function TelaMeuSite() {
               )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-tinta-3">
-              <span>
-                Página de links: <b className="text-tinta">{dominio}/links</b>
+              <span className="min-w-0">
+                Página de links: <b className={cn(CLS_DOMINIO, 'text-tinta')}>{dominio}/links</b>
               </span>
               <button type="button" onClick={copiarLink} className="inline-flex items-center gap-1 font-bold text-mar">
                 {copiado ? <Check size={13} /> : <Copy size={13} />} {copiado ? 'Copiado' : 'Copiar link'}
@@ -453,7 +524,7 @@ function TelaMeuSite() {
 
           {/* Estilo */}
           <Bloco titulo="Estilo">
-            <div className="grid grid-cols-[80px_1fr] items-center gap-3 text-sm text-tinta-2">
+            <div className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2 text-sm text-tinta-2 sm:grid-cols-[80px_minmax(0,1fr)] sm:gap-3">
               <span>Cardápio</span>
               <Segmento valor={cfg.cardapioModo} aoTrocar={(v) => mudar({ cardapioModo: v })} opcoes={[{ id: 'cards', rotulo: 'Cards com foto' }, { id: 'lista', rotulo: 'Lista compacta' }]} />
               <span>Cantos</span>
@@ -528,7 +599,7 @@ function TelaMeuSite() {
                   onChange={(e) => mudarLoja(l.id, { whatsapp: e.target.value.replace(/\D/g, '').slice(0, 13) })}
                 />
                 <div className="flex flex-wrap items-end gap-2">
-                  <div className="flex gap-1" role="group" aria-label="Dias abertos">
+                  <div className="grid w-full max-w-[252px] grid-cols-7 gap-1" role="group" aria-label="Dias abertos">
                     {DIAS.map((d, i) => {
                       const on = l.dias.includes(i)
                       return (
@@ -538,7 +609,7 @@ function TelaMeuSite() {
                           title={NOMES_DIAS[i]}
                           aria-pressed={on}
                           onClick={() => mudarLoja(l.id, { dias: on ? l.dias.filter((x) => x !== i) : [...l.dias, i].sort() })}
-                          className={cn('h-8 w-8 rounded-lg text-xs font-bold', on ? 'bg-mar text-creme' : 'bg-preenchimento text-tinta-4')}
+                          className={cn('aspect-square w-full max-w-8 rounded-lg text-xs font-bold', on ? 'bg-mar text-creme' : 'bg-preenchimento text-tinta-4')}
                         >
                           {d}
                         </button>
