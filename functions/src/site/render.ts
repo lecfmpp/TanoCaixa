@@ -63,6 +63,12 @@ function selo(k: 'ifood' | 'uber' | 'n99' | 'whatsapp', px: number): string {
   return caixa(bg, `<svg viewBox="0 0 24 24" width="${px * 0.62}" height="${px * 0.62}" fill="#fff"><path d="${ICONE_PATH[k]}"/></svg>`)
 }
 
+/** Selo "Site feito com Tá no Caixa" (símbolo oficial versão Sol + nome), com link e UTM. */
+function seloTnc(sub: string): string {
+  const url = 'https://tanocaixa.com/?utm_source=site-cliente&utm_medium=rodape&utm_campaign=' + encodeURIComponent(sub)
+  return `<a class="tnc" href="${esc(url)}" ${ext} aria-label="Site feito com Tá no Caixa"><svg viewBox="0 0 100 100" width="36" height="36" aria-hidden="true"><rect width="100" height="100" rx="30" fill="#EFAB5C"/><g fill="none" stroke="#1E4354" stroke-width="13" stroke-linecap="round"><path d="M27 24 H73"/><path d="M50 24 V52"/><path d="M33 68 Q50 82 67 68"/></g></svg><span><small>Site feito com</small><strong>Tá no Caixa</strong></span></a>`
+}
+
 const igUrl = (h: string) => 'https://www.instagram.com/' + h.replace(/^@/, '') + '/'
 const igHandle = (h: string) => (h ? '@' + h.replace(/^@/, '') : '')
 
@@ -203,8 +209,13 @@ html:not(.js) .cats{display:none}html:not(.js) .cat-nome{display:block;margin:8p
 .pgs{display:flex;flex-wrap:wrap;gap:8px}.pgs span{padding:8px 14px;border-radius:var(--rch);background:var(--soft);font-size:14px;font-weight:600}
 /* rodapé */
 footer{margin-top:auto;background:var(--foot);padding:18px 20px 20px}
-footer div{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:13px;color:rgba(255,255,255,.75)}
+footer .in{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;font-size:13px;color:rgba(255,255,255,.75)}
 footer b{color:#fff}
+/* selo "Feito com Tá no Caixa": fundo próprio, funciona sobre qualquer paleta */
+.tnc{display:inline-flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:14px;background:#16303A;color:#F7F5EA;box-shadow:0 0 0 1px rgba(255,255,255,.12);white-space:nowrap}
+.tnc:hover{text-decoration:none;filter:brightness(1.12)}
+.tnc small{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(247,245,234,.7);line-height:1.1}
+.tnc strong{display:block;font-family:'Archivo',system-ui,sans-serif;font-weight:800;font-size:17px;letter-spacing:-.02em;line-height:1.15}
 /* pedido */
 .pedir{display:flex;flex-direction:column;gap:12px}
 .pedir .cab b{font-size:17px}
@@ -579,7 +590,7 @@ export function renderSite(d: DadosSite, o: OpcoesRender): string {
   const l0 = x.lojas[0]
   const barra = `<div class="barra so-cel"><div class="pedir" id="painel" hidden>${painelPedido(x, 'cel')}</div>
 <div class="barra-b">${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>${selo('whatsapp', 22)}WhatsApp</a>` : ''}<a class="btn pri" href="#lojas" id="btn-pedir" data-abrir-pedir>Pedir agora</a></div></div>`
-  const rodape = `<footer><div><span><b>${esc(c.nome)}</b> · ${esc(o.dominio)}</span><span>Site feito com <a href="https://tanocaixa.com" ${ext}>Tá no Caixa</a></span></div></footer>`
+  const rodape = `<footer><div class="in"><span><b>${esc(c.nome)}</b> · ${esc(o.dominio)}</span>${seloTnc(c.subdominio)}</div></footer>`
   const corpo = `${topoPc(x)}${heroPc(x)}${capaCel(x)}<main>${secoes}</main>${rodape}${barra}`
   const desc = c.slogan || `Cardápio, lojas e pedidos de ${c.nome}.`
   return documento(x, `${c.nome} · Cardápio e pedidos`, desc, corpo, o.previa ? '' : jsonLd(x))
@@ -644,7 +655,7 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
 <div class="lb">${logo(c, '')}<div style="display:flex;flex-direction:column;gap:6px;align-items:center"><h1 class="tit" style="font-size:30px">${esc(c.nome)}</h1>${c.slogan ? `<div class="subt" style="font-size:15px;max-width:30ch">${esc(c.slogan)}</div>` : ''}
 ${lojas.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font-size:14px;margin-top:4px"><span class="st">${ponto(st.lojas[0].aberta ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="sel"')}<span data-st="sel">${esc(st.lojas[0].texto)}</span></span>${nota ? `<span><b>${esc(nota.valor)}</b>${lojas[0].tempoEntrega.trim() ? ' · ' + esc(lojas[0].tempoEntrega) : ''}</span>` : ''}</div>` : ''}</div>
 ${seg}${botoes}${promo}<div style="width:100%;display:flex;flex-direction:column;gap:8px">${links}</div>${ig}</div>
-<div class="lf">${esc(o.dominio)}/links · feito com <a href="https://tanocaixa.com" ${ext}>Tá no Caixa</a></div></div>`
+<div class="lf">${seloTnc(c.subdominio)}<div style="margin-top:10px">${esc(o.dominio)}/links</div></div></div>`
   return documento(x, `${c.nome} · Links para pedir`, c.slogan || `Peça ${c.nome} no app que preferir.`, corpo, extraCss)
 }
 
