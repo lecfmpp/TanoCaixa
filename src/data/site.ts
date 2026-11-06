@@ -17,7 +17,7 @@ import { useRestaurante, useTenant } from './hooks'
 export interface SiteRascunho {
   config: SiteConfig
   /** O que está no ar agora (null = nunca publicou). */
-  publicado: { subdominio: string; config: SiteConfig; itensIds: string[] } | null
+  publicado: { subdominio: string; config: SiteConfig; itensIds: string[]; ativo: boolean } | null
 }
 
 const docSite = (t: string) => doc(db, 'restaurants', t, 'site', 'config')
@@ -30,10 +30,18 @@ export function useSite() {
     enabled: !!rest,
     queryFn: async (): Promise<SiteRascunho> => {
       const snap = await getDoc(docSite(t))
-      const d = snap.data() as { config?: Partial<SiteConfig>; publicado?: SiteRascunho['publicado'] } | undefined
+      const d = snap.data() as { config?: Partial<SiteConfig>; publicado?: Partial<NonNullable<SiteRascunho['publicado']>> } | undefined
       return {
         config: normalizarConfig(d?.config, rest?.nome ?? '', rest?.bairro ?? ''),
-        publicado: d?.publicado?.config ? { ...d.publicado, config: normalizarConfig(d.publicado.config, rest?.nome ?? '') } : null,
+        publicado: d?.publicado?.config
+          ? {
+              subdominio: d.publicado.subdominio ?? '',
+              itensIds: d.publicado.itensIds ?? [],
+              // Sites publicados antes do botão de tirar do ar não têm o campo.
+              ativo: d.publicado.ativo !== false,
+              config: normalizarConfig(d.publicado.config, rest?.nome ?? ''),
+            }
+          : null,
       }
     },
   })
@@ -53,6 +61,19 @@ export function usePublicarSite() {
   return useMutation({
     mutationFn: async () => {
       const fn = httpsCallable<{ restauranteId: string }, { ok: boolean; subdominio: string; url: string; dominio: 'ativo' | 'emitindo' | 'erro' }>(functions, 'publicarSite')
+      return (await fn({ restauranteId: t })).data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'site'] }),
+  })
+}
+
+/** Tira o site do ar (o endereço continua reservado para a loja). */
+export function useDespublicarSite() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const fn = httpsCallable<{ restauranteId: string }, { ok: boolean; subdominio: string }>(functions, 'despublicarSite')
       return (await fn({ restauranteId: t })).data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'site'] }),

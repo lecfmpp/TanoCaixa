@@ -132,3 +132,10 @@ test('o JS embutido é válido', () => {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((x) => x[1])
   for (const s of scripts) assert.doesNotThrow(() => new Function(s))
 })
+
+test('liberação do teste: contas em qualquer loja, lojas do Fausto para quem é da loja', () => {
+  assert.equal(m.siteLiberadoPara(' LECFMPP@gmail.com ', 'qualquer-loja'), true)
+  assert.equal(m.siteLiberadoPara('felipe@exemplo.com', 'fausto-burger-realengo-ccda8c'), true)
+  assert.equal(m.siteLiberadoPara('felipe@exemplo.com', 'rede-aLLMdmXzwX-fausto-burguer-barra-oli-vxgp'), true)
+  assert.equal(m.siteLiberadoPara('felipe@exemplo.com', 'outra-loja'), false)
+})

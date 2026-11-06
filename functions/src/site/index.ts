@@ -11,6 +11,10 @@
  *  publicarSite (callable): copia o rascunho (restaurants/{rid}/site/config)
  *    para `sites/{sub}` junto com o cardápio, garantindo que o subdomínio é
  *    único, e registra {sub}.tanocaixa.com.br no Hosting. Só dono ou gestão.
+ *
+ *  despublicarSite (callable): tira o site do ar. `sites/{sub}` fica só com o
+ *    dono do endereço (sem conteúdo), para ninguém pegar o subdomínio; o
+ *    domínio continua registrado, então publicar de novo volta na hora.
  * ------------------------------------------------------------------ */
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https'
 import { initializeApp, getApps } from 'firebase-admin/app'
@@ -23,6 +27,7 @@ import {
   montarItens,
   normalizarConfig,
   resolverRota,
+  siteLiberadoPara,
   type DadosSite,
   type PratoBase,
   type SiteConfig,
@@ -33,9 +38,6 @@ import { registrarDominio, removerDominio, type EstadoDominio } from './dominio'
 if (getApps().length === 0) initializeApp()
 const db = getFirestore()
 
-/** Em teste: só estas contas publicam (mesma lista de src/auth/site.ts). */
-const CONTAS_COM_SITE = ['lecfmpp@gmail.com', 'suporte@spoonconsultoria.com.br']
-
 /** Cache em memória por instância: o Firestore não é lido a cada visita. */
 const CACHE_MS = 30_000
 const cache = new Map<string, { em: number; dados: DadosSite | null }>()
@@ -44,8 +46,9 @@ async function carregar(sub: string): Promise<DadosSite | null> {
   const c = cache.get(sub)
   if (c && Date.now() - c.em < CACHE_MS) return c.dados
   const snap = await db.doc(`sites/${sub}`).get()
-  const d = snap.exists ? (snap.data() as { config: SiteConfig; itens: DadosSite['itens'] }) : null
-  const dados = d ? { config: d.config, itens: d.itens ?? [] } : null
+  const d = snap.exists ? (snap.data() as { config?: SiteConfig; itens?: DadosSite['itens']; ativo?: boolean }) : null
+  // Despublicado: o documento só reserva o endereço, sem conteúdo.
+  const dados = d?.config && d.ativo !== false ? { config: d.config, itens: d.itens ?? [] } : null
   cache.set(sub, { em: Date.now(), dados })
   if (cache.size > 500) cache.delete(cache.keys().next().value as string)
   return dados
@@ -96,12 +99,19 @@ export const siteCliente = onRequest({ region: 'us-central1', memory: '256MiB', 
   res.status(200).type('html').set('Cache-Control', 'public, max-age=30, s-maxage=60').send(html)
 })
 
+/** Login + loja/conta liberada no teste + dono ou gestão. Devolve o id do restaurante. */
+async function exigirLiberado(auth: { uid: string; token: { email?: string } } | undefined, data: unknown): Promise<string> {
+  const rid = await exigirDonoOuGestao(auth?.uid, (data as { restauranteId?: string })?.restauranteId)
+  if (!siteLiberadoPara(String(auth?.token.email ?? ''), rid)) {
+    throw new HttpsError('permission-denied', 'O site do cliente ainda está em teste e não está liberado para esta loja.')
+  }
+  return rid
+}
+
 // Roda com uma conta própria (Firebase Hosting Admin + Firestore), para as
 // demais functions não ganharem acesso ao Hosting.
 export const publicarSite = onCall({ region: 'us-central1', serviceAccount: 'sites-publicador@tanocaixa.iam.gserviceaccount.com' }, async (req) => {
-  const email = String(req.auth?.token.email ?? '').toLowerCase()
-  if (!CONTAS_COM_SITE.includes(email)) throw new HttpsError('permission-denied', 'O site do cliente ainda está em teste e não está liberado para esta conta.')
-  const rid = await exigirDonoOuGestao(req.auth?.uid, (req.data as { restauranteId?: string })?.restauranteId)
+  const rid = await exigirLiberado(req.auth, req.data)
 
   const [restSnap, cfgSnap, pratosSnap] = await Promise.all([
     db.doc(`restaurants/${rid}`).get(),
@@ -130,12 +140,12 @@ export const publicarSite = onCall({ region: 'us-central1', serviceAccount: 'sit
     }
     const refAnt = anterior && anterior !== sub ? db.doc(`sites/${anterior}`) : null
     const ant = refAnt ? await tx.get(refAnt) : null
-    tx.set(ref, { tenantId: rid, config, itens, publicadoEm: FieldValue.serverTimestamp(), publicadoPor: req.auth!.uid })
+    tx.set(ref, { tenantId: rid, ativo: true, config, itens, publicadoEm: FieldValue.serverTimestamp(), publicadoPor: req.auth!.uid })
     // Trocou de endereço: libera o antigo (só se ainda for deste restaurante).
     if (refAnt && ant?.exists && ant.get('tenantId') === rid) tx.delete(refAnt)
     tx.set(
       cfgSnap.ref,
-      { publicado: { subdominio: sub, em: FieldValue.serverTimestamp(), config, itensIds: itens.map((i) => i.id) } },
+      { publicado: { subdominio: sub, ativo: true, em: FieldValue.serverTimestamp(), config, itensIds: itens.map((i) => i.id) } },
       { merge: true },
     )
   })
@@ -153,4 +163,24 @@ export const publicarSite = onCall({ region: 'us-central1', serviceAccount: 'sit
   }
   await cfgSnap.ref.set({ publicado: { dominio } }, { merge: true })
   return { ok: true, subdominio: sub, url: `https://${sub}.${DOMINIO_SITES}`, dominio }
+})
+
+export const despublicarSite = onCall({ region: 'us-central1' }, async (req) => {
+  const rid = await exigirLiberado(req.auth, req.data)
+  const cfgRef = db.doc(`restaurants/${rid}/site/config`)
+  const sub = await db.runTransaction(async (tx) => {
+    const cfg = await tx.get(cfgRef)
+    const sub = cfg.get('publicado.subdominio') as string | undefined
+    if (!sub) throw new HttpsError('failed-precondition', 'Este site ainda não foi publicado.')
+    const ref = db.doc(`sites/${sub}`)
+    const atual = await tx.get(ref)
+    // Mantém o endereço reservado para este restaurante, sem o conteúdo.
+    if (!atual.exists || atual.get('tenantId') === rid) {
+      tx.set(ref, { tenantId: rid, ativo: false, despublicadoEm: FieldValue.serverTimestamp(), despublicadoPor: req.auth!.uid })
+    }
+    tx.set(cfgRef, { publicado: { ativo: false, despublicadoEm: FieldValue.serverTimestamp() } }, { merge: true })
+    return sub
+  })
+  cache.delete(sub)
+  return { ok: true, subdominio: sub }
 })
