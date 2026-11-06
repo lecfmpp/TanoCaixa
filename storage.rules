@@ -8,6 +8,17 @@ service firebase.storage {
       allow read, write: if request.auth != null;
     }
 
+    // Imagens do site do cliente (logo, capa, pratos, posts). Leitura pública
+    // (aparecem no site); envio só por membro do restaurante (ou no demo).
+    match /sites/{restaurantId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && (restaurantId.matches('demo-.*')
+            || request.auth.uid in firestore.get(/databases/(default)/documents/restaurants/$(restaurantId)).data.memberUids)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     // Foto de perfil: qualquer autenticado pode ver (aparece pra outros
     // membros da equipe), só o dono da conta pode enviar/trocar a própria.
     match /avatars/{uid}/{fileName} {

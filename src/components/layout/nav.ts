@@ -6,7 +6,7 @@ export interface ItemNav {
   /** Permissão (booleana) que libera o item no menu. */
   chave: keyof Permissoes
   /** Módulo em construção: só contas liberadas entram; as demais veem "Em breve". */
-  recurso?: 'pdv'
+  recurso?: 'pdv' | 'site'
   /** Página navegável, mas ainda sem funcionalidade: o menu mostra o selo "Em breve". */
   emBreve?: boolean
   /** Página existe (rota e links diretos seguem valendo), mas some do menu por enquanto. */
@@ -28,6 +28,7 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/cmv', rotulo: 'CMV', chave: 'veDRE', emBreve: true },
   { para: '/painel/franquias', rotulo: 'Franquias', chave: 'veRede' },
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
+  { para: '/painel/site', rotulo: 'Meu site', chave: 'veAjustes', recurso: 'site' },
   { para: '/painel/metas', rotulo: 'Metas e números', chave: 'veAjustes' },
   { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]

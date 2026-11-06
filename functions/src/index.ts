@@ -304,3 +304,6 @@ export { repetirDespesasRecorrentes } from './recorrentesJob'
 
 // Captura de e-mail das iscas digitais do blog (planilhas e checklists)
 export { capturarLead } from './leads'
+
+// Site do cliente: {sub}.tanocaixa.com.br + publicação pela tela Meu site.
+export { siteCliente, publicarSite } from './site'
