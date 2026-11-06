@@ -31,6 +31,8 @@ export interface RestauranteDoc {
   redeId?: string
   /** Nome da bandeira, quando faz parte de uma rede. */
   bandeira?: string
+  /** Logo da loja (Storage), mostrada no header. Ver src/data/logo.ts. */
+  logoUrl?: string
   /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
   taxasFranquia?: { royalties: number; fundoPromocao: number }
   /**

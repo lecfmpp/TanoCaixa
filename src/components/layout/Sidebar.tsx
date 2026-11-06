@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthContext'
 import { useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
+import { SeletorLoja } from './SeletorLoja'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
@@ -34,20 +35,14 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       {/* Trocar de loja — o painel inteiro passa a ser da loja escolhida */}
       {lojas.length > 1 && (
         <div className="px-4 pb-4">
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
             Loja
-          </label>
-          <select
-            value={lojaAtiva ?? tenantDoLogin}
-            onChange={(e) => definirLojaAtiva(e.target.value === tenantDoLogin ? null : e.target.value)}
-            className="w-full rounded-botao border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-creme outline-none focus:border-white/40"
-          >
-            {lojas.map((l) => (
-              <option key={l.restauranteId} value={l.restauranteId} className="text-tinta">
-                {l.nome}
-              </option>
-            ))}
-          </select>
+          </span>
+          <SeletorLoja
+            lojas={lojas}
+            ativa={lojaAtiva ?? tenantDoLogin}
+            aoEscolher={(rid) => definirLojaAtiva(rid === tenantDoLogin ? null : rid)}
+          />
         </div>
       )}
 

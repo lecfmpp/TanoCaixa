@@ -12,6 +12,7 @@ import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
 import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
 import { ConvidarEquipe } from '@/components/ajustes/ConvidarEquipe'
+import { CampoLogo } from '@/components/ajustes/CampoLogo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
@@ -103,6 +104,9 @@ export function Ajustes() {
         subtitulo={cfg ? [cfg.nome, cfg.bairro].filter(Boolean).join(' · ') : ''}
         semMes
       />
+
+      {/* Logo da loja — aparece no topo de todas as páginas */}
+      <LogoDaLojaCartao />
 
       {/* Natureza do negócio — governa o DRE e a visão de rede */}
       <SeuNegocio />
@@ -199,6 +203,21 @@ const INTEGRACOES_EM_BREVE = [
   { id: 'maquininha', nome: 'Maquininha', sigla: 'Ma', cor: '#6A7A7E', dica: 'Stone, Cielo, PagSeguro, Mercado Pago' },
   { id: 'pdv', nome: 'Sistema de PDV', sigla: 'PD', cor: '#6A7A7E', dica: 'Colibri, Consumer, Goomer…' },
 ]
+
+/** Logo da loja aberta. Dono e gestão enviam e trocam; os outros só veem. */
+function LogoDaLojaCartao() {
+  const { permissoes } = useAuth()
+  const pode = (permissoes?.gerenciaEquipe ?? 'nao') !== 'nao'
+  return (
+    <Cartao className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-[15px] font-bold text-tinta">Logo da loja</h2>
+        <p className="text-sm text-tinta-3">Aparece no topo de todas as páginas desta loja.</p>
+      </div>
+      <CampoLogo podeEditar={pode} />
+    </Cartao>
+  )
+}
 
 /** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
 function SeuNegocio() {

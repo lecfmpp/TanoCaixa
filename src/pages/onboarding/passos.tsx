@@ -10,6 +10,7 @@ import { ImportarCSV } from '@/components/importar/ImportarCSV'
 import { CONFIGS_IMPORT, type TipoImport } from '@/data/importar'
 import { pctDaMeta, TAXA_APP_TETO_PADRAO, type RespostasOnboarding } from '@/data/hooks'
 import { TIPOS_NEGOCIO, temRede } from '@/types'
+import { CampoLogo } from '@/components/ajustes/CampoLogo'
 
 type Upd = (p: Partial<RespostasOnboarding>) => void
 import { brlInteiro, inteiro, mascararCNPJ, mascararTelefone, apenasDigitos } from '@/lib/format'
@@ -38,6 +39,12 @@ export function Passo1Restaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto rotulo="Bairro" placeholder="Onde fica a loja" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
           <CampoTexto rotulo="Quantas lojas" placeholder="1" value={r.lojas} onChange={(e) => upd({ lojas: e.target.value })} inputMode="numeric" />
+        </div>
+
+        {/* Logo — opcional, dá pra enviar depois em Ajustes */}
+        <div>
+          <Rotulo>Logo do restaurante (opcional)</Rotulo>
+          <CampoLogo compacto />
         </div>
 
         {/* Tipo de negócio — define o DRE (linha de franqueadora) e a visão de rede */}
