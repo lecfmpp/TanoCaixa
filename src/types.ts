@@ -125,6 +125,17 @@ export interface Sessao {
   demo: boolean
   /** Dono que ainda não passou pelo onboarding — cai nele ao entrar. */
   precisaOnboarding?: boolean
+  /**
+   * Lojas em que a pessoa entrou por convite (id → nome e papel naquela loja).
+   * É o que o seletor de lojas mostra pra quem não é dono da rede: só as lojas
+   * marcadas no convite, nunca a rede inteira.
+   */
+  acessos?: Record<string, AcessoLoja>
+}
+
+export interface AcessoLoja {
+  nome: string
+  papel: Papel
 }
 
 /** O que cada papel enxerga (seções) e pode fazer (capacidades). */

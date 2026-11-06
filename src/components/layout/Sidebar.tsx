@@ -4,7 +4,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
 import { useAuth } from '@/auth/AuthContext'
-import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
+import { useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
 
@@ -19,6 +19,9 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const rede = useRede().data
   const lojaAtiva = useLojaAtiva()
   const tenantDoLogin = useTenantDoLogin()
+  // Só as lojas que esta pessoa pode abrir: a rede toda pro dono dela, as do
+  // convite pra quem foi convidado.
+  const lojas = useLojasAcessiveis()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
   const itens = itensNav.filter((i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
 
@@ -29,7 +32,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       </div>
 
       {/* Trocar de loja — o painel inteiro passa a ser da loja escolhida */}
-      {rede && rede.lojas.length > 1 && (
+      {lojas.length > 1 && (
         <div className="px-4 pb-4">
           <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
             Loja
@@ -39,7 +42,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
             onChange={(e) => definirLojaAtiva(e.target.value === tenantDoLogin ? null : e.target.value)}
             className="w-full rounded-botao border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-creme outline-none focus:border-white/40"
           >
-            {rede.lojas.map((l) => (
+            {lojas.map((l) => (
               <option key={l.restauranteId} value={l.restauranteId} className="text-tinta">
                 {l.nome}
               </option>

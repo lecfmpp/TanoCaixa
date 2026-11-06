@@ -1,6 +1,7 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { recebimentoValido } from './recebimentos'
-import { doc, deleteDoc, getDoc } from 'firebase/firestore'
+import { arrayRemove, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
@@ -19,7 +20,7 @@ import { useLojaAtiva } from './lojaAtiva'
 import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
 import { brl } from '@/lib/format'
-import { temRede, type TipoNegocio } from '@/types'
+import { temRede, type Papel, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
 import { precosPorItem, type Nota } from './compras'
 import { jurosDoPagamento } from './fluxo'
@@ -124,6 +125,51 @@ export function useRede() {
     },
     enabled: demo || !!uid,
   })
+}
+
+export interface LojaAcessivel {
+  restauranteId: string
+  nome: string
+  /** Papel nesta loja, quando a pessoa entrou por convite. Dono da rede: vazio. */
+  papel?: Papel
+  /** Pode gerar convite pra esta loja (dono, dono da rede ou gestão). */
+  podeConvidar: boolean
+}
+
+const PAPEIS_QUE_CONVIDAM: Papel[] = ['dono', 'franqueador', 'gestao']
+
+/**
+ * Lojas que a pessoa logada pode abrir: a rede inteira só pra quem é dono da
+ * rede; pra quem entrou por convite, só as lojas marcadas no convite
+ * (`sessao.acessos`). A loja do login sempre entra.
+ */
+export function useLojasAcessiveis(): LojaAcessivel[] {
+  const { sessao } = useAuth()
+  const rede = useRede().data
+  return useMemo(() => {
+    if (!sessao) return []
+    const lista: LojaAcessivel[] = []
+    const vistas = new Set<string>()
+    const add = (l: LojaAcessivel) => {
+      if (vistas.has(l.restauranteId)) return
+      vistas.add(l.restauranteId)
+      lista.push(l)
+    }
+    const donoDaRede = !!rede && (sessao.demo || rede.donoUid === sessao.usuario.id)
+    if (donoDaRede) {
+      for (const l of rede.lojas) add({ restauranteId: l.restauranteId, nome: l.nome, podeConvidar: true })
+    }
+    add({
+      restauranteId: sessao.tenantId,
+      nome: sessao.restaurante.nome,
+      papel: sessao.usuario.papel,
+      podeConvidar: PAPEIS_QUE_CONVIDAM.includes(sessao.usuario.papel),
+    })
+    for (const [rid, a] of Object.entries(sessao.acessos ?? {})) {
+      add({ restauranteId: rid, nome: a.nome, papel: a.papel, podeConvidar: PAPEIS_QUE_CONVIDAM.includes(a.papel) })
+    }
+    return lista
+  }, [sessao, rede])
 }
 
 export interface LojaComContexto {
@@ -749,7 +795,12 @@ export function useRemoverMembro() {
   const t = useTenant()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => repo.membros.remover(t, id),
+    // Apagar só o doc de membro não tira o acesso: as regras do Firestore
+    // liberam a loja por `memberUids`. Tira dos dois — primeiro o acesso.
+    mutationFn: async (id: string) => {
+      await updateDoc(doc(db, 'restaurants', t), { memberUids: arrayRemove(id) })
+      await repo.membros.remover(t, id)
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'membros'] }),
   })
 }

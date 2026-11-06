@@ -30,9 +30,9 @@ import { DEMO_TENANT } from '@/data/tenant'
 import { ajustarDataDeReferencia, virouODia } from '@/data/derive'
 import { nomeDoMesAtual } from '@/data/planoMes'
 import { TETOS_PADRAO } from '@/data/planoContas'
-import { definirLojaAtiva } from '@/data/lojaAtiva'
+import { definirLojaAtiva, useLojaAtiva } from '@/data/lojaAtiva'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
-import { permissoesDoPapel, normalizarPapel, type Permissoes, type Sessao } from '@/types'
+import { permissoesDoPapel, normalizarPapel, type AcessoLoja, type Papel, type Permissoes, type Sessao } from '@/types'
 
 interface DadosCadastro {
   nome?: string
@@ -85,7 +85,7 @@ export const CHAVE_CONVITE = 'tanocaixa:convite'
  * até o construirSessao rodar — ver comentário em criarConta sobre por quê. */
 const CHAVE_CADASTRO = 'tanocaixa:cadastro'
 
-export const aceitarConviteFn = httpsCallable<{ token: string; nome?: string }, { restauranteId: string }>(
+export const aceitarConviteFn = httpsCallable<{ token: string; nome?: string }, { restauranteId: string; lojas: string[] }>(
   functions,
   'aceitarConvite',
 )
@@ -164,9 +164,11 @@ async function construirSessao(user: User): Promise<Sessao> {
     }
   }
 
-  const [rSnap, mSnap] = await Promise.all([
+  // Com convite recém-aceito o users/{uid} mudou — relê pra pegar os acessos.
+  const [rSnap, mSnap, uAtual] = await Promise.all([
     getDoc(doc(db, 'restaurants', rid)),
     getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
+    uSnap.exists() && uSnap.data().acessos ? Promise.resolve(uSnap) : getDoc(doc(db, 'users', user.uid)),
   ])
   const r = rSnap.data() ?? {}
   const papel = normalizarPapel(mSnap.exists() ? (mSnap.data().papel as string) : 'dono')
@@ -193,10 +195,21 @@ async function construirSessao(user: User): Promise<Sessao> {
     },
     tenantId: rid,
     demo: false,
+    acessos: lerAcessos(uAtual.data()?.acessos),
     // Só o dono faz onboarding — quem entrou por convite cai direto no painel.
     // `tipoCozinha` preenchido cobre as contas criadas antes desta flag existir.
     precisaOnboarding: papel === 'dono' && !r.onboardingConcluido && !r.tipoCozinha,
   }
+}
+
+/** `users/{uid}.acessos` como gravado pelo aceitarConvite, com papéis normalizados. */
+function lerAcessos(bruto: unknown): Record<string, AcessoLoja> | undefined {
+  if (!bruto || typeof bruto !== 'object') return undefined
+  const saida: Record<string, AcessoLoja> = {}
+  for (const [rid, v] of Object.entries(bruto as Record<string, { nome?: string; papel?: string }>)) {
+    saida[rid] = { nome: v?.nome || 'Loja', papel: normalizarPapel(v?.papel) }
+  }
+  return Object.keys(saida).length ? saida : undefined
 }
 
 /** Mensagem para quando o aceitarConvite falha. Os erros "definitivos" da
@@ -444,10 +457,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessao(null)
   }, [sessao, setSessao])
 
+  // Quem entrou por convite pode ter papéis diferentes em cada loja (gestão
+  // numa, caixa noutra): as permissões seguem a loja aberta. O papel vem do
+  // doc de membro daquela loja (fonte de verdade); `acessos` só cobre o
+  // instante em que ele ainda está carregando. O dono da rede não entra aqui
+  // (as lojas dele não estão em `acessos`) e segue com o papel do login.
+  const lojaAtiva = useLojaAtiva()
+  const acessoAtivo = lojaAtiva && lojaAtiva !== sessao?.tenantId ? sessao?.acessos?.[lojaAtiva] : undefined
+  const [papelDaLoja, setPapelDaLoja] = useState<{ rid: string; papel: Papel } | null>(null)
+  useEffect(() => {
+    if (!sessao || sessao.demo || !lojaAtiva || !acessoAtivo) return
+    let vivo = true
+    getDoc(doc(db, 'restaurants', lojaAtiva, 'membros', sessao.usuario.id))
+      .then((m) => {
+        if (vivo && m.exists()) setPapelDaLoja({ rid: lojaAtiva, papel: normalizarPapel(m.data().papel as string) })
+      })
+      .catch((e) => console.warn('papel da loja:', e))
+    return () => {
+      vivo = false
+    }
+  }, [sessao, lojaAtiva, acessoAtivo])
+
+  const papelEfetivo: Papel | null = !sessao
+    ? null
+    : acessoAtivo
+      ? papelDaLoja?.rid === lojaAtiva
+        ? papelDaLoja.papel
+        : acessoAtivo.papel
+      : sessao.usuario.papel
+
   const valor = useMemo<AuthContextValor>(
     () => ({
       sessao,
-      permissoes: sessao ? permissoesDoPapel(sessao.usuario.papel) : null,
+      permissoes: papelEfetivo ? permissoesDoPapel(papelEfetivo) : null,
       carregando,
       erroSessao,
       tentarDeNovo,
@@ -458,7 +500,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sair,
       atualizarPerfil,
     }),
-    [sessao, carregando, erroSessao, tentarDeNovo, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
+    [sessao, papelEfetivo, carregando, erroSessao, tentarDeNovo, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
