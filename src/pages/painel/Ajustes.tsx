@@ -12,6 +12,7 @@ import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
 import { ConvidarEquipe } from '@/components/ajustes/ConvidarEquipe'
 import { CampoLogo } from '@/components/ajustes/CampoLogo'
+import { useConfiguracoesLiberadas } from '@/auth/site'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
@@ -56,6 +57,7 @@ export function Ajustes() {
     [atividadesData],
   )
 
+  const configuracoesLiberadas = useConfiguracoesLiberadas()
   const [whatsapp, setWhatsapp] = useState(true)
   const [email, setEmail] = useState(true)
   const [sms, setSms] = useState(false)
@@ -123,6 +125,18 @@ export function Ajustes() {
         <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
         <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
       </Secao>
+
+      {/* Notificações de WhatsApp ainda não estão prontas: quem tem a página
+          Configurações vê lá; as demais contas só veem o aviso de "em breve". */}
+      {!configuracoesLiberadas && (
+        <Secao
+          titulo="Notificações de WhatsApp"
+          resumo={<SeloEmBreve />}
+          descricao="Avisos de rotina da loja no grupo de WhatsApp. Estamos preparando: assim que estiver pronto, aparece aqui."
+        >
+          <p className="text-sm text-tinta-3">Em breve você vai poder escolher quais avisos chegam no WhatsApp da loja.</p>
+        </Secao>
+      )}
 
       {/* Integrações */}
       <Integracoes />

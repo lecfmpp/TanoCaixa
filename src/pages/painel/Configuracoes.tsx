@@ -4,7 +4,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Secoes } from '@/components/ui/Acordeao'
 import { Cartao } from '@/components/ui/Cartao'
 import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
-import { useSiteLiberado } from '@/auth/site'
+import { useConfiguracoesLiberadas, useSiteLiberado } from '@/auth/site'
 import { useAuth } from '@/auth/AuthContext'
 import { useRestaurante } from '@/data/hooks'
 import { cn } from '@/lib/cn'
@@ -28,10 +28,13 @@ export function Configuracoes() {
   const { aba } = useParams<{ aba?: string }>()
   const { carregando } = useAuth()
   const siteLiberado = useSiteLiberado()
+  const liberada = useConfiguracoesLiberadas()
   const cfg = useRestaurante().data
 
   const abas = ABAS.filter((a) => a.id !== 'site' || siteLiberado)
   if (carregando) return null
+  // Página em teste: quem não está na lista volta pro painel.
+  if (!liberada) return <Navigate to="/painel" replace />
   // Sem aba, ou aba que esta conta não vê: cai na primeira.
   if (!aba || !abas.some((a) => a.id === aba)) {
     return <Navigate to={`/painel/configuracoes/${abas[0].id}`} replace />
