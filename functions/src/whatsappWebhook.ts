@@ -6,7 +6,7 @@
  * Sem o token certo, a chamada é ignorada (responde 403).
  *
  * O que trata:
- *  - mensagem recebida num grupo com um código "TNC-1234": liga o grupo à loja
+ *  - mensagem recebida num grupo com um código "TNC-123456": liga o grupo à loja
  *    do código, se o número do dono estiver no grupo (ou se foi o dono que mandou);
  *  - status de mensagem enviada: atualiza o histórico (enviado → entregue → lido);
  *  - conexão do número: grava em whatsapp_estado/instancia.
@@ -22,6 +22,7 @@ import {
   codigoValido,
   extrairCodigo,
   finalDoCelular,
+  MAX_TENTATIVAS_CODIGO,
   interpretarWebhook,
   textoConectado,
   textoFaltaDono,
@@ -30,12 +31,39 @@ import {
 
 const WHATSAPP_WEBHOOK_TOKEN = defineSecret('WHATSAPP_WEBHOOK_TOKEN')
 
+const JANELA_TENTATIVAS_MS = 60 * 60 * 1000
+const refTentativas = (grupoId: string) => getFirestore().doc(`whatsapp_tentativas/${grupoId}`)
+
+async function tentativasEsgotadas(grupoId: string): Promise<boolean> {
+  const d = (await refTentativas(grupoId).get()).data()
+  if (!d || Date.now() - Date.parse(String(d.desde)) > JANELA_TENTATIVAS_MS) return false
+  return Number(d.erros ?? 0) >= MAX_TENTATIVAS_CODIGO
+}
+
+async function contarTentativa(grupoId: string): Promise<void> {
+  const ref = refTentativas(grupoId)
+  await getFirestore().runTransaction(async (t) => {
+    const d = (await t.get(ref)).data()
+    const agora = new Date()
+    const nova = !d || agora.getTime() - Date.parse(String(d.desde)) > JANELA_TENTATIVAS_MS
+    const erros = nova ? 1 : Number(d!.erros ?? 0) + 1
+    t.set(ref, { desde: nova ? agora.toISOString() : d!.desde, erros, expiraEm: new Date(agora.getTime() + 2 * JANELA_TENTATIVAS_MS) })
+    if (erros === MAX_TENTATIVAS_CODIGO) console.error(`whatsappWebhook: grupo ${grupoId} errou o código ${erros} vezes, bloqueado por 1 h`)
+  })
+}
+
 /** Pareamento: o código veio de um grupo; liga o grupo à loja se estiver tudo certo. */
 async function parear(codigo: string, grupoId: string, remetente: string): Promise<void> {
   const db = getFirestore()
   const ref = db.doc(`whatsapp_codigos/${codigo}`)
+  // Limite de tentativas por grupo: código errado conta; acima do limite na
+  // última hora, o grupo é ignorado (nem confere o código).
+  if (await tentativasEsgotadas(grupoId)) return
   const snap = await ref.get()
-  if (!snap.exists || !codigoValido(snap.get('expiraEm') as string | undefined)) return // código velho: silêncio
+  if (!snap.exists || !codigoValido(snap.get('expiraEm') as string | undefined)) {
+    await contarTentativa(grupoId)
+    return // código errado ou velho: silêncio
+  }
   const rid = snap.get('rid') as string
   const loja = ((await db.doc(`restaurants/${rid}`).get()).get('nome') as string | undefined) ?? 'sua loja'
 

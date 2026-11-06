@@ -30,6 +30,8 @@ export interface ResultadoEnvio {
   ok: boolean
   idMensagem?: string
   erro?: string
+  /** Falhou por tempo esgotado: a mensagem pode ter chegado. Não reenviar. */
+  incerto?: boolean
 }
 
 export interface ResultadoParticipantes {
@@ -49,7 +51,7 @@ export function configurado(): boolean {
 }
 
 /** Chamada HTTP que nunca lança: devolve o JSON ou o erro em texto. */
-async function http(url: string, init: RequestInit): Promise<{ ok: boolean; json: Record<string, unknown>; erro?: string }> {
+async function http(url: string, init: RequestInit): Promise<{ ok: boolean; json: Record<string, unknown>; erro?: string; incerto?: boolean }> {
   try {
     const resp = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT) })
     const texto = await resp.text()
@@ -63,7 +65,8 @@ async function http(url: string, init: RequestInit): Promise<{ ok: boolean; json
     if (json.error === true) return { ok: false, json, erro: String(json.message ?? 'erro do provedor').slice(0, 160) }
     return { ok: true, json }
   } catch (e) {
-    return { ok: false, json: {}, erro: `rede: ${(e as Error).message ?? e}`.slice(0, 160) }
+    const nome = (e as Error).name
+    return { ok: false, json: {}, erro: `rede: ${(e as Error).message ?? e}`.slice(0, 160), incerto: nome === 'TimeoutError' || nome === 'AbortError' }
   }
 }
 
@@ -95,7 +98,7 @@ export async function enviarTexto(chatId: string, texto: string): Promise<Result
       ? await http(wapiUrl('/message/send-text'), { method: 'POST', headers: wapiHeaders(), body: JSON.stringify({ phone: destinoWapi(chatId), message: texto }) })
       : await greenPost('sendMessage', { chatId, message: texto, linkPreview: false })
   const id = String(r.json.idMessage ?? r.json.messageId ?? '') || undefined
-  return r.ok ? { ok: true, idMensagem: id } : { ok: false, erro: r.erro }
+  return r.ok ? { ok: true, idMensagem: id } : { ok: false, erro: r.erro, ...(r.incerto ? { incerto: true } : {}) }
 }
 
 export async function enviarImagem(chatId: string, url: string, arquivo: string, legenda: string): Promise<ResultadoEnvio> {
@@ -105,7 +108,7 @@ export async function enviarImagem(chatId: string, url: string, arquivo: string,
       ? await http(wapiUrl('/message/send-image'), { method: 'POST', headers: wapiHeaders(), body: JSON.stringify({ phone: destinoWapi(chatId), image: url, caption: legenda }) })
       : await greenPost('sendFileByUrl', { chatId, urlFile: url, fileName: arquivo, caption: legenda })
   const id = String(r.json.idMessage ?? r.json.messageId ?? '') || undefined
-  return r.ok ? { ok: true, idMensagem: id } : { ok: false, erro: r.erro }
+  return r.ok ? { ok: true, idMensagem: id } : { ok: false, erro: r.erro, ...(r.incerto ? { incerto: true } : {}) }
 }
 
 /** Participantes do grupo. Falha quando o nosso número não está mais no grupo ou o grupo não existe. */

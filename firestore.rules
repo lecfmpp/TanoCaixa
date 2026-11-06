@@ -46,8 +46,37 @@ service cloud.firestore {
       allow create: if logado() && (request.auth.uid in request.resource.data.memberUids);
       allow update, delete: if souMembro(rid);
 
-      match /{document=**} {
-        allow read, write: if ehDemo(rid) || souMembro(rid);
+      // Tudo da loja, menos a equipe (regras próprias logo abaixo).
+      match /{colecao}/{document=**} {
+        allow read, write: if colecao != 'membros' && (ehDemo(rid) || souMembro(rid));
+      }
+
+      // Equipe. O papel e o celular de cada um decidem quem manda na loja
+      // (e o celular do dono confere o grupo de WhatsApp), então:
+      //  - cada pessoa edita o próprio cadastro, mas não o próprio papel nem
+      //    o status do convite;
+      //  - só o dono (ou o franqueador) mexe no cadastro dos outros;
+      //  - quem cria a loja cria o próprio cadastro (como dono/franqueador).
+      // Convites entram pelas Cloud Functions (Admin SDK, fora destas regras).
+      match /membros/{uid} {
+        function papelDe(u) {
+          return get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(u)).data.papel;
+        }
+        function souDonoDaLoja() {
+          return logado() && souMembro(rid) && papelDe(request.auth.uid) in ['dono', 'franqueador'];
+        }
+        function criouALoja() {
+          return logado() && dadosRestaurante(rid).criadoPor == request.auth.uid;
+        }
+        function mexeEmPapel() {
+          return request.resource.data.diff(resource.data).affectedKeys().hasAny(['papel', 'conviteStatus']);
+        }
+
+        allow read: if ehDemo(rid) || souMembro(rid);
+        allow write: if ehDemo(rid);
+        allow create: if (request.auth.uid == uid && criouALoja()) || souDonoDaLoja();
+        allow update: if (request.auth.uid == uid && souMembro(rid) && !mexeEmPapel()) || souDonoDaLoja();
+        allow delete: if (request.auth.uid == uid && souMembro(rid)) || souDonoDaLoja();
       }
     }
 

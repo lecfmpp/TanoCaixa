@@ -3,6 +3,7 @@
  * código de pareamento, status do grupo e leitura dos webhooks dos dois
  * provedores (Green API e W-API). Sem Firebase e sem rede: testável.
  * ------------------------------------------------------------------ */
+import { randomInt } from 'node:crypto'
 
 export type Provedor = 'green' | 'wapi'
 
@@ -69,14 +70,21 @@ export function finalDoCelular(celular: string | undefined): string {
 
 export const VALIDADE_CODIGO_MIN = 30
 
-/** Código curto que o dono manda no grupo: "TNC-4821". */
-export function gerarCodigo(aleatorio: () => number = Math.random): string {
-  return `TNC-${String(Math.floor(aleatorio() * 9000) + 1000)}`
+/** Tentativas de código errado aceitas por grupo, por hora (contra chute). */
+export const MAX_TENTATIVAS_CODIGO = 5
+
+/**
+ * Código que o dono manda no grupo: "TNC-482193". Seis dígitos de um gerador
+ * criptográfico (900 mil combinações) — com o limite de tentativas por grupo,
+ * chutar o código de outra loja deixa de ser viável.
+ */
+export function gerarCodigo(aleatorio: () => number = () => randomInt(100000, 1000000)): string {
+  return `TNC-${String(aleatorio())}`
 }
 
-/** Acha um código de pareamento numa mensagem ("tnc 4821", "TNC-4821", "Tnc4821"). */
+/** Acha um código de pareamento numa mensagem ("tnc 482193", "TNC-482193", "Tnc482193"). */
 export function extrairCodigo(texto: string | undefined): string | null {
-  const m = /\bTNC[\s-]?(\d{4})\b/i.exec(texto ?? '')
+  const m = /\bTNC[\s-]?(\d{6})\b/i.exec(texto ?? '')
   return m ? `TNC-${m[1]}` : null
 }
 

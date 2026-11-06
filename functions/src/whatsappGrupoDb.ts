@@ -4,7 +4,7 @@
  *   whatsapp_grupos/{rid}                 grupo, status, lembretes ligados
  *   whatsapp_grupos/{rid}/envios/{id}     cada tentativa de envio (sucesso ou falha)
  *   whatsapp_mensagens/{idMensagem}       índice idMensagem → loja/envio (webhook de status)
- *   whatsapp_codigos/{TNC-1234}           código de pareamento (30 min)
+ *   whatsapp_codigos/{TNC-123456}           código de pareamento (30 min)
  * ------------------------------------------------------------------ */
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import type { IdLembrete } from './lembretesCatalogo'
@@ -130,13 +130,21 @@ export interface Conferencia {
 export async function conferirGrupo(grupoId: string, celularDono: string | undefined): Promise<Conferencia> {
   const p = await participantes(grupoId)
   if (!p.ok) return { status: 'sem_acesso', donoDentro: false, conferiu: true, pessoas: 0, erro: p.erro }
+  // Sem telefones na lista (só IDs "@lid"), não dá pra saber se o dono está
+  // dentro: nunca presume que está. Quem decide o que fazer é quem chamou.
   const conferiu = listaTemTelefones(p.participantes)
-  const donoDentro = conferiu ? donoPresente(p.participantes, celularDono) : true
+  const donoDentro = conferiu ? donoPresente(p.participantes, celularDono) : false
   return { status: statusDaConferencia({ acessivel: true, donoDentro }), donoDentro, conferiu, pessoas: new Set(p.participantes).size }
 }
 
 /** Grava o resultado de uma conferência no grupo da loja. */
 export async function gravarConferencia(rid: string, c: Conferencia): Promise<void> {
+  // Grupo acessível, mas sem como conferir o dono: mantém o status que já
+  // estava (não liga nem desliga nada por um resultado que não diz nada).
+  if (c.status !== 'sem_acesso' && !c.conferiu) {
+    await refGrupo(rid).set({ statusEm: new Date().toISOString(), pessoas: c.pessoas }, { merge: true })
+    return
+  }
   const motivo = c.status === 'sem_acesso' ? c.erro ?? 'sem acesso ao grupo' : c.status === 'dono_fora' ? 'o número do dono não está no grupo' : ''
   await refGrupo(rid).set(
     { status: c.status, statusMotivo: motivo, statusEm: new Date().toISOString(), pessoas: c.pessoas, ...(c.status === 'conectado' ? { falhasSeguidas: 0 } : {}) },
@@ -184,8 +192,10 @@ export async function conectarGrupo(
   const celular = await celularDoDono(rid)
   const c = await conferirGrupo(grupoId, celular)
   if (c.status === 'sem_acesso') return { ok: false, motivo: 'sem_acesso', mensagem: 'O número do Tá no Caixa ainda não está neste grupo. Adicione o número ao grupo e tente de novo.' }
-  const foiODono = !!dados.remetente && donoPresente([dados.remetente], celular)
-  if (!c.donoDentro && !foiODono) return { ok: false, motivo: 'dono_fora', mensagem: `O número do dono (${finalDoCelular(celular)}) precisa estar no grupo. Adicione e tente de novo.` }
+  // O dono precisa estar comprovadamente no grupo: pela lista de participantes
+  // ou por ter sido ele quem mandou o código. Sem o celular do dono, não liga.
+  const foiODono = !!celular && !!dados.remetente && donoPresente([dados.remetente], celular)
+  if (!celular || (!c.donoDentro && !foiODono)) return { ok: false, motivo: 'dono_fora', mensagem: `O número do dono (${finalDoCelular(celular)}) precisa estar no grupo. Adicione e tente de novo.` }
 
   await refGrupo(rid).set(
     {
@@ -200,7 +210,7 @@ export async function conectarGrupo(
     },
     { merge: true },
   )
-  await gravarConferencia(rid, { ...c, status: 'conectado', donoDentro: true })
+  await gravarConferencia(rid, { ...c, status: 'conectado', donoDentro: true, conferiu: true })
   const r = await enviarBoasVindas(grupoId)
   await registrarEnvio(rid, { tipo: 'boas_vindas', grupoId }, r)
   return { ok: true, status: 'conectado' }

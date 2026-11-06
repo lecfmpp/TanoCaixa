@@ -57,7 +57,8 @@ export async function enviar(texto: string, imagem?: { url: string; arquivo: str
   }
   if (imagem) {
     const r = await enviarImagem(grupo, imagem.url, imagem.arquivo, texto)
-    if (r.ok) return r
+    // Tempo esgotado: a imagem pode ter chegado; mandar o texto duplicaria.
+    if (r.ok || r.incerto) return r
     console.error('WhatsApp: imagem falhou, enviando só o texto', r.erro)
   }
   const r = await enviarTexto(grupo, texto)

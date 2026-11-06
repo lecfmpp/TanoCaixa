@@ -36,6 +36,7 @@ import { VALIDADE_CODIGO_MIN, codigoDoConvite, codigoValido, finalDoCelular, ger
 import { LEMBRETES, type IdLembrete } from './lembretesCatalogo'
 import { REGRAS, PRIORIDADE, EM_BREVE, diasEntre, type Ctx, type DespesaMin } from './lembretesRegras'
 import { normalizarPapel } from './papel'
+import { whatsappLiberado } from './contasLiberadas'
 
 // Lazy: o app do Firebase Admin só está inicializado quando uma função roda.
 const db = { doc: (p: string) => getFirestore().doc(p), collection: (p: string) => getFirestore().collection(p) }
@@ -147,6 +148,10 @@ async function rodar(rodada: 'manha' | 'noite'): Promise<void> {
         await anotarResultado(rid, cfg, r)
         if (r.ok) {
           await g.ref.set({ ultimoEnvio: { [id]: hoje } }, { merge: true })
+        } else if (r.incerto) {
+          // Demorou demais para responder: pode ter chegado. Não tenta de novo
+          // hoje, pra não repetir a mensagem no grupo.
+          console.error(`lembretes ${rodada}: envio incerto para ${rid} (${id}), sem nova tentativa hoje`)
         } else {
           // Falhou: o dia não fica gasto, a próxima rodada pode tentar de novo.
           await marca.delete()
@@ -182,7 +187,7 @@ export const conferirGruposWhatsapp = onSchedule({ schedule: '30 8 * * *', timeZ
     try {
       const c = await conferirGrupo(cfg.grupoId, await celularDoDono(g.id))
       await gravarConferencia(g.id, c)
-      if (c.status !== 'conectado' && cfg.status === 'conectado') {
+      if (c.conferiu && c.status !== 'conectado' && cfg.status === 'conectado') {
         const nome = ((await db.doc(`restaurants/${g.id}`).get()).get('nome') as string | undefined) ?? g.id
         comProblema.push(`• ${nome}: ${c.status === 'dono_fora' ? 'dono saiu do grupo' : 'sem acesso ao grupo'}`)
       }
@@ -216,8 +221,14 @@ const TITULOS: Record<IdLembrete, string> = {
   ifood_parado: 'Integração com o iFood',
 }
 
-async function exigirGestao(uid: string | undefined, restauranteId: string | undefined): Promise<{ rid: string; papel: 'dono' | 'gestao' }> {
+async function exigirGestao(
+  uid: string | undefined,
+  restauranteId: string | undefined,
+  email?: string,
+): Promise<{ rid: string; papel: 'dono' | 'gestao' }> {
   if (!uid) throw new HttpsError('unauthenticated', 'Faça login primeiro')
+  // Funcionalidade em teste: só as contas liberadas, também no servidor.
+  if (!whatsappLiberado(email)) throw new HttpsError('permission-denied', 'As notificações de WhatsApp ainda não estão disponíveis para esta conta')
   if (!restauranteId) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
   const membro = await db.doc(`restaurants/${restauranteId}/membros/${uid}`).get()
   const papel = normalizarPapel(membro.data()?.papel as string | undefined)
@@ -270,14 +281,14 @@ const dadosDe = <T>(req: { data?: unknown }) => (req.data ?? {}) as T
 
 /** Estado do painel: status do grupo, código ativo, lembretes e últimos envios. */
 export const lembretesWhatsappConfig = onCall(async (req) => {
-  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId, req.auth?.token.email)
   return configDoRestaurante(rid, papel)
 })
 
 /** Liga ou desliga um lembrete. Só vale se o restaurante tem grupo e o lembrete já está disponível. */
 export const lembretesWhatsappSalvar = onCall(async (req) => {
   const { restauranteId, id, ativo } = dadosDe<{ restauranteId?: string; id?: string; ativo?: boolean }>(req)
-  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId, req.auth?.token.email)
   if (!id || !(id in LEMBRETES) || typeof ativo !== 'boolean') throw new HttpsError('invalid-argument', 'id e ativo obrigatórios')
   if (EM_BREVE.includes(id as IdLembrete)) throw new HttpsError('failed-precondition', 'Esse lembrete ainda não está disponível')
   const ref = refGrupo(rid)
@@ -287,11 +298,11 @@ export const lembretesWhatsappSalvar = onCall(async (req) => {
 })
 
 /**
- * Gera o código de pareamento ("TNC-4821", 30 min). O dono manda o código no
+ * Gera o código de pareamento ("TNC-482193", 30 min). O dono manda o código no
  * grupo dele e o webhook liga o grupo à loja. Gerar de novo invalida o anterior.
  */
 export const lembretesWhatsappCodigo = onCall(async (req) => {
-  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId, req.auth?.token.email)
   const ref = refGrupo(rid)
   const antigo = (await ref.get()).get('codigo') as string | undefined
   const expiraEm = new Date(Date.now() + VALIDADE_CODIGO_MIN * 60 * 1000).toISOString()
@@ -325,7 +336,7 @@ async function nomeDaLoja(rid: string) {
 /** Liga a loja a um grupo pelo ID (caminho manual, para o suporte). Dono ou gestão. */
 export const lembretesWhatsappGrupo = onCall({ secrets: SEGREDOS }, async (req) => {
   const { restauranteId, grupoId } = dadosDe<{ restauranteId?: string; grupoId?: string }>(req)
-  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId, req.auth?.token.email)
   const novo = (grupoId ?? '').trim()
   if (!ehIdDeGrupo(novo)) throw new HttpsError('invalid-argument', 'ID de grupo inválido. Ele termina em @g.us (ex.: 120363012345678901@g.us).')
   const loja = await nomeDaLoja(rid)
@@ -341,7 +352,7 @@ export const lembretesWhatsappGrupo = onCall({ secrets: SEGREDOS }, async (req) 
  */
 export const lembretesWhatsappLink = onCall({ secrets: SEGREDOS }, async (req) => {
   const { restauranteId, link } = dadosDe<{ restauranteId?: string; link?: string }>(req)
-  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId, req.auth?.token.email)
   const codigo = codigoDoConvite(link)
   if (!codigo) throw new HttpsError('invalid-argument', 'Link inválido. Ele começa com https://chat.whatsapp.com/ (no grupo: Dados do grupo → Convidar via link → Copiar link).')
   const g = await grupoPeloConvite(linkDoConvite(codigo), codigo)
@@ -354,7 +365,7 @@ export const lembretesWhatsappLink = onCall({ secrets: SEGREDOS }, async (req) =
 
 /** Desliga o grupo da loja (os lembretes param). Só o dono. */
 export const lembretesWhatsappDesconectar = onCall(async (req) => {
-  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId, req.auth?.token.email)
   if (papel !== 'dono') throw new HttpsError('permission-denied', 'Só o dono desconecta o grupo')
   await refGrupo(rid).set({ grupoId: apagarCampo(), grupoNome: apagarCampo(), grupoLink: apagarCampo(), status: 'sem_grupo', statusMotivo: '', statusEm: new Date().toISOString() }, { merge: true })
   return configDoRestaurante(rid, papel)
@@ -367,14 +378,16 @@ const LIMITE_TESTES_HORA = 5
  * mensagem fixa e devolve o resultado na hora. Não conta como lembrete do dia.
  */
 export const lembretesWhatsappTeste = onCall({ secrets: SEGREDOS }, async (req) => {
-  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId, req.auth?.token.email)
   const cfg = ((await refGrupo(rid).get()).data() ?? {}) as GrupoDoc
   if (!cfg.grupoId) throw new HttpsError('failed-precondition', 'Conecte o grupo de WhatsApp primeiro')
   if ((await testesNaUltimaHora(rid)) >= LIMITE_TESTES_HORA) throw new HttpsError('resource-exhausted', `No máximo ${LIMITE_TESTES_HORA} testes por hora. Tente de novo mais tarde.`)
 
   const c = await conferirGrupo(cfg.grupoId, await celularDoDono(rid))
   await gravarConferencia(rid, c)
-  if (c.status !== 'conectado') {
+  // Sem telefones na lista não dá pra conferir o dono; o grupo já foi
+  // conferido ao conectar, então o teste segue. Só barra o que deu pra ver.
+  if (c.status === 'sem_acesso' || (c.conferiu && c.status !== 'conectado')) {
     return {
       resultado: c.status === 'dono_fora' ? 'dono_fora' : 'sem_acesso',
       mensagem: c.status === 'dono_fora' ? 'O número do dono não está no grupo. Adicione o dono e teste de novo.' : 'O número do Tá no Caixa não está mais no grupo, ou o grupo foi apagado.',

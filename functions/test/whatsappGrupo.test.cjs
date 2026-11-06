@@ -28,16 +28,25 @@ test('final do celular, sem expor o número', () => {
   assert.equal(r.finalDoCelular(undefined), 'do dono')
 })
 
-test('código de pareamento: gera TNC-#### e acha em textos variados', () => {
-  assert.match(r.gerarCodigo(), /^TNC-\d{4}$/)
-  assert.equal(r.gerarCodigo(() => 0), 'TNC-1000')
-  assert.equal(r.gerarCodigo(() => 0.99999), 'TNC-9999')
-  assert.equal(r.extrairCodigo('TNC-4821'), 'TNC-4821')
-  assert.equal(r.extrairCodigo('oi, o código é tnc 4821 ok'), 'TNC-4821')
-  assert.equal(r.extrairCodigo('Tnc4821'), 'TNC-4821')
-  assert.equal(r.extrairCodigo('TNC-48210'), null)
+test('código de pareamento: gera TNC-###### e acha em textos variados', () => {
+  assert.match(r.gerarCodigo(), /^TNC-\d{6}$/)
+  assert.equal(r.gerarCodigo(() => 100000), 'TNC-100000')
+  assert.equal(r.gerarCodigo(() => 999999), 'TNC-999999')
+  assert.equal(r.extrairCodigo('TNC-482193'), 'TNC-482193')
+  assert.equal(r.extrairCodigo('oi, o código é tnc 482193 ok'), 'TNC-482193')
+  assert.equal(r.extrairCodigo('Tnc482193'), 'TNC-482193')
+  assert.equal(r.extrairCodigo('TNC-4821'), null)
+  assert.equal(r.extrairCodigo('TNC-4821930'), null)
   assert.equal(r.extrairCodigo('bom dia'), null)
   assert.equal(r.extrairCodigo(undefined), null)
+})
+
+test('contas liberadas para o WhatsApp', () => {
+  const c = require('../lib/contasLiberadas.js')
+  assert.equal(c.whatsappLiberado('lecfmpp@gmail.com'), true)
+  assert.equal(c.whatsappLiberado(' Suporte@SpoonConsultoria.com.br '), true)
+  assert.equal(c.whatsappLiberado('outra@loja.com'), false)
+  assert.equal(c.whatsappLiberado(undefined), false)
 })
 
 test('código vale até expirar', () => {
