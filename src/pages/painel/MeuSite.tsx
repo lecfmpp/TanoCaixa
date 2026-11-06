@@ -192,7 +192,7 @@ export function MeuSite() {
   return <TelaMeuSite />
 }
 
-function TelaMeuSite() {
+export function TelaMeuSite() {
   const t = useTenant()
   const site = useSite()
   const pratosQ = usePratos().data

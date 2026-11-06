@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '@/lib/firebase'
@@ -35,7 +35,7 @@ const salvar = httpsCallable<{ restauranteId: string; id: string; ativo: boolean
  * tem grupo cadastrado (e é dono ou gestão): sem grupo, ou sem permissão, o
  * servidor responde e a seção simplesmente não existe. Tudo começa desligado.
  */
-export function LembretesWhatsapp() {
+export function LembretesWhatsapp({ semGrupo }: { semGrupo?: ReactNode } = {}) {
   const t = useTenant()
   const qc = useQueryClient()
   const { adicionarToast } = useUI()
@@ -66,7 +66,8 @@ export function LembretesWhatsapp() {
     onError: (e) => adicionarToast({ tipo: 'erro', titulo: 'Não deu pra trocar o grupo', texto: mensagemDeErro(e, 'O grupo não foi alterado.') }),
   })
 
-  if (!config.data?.temGrupo) return null
+  // Sem grupo: some (ou mostra o aviso `semGrupo`, depois de carregar).
+  if (!config.data?.temGrupo) return config.isPending ? null : <>{semGrupo ?? null}</>
   const mudou = grupoId.trim() !== config.data.grupoId
   const grupos = [...new Set(config.data.lembretes.map((l) => l.grupo))]
 
