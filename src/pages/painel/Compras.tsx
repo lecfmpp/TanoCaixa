@@ -17,6 +17,13 @@ import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_
 import { diasAte, lembretes } from '@/data/vencimentos'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
+import type { Nota } from '@/data/compras'
+
+/** Vencimento da próxima parcela em aberto ("10/12"), ou vazio se todas foram pagas. */
+function proximaParcela(n: Nota): string {
+  const v = n.parcelas.find((p) => !p.pago)?.vencimento
+  return v ? v.split('-').reverse().slice(0, 2).join('/') : ''
+}
 import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
@@ -140,7 +147,13 @@ export function Compras() {
                 notasDoMes.map((n) => {
                   const aberto = aberta === n.id
                   const pago = n.status === 'pago'
-                  const dias = n.vencimento ? diasAte(n.vencimento, hoje) : null
+                  // Nota parcelada: o que importa é a próxima parcela em aberto.
+                  const parcelada = n.parcelas.length > 1
+                  const proxima = n.parcelas.find((p) => !p.pago)
+                  const lancPagar = parcelada && proxima ? n.lancamentos.find((l) => (l.parcela ?? 1) === proxima.numero) : n.lancamentos[0]
+                  const vencRef = parcelada ? proxima?.vencimento : n.vencimento
+                  const dias = vencRef ? diasAte(vencRef, hoje) : null
+                  const expande = n.itens.length > 0 || parcelada
                   return (
                     <div key={n.id} className="border-b border-divisoria last:border-0">
                       <div className="flex items-center pr-2 transition hover:bg-preenchimento/30">
@@ -148,13 +161,13 @@ export function Compras() {
                         onClick={() => setAberta(aberto ? null : n.id)}
                         className="flex flex-1 items-center gap-3 px-4 py-3 text-left"
                       >
-                        {n.itens.length > 0
+                        {expande
                           ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
                           : <span className="w-4 shrink-0" />}
                         <span className="flex-1">
                           <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
                           <span className="block text-xs text-tinta-4">
-                            {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))}{n.vencimento ? ` · venc. ${n.vencimento.slice(0, 10).split('-').reverse().slice(0, 2).join('/')}` : ''} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
+                            {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))}{n.parcelas.length > 1 ? ` · ${n.parcelas.length} parcelas${proximaParcela(n) ? ` (próx. ${proximaParcela(n)})` : ' (todas pagas)'}` : n.vencimento ? ` · venc. ${n.vencimento.slice(0, 10).split('-').reverse().slice(0, 2).join('/')}` : ''} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                           </span>
                         </span>
                         {pago ? (
@@ -170,13 +183,25 @@ export function Compras() {
                        * DRE, as entradas de estoque e o custo dos produtos andam
                        * juntos. Compra antiga sem itens não tem estoque atrás — ela
                        * é corrigida como lançamento avulso, na gaveta de despesa. */}
-                      {!pago && pagamento.contaDe(n.lancamentos[0].id) && (
-                        // O check pergunta se teve juros; paga a nota inteira.
+                      {!pago && lancPagar && pagamento.contaDe(lancPagar.id) && (
+                        // O check pergunta se teve juros. Nota à vista: paga a nota
+                        // inteira. Parcelada: paga a próxima parcela em aberto.
                         <button
-                          onClick={() => pagamento.alternar(pagamento.contaDe(n.lancamentos[0].id)!)}
+                          onClick={() => pagamento.alternar(pagamento.contaDe(lancPagar.id)!)}
                           className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-botao px-2.5 py-1.5 text-xs font-bold text-mar transition hover:bg-preenchimento"
                         >
-                          <CheckCircle2 size={13} /> <span className="hidden cel:inline">Marcar como pago</span><span className="cel:hidden">Pagar</span>
+                          <CheckCircle2 size={13} />{' '}
+                          {parcelada && proxima ? (
+                            <>
+                              <span className="hidden cel:inline">Pagar parcela {proxima.numero}</span>
+                              <span className="cel:hidden">Pagar {proxima.numero}ª</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="hidden cel:inline">Marcar como pago</span>
+                              <span className="cel:hidden">Pagar</span>
+                            </>
+                          )}
                         </button>
                       )}
                       <AcoesLancamento
@@ -187,6 +212,44 @@ export function Compras() {
                         }
                       />
                       </div>
+                      {aberto && parcelada && (
+                        <div className="bg-preenchimento/30 px-4 pt-2 pl-11">
+                          <span className="rotulo text-tinta-4">Parcelas do boleto</span>
+                          {n.parcelas.map((p) => {
+                            const lanc = n.lancamentos.find((l) => (l.parcela ?? 1) === p.numero)
+                            const conta = lanc ? pagamento.contaDe(lanc.id) : undefined
+                            const d = p.vencimento ? diasAte(p.vencimento, hoje) : null
+                            return (
+                              <div key={p.numero} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-divisoria py-2 text-sm last:border-0">
+                                <span className="font-bold text-tinta">
+                                  {p.numero} de {n.parcelas.length}
+                                </span>
+                                <span className="text-tinta-3">
+                                  {p.vencimento ? `vence ${p.vencimento.split('-').reverse().join('/')}` : 'sem vencimento'}
+                                </span>
+                                <span className="flex-1" />
+                                {p.pago ? (
+                                  <span className="text-xs font-bold text-mata">paga{p.pagoPorNome ? ` · ${p.pagoPorNome}` : ''}</span>
+                                ) : (
+                                  d !== null && <TagVencimento dias={d} />
+                                )}
+                                <span className="mono w-24 text-right font-bold text-tinta">{brl(p.valor)}</span>
+                                {conta && (
+                                  <button
+                                    onClick={() => pagamento.alternar(conta)}
+                                    className={cn(
+                                      'inline-flex shrink-0 items-center gap-1 rounded-botao px-2 py-1 text-xs font-bold transition hover:bg-preenchimento',
+                                      p.pago ? 'text-tinta-4' : 'text-mar',
+                                    )}
+                                  >
+                                    {p.pago ? 'Desmarcar' : <><CheckCircle2 size={13} /> Pagar</>}
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       {aberto && n.itens.length > 0 && (
                         <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
                           {n.itens.map((i, idx) => (

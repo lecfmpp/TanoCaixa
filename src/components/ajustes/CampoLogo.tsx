@@ -7,7 +7,7 @@ import { useAuth } from '@/auth/AuthContext'
 import { useRestaurante, useTenant } from '@/data/hooks'
 import { LOGO, enviarLogo, problemaDoArquivo, removerLogo } from '@/data/logo'
 import { useUI } from '@/ui/UIProvider'
-import { LogoDaLoja } from '@/components/layout/LogoDaLoja'
+import { LogoDaLoja, useFormatoDaLogo } from '@/components/layout/LogoDaLoja'
 
 /**
  * Envio da logo da loja aberta. Mostra como ela vai ficar no header e diz
@@ -25,6 +25,8 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
   const [arrastando, setArrastando] = useState(false)
 
   const logo = cfg?.logoUrl
+  const formato = useFormatoDaLogo(logo, cfg?.logoFormato)
+  const { quadrado, horizontal } = LOGO.formatos
   const demo = sessao?.demo ?? false
   const editavel = podeEditar && !demo
 
@@ -99,18 +101,35 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
         )}
       >
         {logo ? (
-          <span className="relative block w-full max-w-[260px] overflow-hidden rounded-campo bg-superficie" style={{ aspectRatio: '5 / 2' }}>
+          <span
+            className={cn('relative block w-full overflow-hidden rounded-campo bg-superficie', formato === 'quadrado' ? 'max-w-[140px]' : 'max-w-[260px]')}
+            style={{ aspectRatio: formato === 'quadrado' ? '1 / 1' : '5 / 2' }}
+          >
             <img src={logo} alt="Logo da loja" className="absolute inset-3 h-[calc(100%-24px)] w-[calc(100%-24px)] object-contain" />
           </span>
         ) : (
-          <span
-            className="grid w-full max-w-[260px] place-items-center rounded-campo border border-[rgba(46,95,115,0.16)] bg-superficie text-tinta-4"
-            style={{ aspectRatio: '5 / 2' }}
-          >
-            <span className="flex flex-col items-center gap-1">
-              <ImagePlus size={22} />
-              <span className="mono text-[11px]">
-                {LOGO.largura} × {LOGO.altura} px
+          // Os dois formatos aceitos, lado a lado, com o tamanho de cada um.
+          <span className="flex w-full items-end justify-center gap-3">
+            <span
+              className="grid w-[96px] shrink-0 place-items-center rounded-campo border border-[rgba(46,95,115,0.16)] bg-superficie text-tinta-4"
+              style={{ aspectRatio: '1 / 1' }}
+            >
+              <span className="flex flex-col items-center gap-1">
+                <ImagePlus size={20} />
+                <span className="mono text-[10px]">
+                  {quadrado.largura} × {quadrado.altura}
+                </span>
+              </span>
+            </span>
+            <span
+              className="grid w-full max-w-[220px] place-items-center rounded-campo border border-[rgba(46,95,115,0.16)] bg-superficie text-tinta-4"
+              style={{ aspectRatio: '5 / 2' }}
+            >
+              <span className="flex flex-col items-center gap-1">
+                <ImagePlus size={20} />
+                <span className="mono text-[10px]">
+                  {horizontal.largura} × {horizontal.altura}
+                </span>
               </span>
             </span>
           </span>
@@ -119,7 +138,8 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
           {enviando ? 'Enviando…' : logo ? (editavel ? 'Trocar logo' : 'Logo da loja') : editavel ? 'Enviar logo' : 'Sem logo ainda'}
         </span>
         <span className="text-xs text-tinta-4">
-          {LOGO.formatos}, na horizontal, {LOGO.largura} × {LOGO.altura} px (proporção {LOGO.proporcao}), até 2 MB.
+          {LOGO.arquivo}, até 2 MB. {quadrado.nome}: {quadrado.largura} × {quadrado.altura} px ({quadrado.proporcao}) ou{' '}
+          {horizontal.nome.toLowerCase()}: {horizontal.largura} × {horizontal.altura} px ({horizontal.proporcao}).
           {editavel && ' Clique ou arraste o arquivo aqui.'}
         </span>
       </button>
@@ -133,7 +153,7 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
             style={{ background: '#EFAB5C', opacity: 0.9 }}
             aria-hidden
           />
-          <LogoDaLoja url={logo} reserva={!logo} />
+          <LogoDaLoja url={logo} formato={formato} reserva={!logo} />
           <span className="relative z-10 min-w-0">
             <span className="block truncate text-creme" style={{ fontSize: 17, fontWeight: 800 }}>
               Dashboard
@@ -142,7 +162,7 @@ export function CampoLogo({ compacto, podeEditar = true }: { compacto?: boolean;
           </span>
         </div>
         <p className="text-xs text-tinta-4">
-          A logo fica sempre numa caixa de {LOGO.proporcao}: imagem mais alta ou mais larga encolhe pra caber, sem esticar nem cortar.
+          O app reconhece o formato pela proporção da imagem e usa a caixa quadrada ou a horizontal. A logo encolhe pra caber, sem esticar nem cortar.
         </p>
         {logo && editavel && (
           <button

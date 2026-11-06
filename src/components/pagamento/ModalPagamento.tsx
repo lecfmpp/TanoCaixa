@@ -72,7 +72,7 @@ export function ModalPagamento({ conta, aoFechar }: { conta: ContaDoFluxo; aoFec
           <div className="mt-4 rounded-cartao bg-preenchimento/60 p-3.5">
             <div className="font-bold text-tinta">{conta.fornecedor}</div>
             <div className="text-xs text-tinta-4">
-              {[conta.descricao, CONTA[conta.categoria]?.nome].filter(Boolean).join(' · ')}
+              {[conta.parcela ? `Parcela ${conta.parcela.numero} de ${conta.parcela.total}` : null, conta.numeroNota ? `NF ${conta.numeroNota}` : null, conta.descricao, CONTA[conta.categoria]?.nome].filter(Boolean).join(' · ')}
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-tinta-3">{conta.temVencimento ? `Vence ${dataBR(conta.dia)}` : `Lançada ${dataBR(conta.dia)}`}</span>

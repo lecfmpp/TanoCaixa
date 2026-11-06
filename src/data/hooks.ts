@@ -4,6 +4,7 @@ import { recebimentoValido } from './recebimentos'
 import { arrayRemove, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
+import { dividirEmParcelas, type ParcelaEntrada } from './parcelas'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
 import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
 import {
@@ -1076,6 +1077,8 @@ export interface EntradaNota {
   desconto?: number
   acrescimo?: number
   itens: ItemDaNota[]
+  /** Boleto com mais de um vencimento. Com 2+ parcelas, `vencimento` é ignorado. */
+  parcelas?: ParcelaEntrada[]
 }
 
 /** Autoria já resolvida, sem os campos privados do `useAutor`. */
@@ -1157,35 +1160,52 @@ async function gravarNota(
   const desconto = Math.max(0, e.desconto ?? 0)
   const acrescimo = Math.max(0, e.acrescimo ?? 0)
   const ajuste = acrescimo - desconto
-  let valorTotal = 0
-  for (const [categoria, itens] of porConta) {
+  const contas = [...porConta].map(([categoria, itens]) => {
     const bruto = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
     const parte = totalProdutos > 0 ? bruto / totalProdutos : 0
-    const valor = Math.round((bruto + ajuste * parte) * 100) / 100
-    valorTotal += valor
-    const despesaId = novoId('d')
-    await repo.despesas.salvar(t, despesaId, {
-      id: despesaId,
-      fornecedor: e.fornecedor || 'Fornecedor',
-      descricao: itens.map((i) => i.produto).join(', '),
-      categoria,
-      valorTotal: valor,
-      dataCompetencia: e.data,
-      ...(e.vencimento ? { dataVencimento: e.vencimento } : {}),
-      formaPagamento: e.formaPagamento,
-      status: e.status,
-      recorrente: false,
-      tipoLancamento: 'compra',
-      notaId,
-      itens,
-      ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
-      ...(desconto > 0 ? { descontoNota: desconto } : {}),
-      ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
-      ...(e.observacao ? { observacao: e.observacao } : {}),
-      ...autoria,
-      ...extras,
-    })
-    criados.push({ colecao: 'despesas', id: despesaId })
+    return { categoria, itens, valor: Math.round((bruto + ajuste * parte) * 100) / 100 }
+  })
+  const valorTotal = contas.reduce((s, c) => s + c.valor, 0)
+
+  // Boleto parcelado: cada conta vira um lançamento por parcela, com o
+  // vencimento e a parte dela no valor da parcela. Sem parcelas, uma "parcela"
+  // única com o vencimento da nota — o mesmo lançamento de sempre.
+  const parcelas = e.parcelas && e.parcelas.length > 1 ? e.parcelas : null
+  const matriz = parcelas ? dividirEmParcelas(contas.map((c) => c.valor), parcelas.map((p) => p.valor)) : null
+
+  for (const [ci, { categoria, itens, valor }] of contas.entries()) {
+    const fatias = parcelas ?? [{ vencimento: e.vencimento ?? '', valor } as ParcelaEntrada]
+    for (const [pi, parcela] of fatias.entries()) {
+      const status = parcela.status ?? e.status
+      const despesaId = novoId('d')
+      await repo.despesas.salvar(t, despesaId, {
+        id: despesaId,
+        fornecedor: e.fornecedor || 'Fornecedor',
+        descricao: itens.map((i) => i.produto).join(', '),
+        categoria,
+        valorTotal: matriz ? matriz[ci][pi] : valor,
+        dataCompetencia: e.data,
+        ...(parcela.vencimento ? { dataVencimento: parcela.vencimento } : {}),
+        formaPagamento: e.formaPagamento,
+        status,
+        recorrente: false,
+        tipoLancamento: 'compra',
+        notaId,
+        // Os itens ficam só na 1ª parcela: senão a nota remontada mostraria a
+        // mercadoria repetida uma vez por parcela.
+        ...(pi === 0 ? { itens } : { itens: [] }),
+        ...(parcelas ? { parcela: pi + 1, parcelas: parcelas.length } : {}),
+        ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
+        ...(desconto > 0 ? { descontoNota: desconto } : {}),
+        ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
+        ...(e.observacao ? { observacao: e.observacao } : {}),
+        ...autoria,
+        ...extras,
+        // Parcela que já estava paga (correção da nota) mantém quem pagou.
+        ...(parcelas && status === 'pago' && parcela.pagoEm ? { pagoEm: parcela.pagoEm, pagoPorNome: parcela.pagoPorNome } : {}),
+      })
+      criados.push({ colecao: 'despesas', id: despesaId })
+    }
   }
 
   // O custo do produto é sempre o da compra mais recente que existe hoje —
@@ -1309,7 +1329,9 @@ export function useAtualizarNota() {
       // Já estava paga: mantém quem pagou. Passou a paga agora: quem corrigiu pagou.
       const pagaAntes = antiga.despesas.length > 0 && antiga.despesas.every((d) => d.status === 'pago')
       const marcaPago =
-        entrada.status === 'pago'
+        entrada.parcelas && entrada.parcelas.length > 1
+          ? {}
+          : entrada.status === 'pago'
           ? pagaAntes
             ? { pagoEm: original?.pagoEm, pagoPorNome: original?.pagoPorNome }
             : { pagoEm: autor.criadoEm, pagoPorNome: autor.criadoPorNome }

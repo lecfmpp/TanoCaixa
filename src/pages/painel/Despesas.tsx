@@ -19,6 +19,7 @@ import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
 import type { ContaDoFluxo } from '@/data/fluxo'
+import { rotuloParcela } from '@/data/parcelas'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -295,7 +296,11 @@ function LinhaDespesa({ d, hoje, baseData, alvo, conta, aoMarcar }: { d: Despesa
     <div className={cn('flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0', d.status === 'pago' && 'bg-mata/[0.04]')}>
       <div className="min-w-0 flex-1">
         <div className={cn('truncate font-semibold', d.status === 'pago' ? 'text-tinta-3' : 'text-tinta')}>{d.fornecedor}</div>
-        {d.descricao && <div className="truncate text-xs text-tinta-4">{d.descricao}</div>}
+        {(d.descricao || rotuloParcela(d)) && (
+          <div className="truncate text-xs text-tinta-4">
+            {[rotuloParcela(d) && `${rotuloParcela(d)}${d.numeroNota ? ` da NF ${d.numeroNota}` : ''}`, d.descricao].filter(Boolean).join(' · ')}
+          </div>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <EtiquetaConta categoria={d.categoria} />
           {d.recorrente && (
