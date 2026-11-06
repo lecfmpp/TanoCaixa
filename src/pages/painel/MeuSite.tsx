@@ -95,6 +95,43 @@ function Segmento<T extends string>({ valor, opcoes, aoTrocar }: { valor: T; opc
   )
 }
 
+/** Endereço com link clicável (quando no ar) e botão de copiar. */
+function LinhaLink({ rotulo, url, noAr }: { rotulo: string; url: string; noAr: boolean }) {
+  const [copiado, setCopiado] = useState(false)
+  const texto = url.replace(/^https:\/\//, '')
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 1800)
+    } catch {
+      /* sem permissão de área de transferência */
+    }
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-campo bg-preenchimento/60 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-semibold text-tinta-4">{rotulo}</div>
+        {noAr ? (
+          <a href={url} target="_blank" rel="noopener" className={cn(CLS_DOMINIO, 'font-bold text-mar underline decoration-mar/30 underline-offset-2 hover:decoration-mar')}>
+            {texto}
+          </a>
+        ) : (
+          <span className={cn(CLS_DOMINIO, 'font-bold text-tinta-3')}>{texto}</span>
+        )}
+      </div>
+      {noAr && (
+        <a href={url} target="_blank" rel="noopener" aria-label={`Abrir ${rotulo.toLowerCase()}`} title="Abrir" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-mar hover:bg-mar/10">
+          <ExternalLink size={16} />
+        </a>
+      )}
+      <button type="button" onClick={copiar} aria-label={`Copiar ${rotulo.toLowerCase()}`} title="Copiar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-mar hover:bg-mar/10">
+        {copiado ? <Check size={16} className="text-mata" /> : <Copy size={16} />}
+      </button>
+    </div>
+  )
+}
+
 /** Botão de upload que reduz a imagem e devolve a URL. */
 function Upload({
   url,
@@ -208,7 +245,6 @@ function TelaMeuSite() {
   const [previa, setPrevia] = useState<Previa>('celular')
   const [livre, setLivre] = useState<boolean | 'erro' | null>(null)
   const [celula, setCelula] = useState<{ loja: string; app: AppId } | null>(null)
-  const [copiado, setCopiado] = useState(false)
   const [avAberto, setAvAberto] = useState<string | null>(null)
   // Em desenvolvimento, ?comemorar abre a comemoração para ajustar o visual.
   const [festa, setFesta] = useState<{ url: string; emitindo: boolean } | null>(() =>
@@ -373,15 +409,8 @@ function TelaMeuSite() {
     mudar({ promo: { ...cfg!.promo, ...p, dia: agoraSP().data } })
   }
 
-  async function copiarLink() {
-    try {
-      await navigator.clipboard.writeText(`https://${dominio}/links`)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 1800)
-    } catch {
-      /* sem permissão de área de transferência */
-    }
-  }
+  // No ar: o endereço publicado; antes disso, o que está sendo digitado.
+  const dominioLinks = noAr ? `${site.data!.publicado!.subdominio}.${DOMINIO_SITES}` : dominio
 
   const statusLinha = noAr ? (pendente ? 'No ar · alterações não publicadas' : 'No ar · tudo publicado') : 'Não publicado · só você vê a prévia'
 
@@ -401,7 +430,11 @@ function TelaMeuSite() {
                 {salvar.isPending && <span className="text-creme/60"> · salvando…</span>}
               </span>
             </p>
-            {noAr && <p className={cn(CLS_DOMINIO, 'mt-0.5 font-bold text-creme')}>{site.data!.publicado!.subdominio}.{DOMINIO_SITES}</p>}
+            {noAr && (
+              <a href={urlSite} target="_blank" rel="noopener" className={cn(CLS_DOMINIO, 'mt-0.5 font-bold text-creme underline decoration-creme/40 underline-offset-2 hover:decoration-creme')}>
+                {site.data!.publicado!.subdominio}.{DOMINIO_SITES}
+              </a>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {/* Publicado / não publicado: sempre com confirmação */}
@@ -456,13 +489,10 @@ function TelaMeuSite() {
                 <span className="text-tinta-4">Verificando…</span>
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-tinta-3">
-              <span className="min-w-0">
-                Página de links: <b className={cn(CLS_DOMINIO, 'text-tinta')}>{dominio}/links</b>
-              </span>
-              <button type="button" onClick={copiarLink} className="inline-flex items-center gap-1 font-bold text-mar">
-                {copiado ? <Check size={13} /> : <Copy size={13} />} {copiado ? 'Copiado' : 'Copiar link'}
-              </button>
+            <div className="flex flex-col gap-2">
+              <LinhaLink rotulo="Site" url={`https://${dominioLinks}`} noAr={noAr} />
+              <LinhaLink rotulo="Página de links" url={`https://${dominioLinks}/links`} noAr={noAr} />
+              {!noAr && <p className="text-[11px] text-tinta-4">Os links abrem depois que o site for publicado.</p>}
             </div>
           </Bloco>
 
