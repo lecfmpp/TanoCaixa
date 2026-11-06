@@ -65,6 +65,7 @@ async function carregarContexto(rid: string, hoje: string): Promise<Ctx> {
     porId.set(d.id, {
       id: d.id,
       notaId: x.notaId,
+      ...(typeof x.parcelas === 'number' && x.parcelas > 1 ? { parcela: Number(x.parcela) || 1, parcelas: x.parcelas } : {}),
       fornecedor: String(x.fornecedor ?? ''),
       valorTotal: Number(x.valorTotal) || 0,
       dataCompetencia: String(x.dataCompetencia ?? ''),

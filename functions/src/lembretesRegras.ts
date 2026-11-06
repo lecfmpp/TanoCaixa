@@ -25,6 +25,9 @@ export interface ItemMin {
 export interface DespesaMin {
   id: string
   notaId?: string
+  /** Boleto parcelado: parcela deste lançamento e quantas a nota tem. */
+  parcela?: number
+  parcelas?: number
   fornecedor: string
   valorTotal: number
   dataCompetencia: string
@@ -123,18 +126,31 @@ const caixaAberto: Detector = (c) => {
 const notasDoDia: Detector = (c) =>
   deveLembrarNotasDoDia(c.atividades, c.inicioDoDia) ? { vars: { restaurante: c.restaurante } } : null
 
-/** Boleto ou nota em aberto vencido, vencendo hoje ou nos próximos 2 dias. Nota com mais de um lançamento conta uma vez. */
+/**
+ * Mesma chave do contas a pagar do app (`chaveDaConta` em src/data/fluxo.ts):
+ * nota à vista conta uma vez; nota parcelada conta uma vez POR PARCELA.
+ */
+export function chaveDoVencimento(d: Pick<DespesaMin, 'id' | 'notaId' | 'parcela' | 'parcelas'>): string {
+  if (!d.notaId) return d.id
+  return (d.parcelas ?? 1) > 1 ? `${d.notaId}:${d.parcela ?? 1}` : d.notaId
+}
+
+/**
+ * Boleto ou nota em aberto vencido, vencendo hoje ou nos próximos 2 dias. Nota com mais de um
+ * lançamento conta uma vez; boleto parcelado conta cada parcela no seu vencimento e valor.
+ */
 const vencimentos: Detector = (c) => {
   const porNota = new Map<string, { fornecedor: string; valor: number; venc: string }>()
   for (const d of c.despesas) {
     if (d.status === 'pago' || !d.dataVencimento) continue
-    const chave = d.notaId ?? d.id
+    const chave = chaveDoVencimento(d)
     const atual = porNota.get(chave)
     const venc = dia10(d.dataVencimento)
+    const fornecedor = (d.parcelas ?? 1) > 1 ? `${d.fornecedor} (parcela ${d.parcela ?? 1}/${d.parcelas})` : d.fornecedor
     if (atual) {
       atual.valor += d.valorTotal
       if (venc < atual.venc) atual.venc = venc
-    } else porNota.set(chave, { fornecedor: d.fornecedor, valor: d.valorTotal, venc })
+    } else porNota.set(chave, { fornecedor, valor: d.valorTotal, venc })
   }
   const itens = [...porNota.values()]
     .map((n) => ({ ...n, dias: diasEntre(c.hoje, n.venc) }))
