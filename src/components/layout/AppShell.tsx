@@ -6,6 +6,7 @@ import { BarraTeste } from '@/components/assinatura/BarraTeste'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
+import { useVigiaAcesso } from '@/auth/vigiaAcesso'
 import { useMesRef } from '@/ui/periodo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 
@@ -21,6 +22,8 @@ export function AppShell() {
   // Carrega o plano de contas da loja antes de qualquer tela renderizar: é ele
   // que diz quais contas existem no DRE, nos filtros e nas gavetas.
   usePlanoContas()
+  // Perdeu o acesso à loja aberta ou o papel mudou → desloga explicando o motivo.
+  useVigiaAcesso()
   const [gaveta, setGaveta] = useState(false)
   // Trocar o mês refaz a página inteira: os números leem o mês na hora de renderizar.
   const mes = useMesRef()

@@ -57,6 +57,21 @@ export const SENHA_MINIMA = 8
 
 /** Erro ao montar a sessão com uma mensagem pronta pra mostrar ao usuário. */
 class ErroSessao extends Error {}
+/** A loja da conta recusou o acesso (a pessoa foi tirada dela): desloga e explica. */
+class ErroAcesso extends ErroSessao {}
+
+/** Motivo de um logout forçado, mostrado na tela de entrar. Vive na aba, sobrevive ao recarregar. */
+const CHAVE_MOTIVO_SAIDA = 'tanocaixa:motivoSaida'
+
+/** Texto pra quem perdeu o acesso a uma loja. */
+export function msgSemAcesso(nomeLoja: string | null | undefined): string {
+  const loja = nomeLoja ? `à loja ${nomeLoja}` : 'à loja ligada à sua conta'
+  return `Você não tem mais acesso ${loja}. Quem cuida da loja tirou o seu acesso. Se foi engano, peça um convite novo a essa pessoa.`
+}
+
+function negado(e: unknown): boolean {
+  return (e as { code?: string })?.code === 'permission-denied'
+}
 
 interface AuthContextValor {
   sessao: Sessao | null
@@ -67,6 +82,11 @@ interface AuthContextValor {
   erroSessao: string | null
   /** Tenta montar a sessão de novo depois de um erroSessao. */
   tentarDeNovo: () => void
+  /** Por que a pessoa foi deslogada à força (perdeu acesso, papel mudou). */
+  motivoSaida: string | null
+  limparMotivoSaida: () => void
+  /** Desloga explicando o motivo na tela de entrar. */
+  encerrarPorAcesso: (motivo: string) => Promise<void>
   entrarDemo: () => void
   /** Retorna o uid autenticado — use pra saber quando `sessao` passou a
    * refletir ESTE login (e não uma sessão antiga que já estava ativa). */
@@ -165,11 +185,20 @@ async function construirSessao(user: User): Promise<Sessao> {
   }
 
   // Com convite recém-aceito o users/{uid} mudou — relê pra pegar os acessos.
-  const [rSnap, mSnap, uAtual] = await Promise.all([
-    getDoc(doc(db, 'restaurants', rid)),
-    getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
-    uSnap.exists() && uSnap.data().acessos ? Promise.resolve(uSnap) : getDoc(doc(db, 'users', user.uid)),
-  ])
+  const uAtual = uSnap.exists() && uSnap.data().acessos ? uSnap : await getDoc(doc(db, 'users', user.uid))
+  const nomeGuardado = (uAtual.data()?.acessos as Record<string, { nome?: string }> | undefined)?.[rid]?.nome
+  let rSnap, mSnap
+  try {
+    ;[rSnap, mSnap] = await Promise.all([
+      getDoc(doc(db, 'restaurants', rid)),
+      getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
+    ])
+  } catch (e) {
+    // As regras só deixam ler a loja quem está em memberUids: foi tirado dela.
+    if (negado(e)) throw new ErroAcesso(msgSemAcesso(nomeGuardado))
+    throw e
+  }
+  if (!rSnap.exists()) throw new ErroAcesso(msgSemAcesso(nomeGuardado))
   const r = rSnap.data() ?? {}
   const papel = normalizarPapel(mSnap.exists() ? (mSnap.data().papel as string) : 'dono')
   const nome = user.displayName || (uSnap.data()?.nome as string) || user.email?.split('@')[0] || 'Você'
@@ -257,6 +286,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessaoState] = useState<Sessao | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erroSessao, setErroSessao] = useState<string | null>(null)
+  const [motivoSaida, setMotivoSaida] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(CHAVE_MOTIVO_SAIDA)
+    } catch {
+      return null
+    }
+  })
+
+  const limparMotivoSaida = useCallback(() => {
+    setMotivoSaida(null)
+    sessionStorage.removeItem(CHAVE_MOTIVO_SAIDA)
+  }, [])
+
+  const encerrarPorAcesso = useCallback(async (motivo: string) => {
+    sessionStorage.setItem(CHAVE_MOTIVO_SAIDA, motivo)
+    setMotivoSaida(motivo)
+    sessionStorage.removeItem(CHAVE_CONVITE)
+    definirLojaAtiva(null)
+    const uid = auth.currentUser?.uid
+    if (uid) sessaoCache.delete(uid)
+    setErroSessao(null)
+    await signOut(auth).catch((e) => console.warn('sair:', e))
+  }, [])
 
   // A data de referência dos cálculos acompanha a sessão: a demonstração fica
   // parada em julho de 2026 (onde estão os dados de exemplo) e a conta real usa
@@ -296,10 +348,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           setSessao(await construirSessaoCacheada(user))
           setErroSessao(null)
+          // Entrou de novo: o aviso do logout forçado já cumpriu o papel.
+          setMotivoSaida(null)
+          sessionStorage.removeItem(CHAVE_MOTIVO_SAIDA)
         } catch (e) {
           console.warn('sessão:', e)
           setSessao(null)
-          setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+          if (e instanceof ErroAcesso) {
+            await encerrarPorAcesso(e.message)
+          } else {
+            setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+          }
         }
       } else if (sessionStorage.getItem(CHAVE_DEMO) === '1') {
         setSessao(sessaoDemo())
@@ -310,7 +369,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCarregando(false)
     })
     return cancelar
-  }, [setSessao])
+  }, [setSessao, encerrarPorAcesso])
 
   const tentarDeNovo = useCallback(() => {
     const user = auth.currentUser
@@ -324,10 +383,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((s) => setSessao(s))
       .catch((e) => {
         console.warn('sessão:', e)
-        setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+        if (e instanceof ErroAcesso) void encerrarPorAcesso(e.message)
+        else setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
       })
       .finally(() => setCarregando(false))
-  }, [setSessao])
+  }, [setSessao, encerrarPorAcesso])
 
   const entrarDemo = useCallback(() => {
     sessionStorage.setItem(CHAVE_DEMO, '1')
@@ -493,6 +553,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       carregando,
       erroSessao,
       tentarDeNovo,
+      motivoSaida,
+      limparMotivoSaida,
+      encerrarPorAcesso,
       entrarDemo,
       entrarComEmail,
       criarConta,
@@ -500,7 +563,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sair,
       atualizarPerfil,
     }),
-    [sessao, papelEfetivo, carregando, erroSessao, tentarDeNovo, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
+    [sessao, papelEfetivo, carregando, erroSessao, tentarDeNovo, motivoSaida, limparMotivoSaida, encerrarPorAcesso, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
