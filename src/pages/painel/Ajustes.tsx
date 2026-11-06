@@ -10,7 +10,6 @@ import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
-import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
 import { ConvidarEquipe } from '@/components/ajustes/ConvidarEquipe'
 import { CampoLogo } from '@/components/ajustes/CampoLogo'
 import { brl, quando } from '@/lib/format'
@@ -124,9 +123,6 @@ export function Ajustes() {
         <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
         <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
       </Secao>
-
-      {/* Lembretes de rotina no grupo de WhatsApp (só quem tem grupo) */}
-      <LembretesWhatsapp />
 
       {/* Integrações */}
       <Integracoes />
