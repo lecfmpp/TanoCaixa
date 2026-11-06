@@ -1,8 +1,8 @@
 import { useAuth } from './AuthContext'
 
 /**
- * O PDV está em construção: por enquanto só estas contas o veem. Quem não está
- * na lista vê o item "PDV" no menu com a etiqueta "Em breve", desabilitado.
+ * O PDV está em construção: por enquanto só estas contas o usam. Quem não está
+ * na lista abre a página e vê o aviso do que está sendo preparado (PdvLayout).
  *
  * É uma trava de interface — o objetivo é não expor tela pela metade, não
  * proteger dado (as coleções do PDV seguem as mesmas regras do restaurante).

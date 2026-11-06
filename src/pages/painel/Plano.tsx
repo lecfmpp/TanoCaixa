@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, Minus, Plus } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { useAuth } from '@/auth/AuthContext'
+import { useTenant } from '@/data/hooks'
 import { functions } from '@/lib/firebase'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -24,6 +25,8 @@ const MAX_LOJAS = 50
 /** Assinatura: um plano só, R$ 149 por loja/mês. */
 export function Plano() {
   const { sessao } = useAuth()
+  // A loja aberta agora (quem tem várias troca no seletor), não a do login.
+  const tenant = useTenant()
   const { adicionarToast } = useUI()
   const [lojas, setLojas] = useState(1)
   const [abrindo, setAbrindo] = useState(false)
@@ -34,7 +37,7 @@ export function Plano() {
     try {
       const criarCheckout = httpsCallable(functions, 'criarCheckoutAssinatura')
       const res = await criarCheckout({
-        restauranteId: sessao.tenantId,
+        restauranteId: tenant,
         lojas,
         email: sessao.usuario.email,
         sucessoUrl: `${window.location.origin}/painel?assinatura=ok`,

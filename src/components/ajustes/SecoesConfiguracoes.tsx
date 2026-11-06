@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { mensagemDeErro } from '@/lib/erros'
-import { useLocation } from 'react-router-dom'
 import { Download } from 'lucide-react'
-import { httpsCallable } from 'firebase/functions'
-import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Cartao } from '@/components/ui/Cartao'
-import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
+import { Secao } from '@/components/ui/Acordeao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
-import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
+import { ConvidarEquipe } from '@/components/ajustes/ConvidarEquipe'
+import { CampoLogo } from '@/components/ajustes/CampoLogo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
@@ -25,15 +22,9 @@ import {
 } from '@/data/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { useUI } from '@/ui/UIProvider'
-import { functions } from '@/lib/firebase'
 import { agora } from '@/data/derive'
 import { PAPEIS, TIPOS_NEGOCIO, rotuloPapel, normalizarPapel, type Papel, type Origem, type TipoNegocio } from '@/types'
 import type { MembroDoc, AtividadeDoc } from '@/data/types'
-
-const criarConviteFn = httpsCallable<{ restauranteId: string; papel: Papel }, { token: string; url: string }>(
-  functions,
-  'criarConvite',
-)
 
 const PAPEL_DESC: Record<Papel, string> = {
   franqueador: 'vê o consolidado da rede e o número de cada loja',
@@ -53,18 +44,46 @@ const ORIGEM_ROTULO: Record<Origem, string> = {
 /** Quantas linhas o histórico mostra antes de pedir "ver tudo". */
 const HISTORICO_INICIAL = 12
 
-export function Ajustes() {
-  const restaurante = useRestaurante()
-  const cfg = restaurante.data
+/*
+ * Seções da página Configurações, uma por bloco de assunto. A página
+ * (pages/painel/Configuracoes.tsx) distribui estas seções pelas abas.
+ */
+
+/** "Onde te avisar": canais e o que chega em cada um. */
+export function OndeTeAvisar() {
+  const [whatsapp, setWhatsapp] = useState(true)
+  const [email, setEmail] = useState(true)
+  const [sms, setSms] = useState(false)
+  return (
+    <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
+      <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
+      <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
+      <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
+    </Secao>
+  )
+}
+
+/** Notificações de WhatsApp para as contas que ainda não têm a funcionalidade. */
+export function WhatsappEmBreve() {
+  return (
+    <Secao
+      titulo="Notificações de WhatsApp"
+      resumo={<SeloEmBreve />}
+      descricao="Avisos de rotina da loja no grupo de WhatsApp. Estamos preparando: assim que estiver pronto, aparece aqui."
+    >
+      <p className="text-sm text-tinta-3">Em breve você vai poder escolher quais avisos chegam no WhatsApp da loja.</p>
+    </Secao>
+  )
+}
+
+/** Histórico de tudo que foi feito na loja, com filtro por pessoa e exportação. */
+export function Historico() {
+  const cfg = useRestaurante().data
   const atividadesData = useAtividades().data ?? []
   const atividades = useMemo(
     () => [...atividadesData].sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1)),
     [atividadesData],
   )
-
-  const [whatsapp, setWhatsapp] = useState(true)
-  const [email, setEmail] = useState(true)
-  const [sms, setSms] = useState(false)
   const [filtro, setFiltro] = useState('Todos')
   const [verTudo, setVerTudo] = useState(false)
 
@@ -77,14 +96,6 @@ export function Ajustes() {
 
   const filtrada = atividades.filter((a) => (filtro === 'Todos' ? true : a.quem === filtro))
   const lista = verTudo ? filtrada : filtrada.slice(0, HISTORICO_INICIAL)
-
-  // Chegando de "Ver tudo" (/painel/ajustes#historico): o router não rola até
-  // a âncora sozinho, e o histórico fica lá embaixo, depois de quatro cartões.
-  const hash = useLocation().hash
-  useEffect(() => {
-    if (hash !== '#historico') return
-    document.getElementById('historico')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [hash, atividades.length])
 
   /** Histórico completo (respeitando o filtro) em CSV, pro Excel pt-BR. */
   function exportarHistorico() {
@@ -103,93 +114,60 @@ export function Ajustes() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <SectionHeader
-        titulo="Ajustes"
-        subtitulo={cfg ? [cfg.nome, cfg.bairro].filter(Boolean).join(' · ') : ''}
-        semMes
-      />
+    <Secao
+      id="historico"
+      titulo="Histórico de tudo que foi feito"
+      descricao="Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho."
+      resumo={`${atividades.length} ${atividades.length === 1 ? 'registro' : 'registros'}`}
+      abertaPorPadrao
+      acoes={
+        <button
+          onClick={exportarHistorico}
+          disabled={!filtrada.length}
+          className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-mar hover:underline disabled:opacity-40"
+        >
+          <Download size={15} />
+          Exportar
+        </button>
+      }
+    >
+      <div className="mb-3 flex flex-wrap gap-2">
+        {filtros.map((f) => (
+          <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
+        ))}
+      </div>
 
-      {/* Natureza do negócio — governa o DRE e a visão de rede */}
-      <SeuNegocio />
+      <div className="-mx-5 overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
+              <Th>Quem</Th>
+              <Th>Ação</Th>
+              <Th>Origem</Th>
+              <Th>Tipo</Th>
+              <Th className="text-right">Valor</Th>
+              <Th>Hora</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((a) => (
+              <LinhaAtividade key={a.id} a={a} />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Quem usa / gestão de permissões */}
-      <Equipe />
-
-      {/* Plano de contas — as linhas da DRE que a loja lança */}
-      <PlanoDeContas />
-
-      {/* Onde te avisar */}
-      <Cartao className="flex flex-col">
-        <h2 className="mb-3 text-[15px] font-bold text-tinta">Onde te avisar</h2>
-        <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
-        <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
-        <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
-      </Cartao>
-
-      {/* Lembretes de rotina no grupo de WhatsApp (só quem tem grupo) */}
-      <LembretesWhatsapp />
-
-      {/* Integrações */}
-      <Integracoes />
-
-      {/* Histórico */}
-      <Cartao id="historico" className="flex flex-col scroll-mt-6">
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-[15px] font-bold text-tinta">Histórico de tudo que foi feito</h2>
-            <p className="mt-1 text-sm text-tinta-3">
-              Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho.
-            </p>
-          </div>
-          <button
-            onClick={exportarHistorico}
-            disabled={!filtrada.length}
-            className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-mar hover:underline disabled:opacity-40"
-          >
-            <Download size={15} />
-            Exportar
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <span className="text-tinta-4">
+          {lista.length} de {filtrada.length} {filtrada.length === 1 ? 'registro' : 'registros'}
+        </span>
+        {filtrada.length > HISTORICO_INICIAL && (
+          <button onClick={() => setVerTudo((v) => !v)} className="font-bold text-mar hover:underline">
+            {verTudo ? 'Ver menos' : `Ver todos os ${filtrada.length}`}
           </button>
-        </div>
-
-        <div className="mb-3 mt-1 flex flex-wrap gap-2">
-          {filtros.map((f) => (
-            <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
-          ))}
-        </div>
-
-        <div className="-mx-5 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
-                <Th>Quem</Th>
-                <Th>Ação</Th>
-                <Th>Origem</Th>
-                <Th>Tipo</Th>
-                <Th className="text-right">Valor</Th>
-                <Th>Hora</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((a) => (
-                <LinhaAtividade key={a.id} a={a} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-tinta-4">
-            {lista.length} de {filtrada.length} {filtrada.length === 1 ? 'registro' : 'registros'}
-          </span>
-          {filtrada.length > HISTORICO_INICIAL && (
-            <button onClick={() => setVerTudo((v) => !v)} className="font-bold text-mar hover:underline">
-              {verTudo ? 'Ver menos' : `Ver todos os ${filtrada.length}`}
-            </button>
-          )}
-        </div>
-      </Cartao>
-    </div>
+        )}
+      </div>
+    </Secao>
   )
 }
 
@@ -206,8 +184,19 @@ const INTEGRACOES_EM_BREVE = [
   { id: 'pdv', nome: 'Sistema de PDV', sigla: 'PD', cor: '#6A7A7E', dica: 'Colibri, Consumer, Goomer…' },
 ]
 
+/** Logo da loja aberta. Dono e gestão enviam e trocam; os outros só veem. */
+export function LogoDaLojaCartao() {
+  const { permissoes } = useAuth()
+  const pode = (permissoes?.gerenciaEquipe ?? 'nao') !== 'nao'
+  return (
+    <Secao titulo="Logo da loja" descricao="Aparece no topo de todas as páginas desta loja." abertaPorPadrao>
+      <CampoLogo podeEditar={pode} />
+    </Secao>
+  )
+}
+
 /** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
-function SeuNegocio() {
+export function SeuNegocio() {
   const cfg = useRestaurante().data
   const salvar = useSalvarRestaurante()
   const { adicionarToast } = useUI()
@@ -243,11 +232,12 @@ function SeuNegocio() {
   }
 
   return (
-    <Cartao className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-[15px] font-bold text-tinta">Seu negócio</h2>
-        <p className="text-sm text-tinta-3">Define o que aparece no seu DRE e se você tem visão de rede.</p>
-      </div>
+    <Secao
+      titulo="Seu negócio"
+      descricao="Define o que aparece no seu DRE e se você tem visão de rede."
+      resumo={TIPOS_NEGOCIO.find((t) => t.id === tipo)?.nome}
+      corpoClassName="flex flex-col gap-4"
+    >
       <div className="flex flex-wrap gap-2">
         {TIPOS_NEGOCIO.map((t) => (
           <Chip key={t.id} rotulo={t.nome} selecionado={tipo === t.id} aoClicar={() => trocarTipo(t.id)} />
@@ -287,18 +277,21 @@ function SeuNegocio() {
           </p>
         </div>
       )}
-    </Cartao>
+    </Secao>
   )
 }
 
-function Integracoes() {
+export function Integracoes() {
   return (
-    <Cartao className="flex flex-col">
-      <div className="flex items-center gap-2">
-        <h2 className="text-[15px] font-bold text-tinta">Integrações</h2>
-        <SeloEmBreve />
-      </div>
-      <p className="mt-1 mb-3 text-sm text-tinta-3">
+    <Secao
+      titulo={
+        <span className="inline-flex items-center gap-2">
+          Integrações <SeloEmBreve />
+        </span>
+      }
+      abertaPorPadrao
+    >
+      <p className="mb-3 text-sm text-tinta-3">
         Por enquanto as vendas entram pelo fechamento do dia (botão "Lançar vendas") e as despesas por foto ou
         planilha. As conexões automáticas abaixo estão chegando.
       </p>
@@ -323,53 +316,28 @@ function Integracoes() {
           </li>
         ))}
       </ul>
-    </Cartao>
+    </Secao>
   )
 }
 
-function Equipe() {
+export function Equipe() {
   const { sessao, permissoes } = useAuth()
   const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
   const salvar = useSalvarMembro()
   const remover = useRemoverMembro()
-  const { adicionarToast } = useUI()
 
   const gestao = permissoes?.gerenciaEquipe ?? 'nao'
   const podeGerenciar = gestao !== 'nao'
   const ehDono = gestao === 'total'
 
-  const [papelNovo, setPapelNovo] = useState<Papel>('caixa')
-  const [linkGerado, setLinkGerado] = useState<string | null>(null)
-  const [gerando, setGerando] = useState(false)
-
-  async function gerarConvite() {
-    if (!sessao) return
-    setGerando(true)
-    try {
-      const resp = await criarConviteFn({ restauranteId: sessao.tenantId, papel: papelNovo })
-      setLinkGerado(resp.data.url)
-    } catch {
-      adicionarToast({ tipo: 'sistema', titulo: 'Não deu pra gerar o convite', texto: 'Tenta de novo em instantes.' })
-    } finally {
-      setGerando(false)
-    }
-  }
-
-  async function copiarLink() {
-    if (!linkGerado) return
-    await navigator.clipboard.writeText(linkGerado)
-    adicionarToast({
-      tipo: 'sucesso',
-      titulo: 'Link copiado',
-      texto: 'Manda por WhatsApp (ou onde preferir) pra pessoa entrar como ' + rotuloPapel(papelNovo) + '.',
-    })
-  }
-
   return (
-    <Cartao className="flex flex-col">
-      <h2 className="text-[15px] font-bold text-tinta">Quem usa e o que cada um pode</h2>
+    <Secao
+      titulo="Quem usa e o que cada um pode"
+      resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
+      abertaPorPadrao
+    >
       {gestao === 'proposta' && (
-        <p className="mt-1 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">
+        <p className="mb-2 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">
           Você pode convidar, mas mudanças de permissão só valem com a aprovação do dono.
         </p>
       )}
@@ -422,37 +390,13 @@ function Equipe() {
         })}
       </ul>
 
-      {podeGerenciar && (
-        <div className="mt-4 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-fundo-app p-4">
-          <span className="rotulo text-tinta-4">Convidar alguém pra equipe</span>
-          <p className="mt-1 text-xs text-tinta-4">
-            Gera um link único já com o papel definido. Você manda por WhatsApp (ou onde preferir) — a pessoa cria a conta e entra direto neste restaurante.
-          </p>
-          <div className="mt-2 flex flex-col gap-2 cel:flex-row">
-            <select value={papelNovo} onChange={(e) => setPapelNovo(e.target.value as Papel)} className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2 py-2 text-sm text-tinta-2 outline-none focus:border-mar">
-              {PAPEIS.filter((p) => p.id !== 'dono').map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-            <button onClick={gerarConvite} disabled={gerando} className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50">
-              {gerando ? 'Gerando…' : 'Gerar link de convite'}
-            </button>
-          </div>
-
-          {linkGerado && (
-            <div className="mt-3 flex flex-col gap-2 rounded-campo bg-preenchimento/50 p-3 cel:flex-row cel:items-center">
-              <input readOnly value={linkGerado} className="flex-1 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta-2 outline-none" />
-              <button onClick={copiarLink} className="shrink-0 rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme transition hover:brightness-95">
-                Copiar link
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {podeGerenciar && <ConvidarEquipe />}
       {!ehDono && gestao === 'proposta' && podeGerenciar && (
         <p className="mt-2 text-xs text-tinta-4">
           Quem entra por esse link já começa ativo com o papel escolhido — mudanças de permissão depois é que passam pela aprovação do dono.
         </p>
       )}
-    </Cartao>
+    </Secao>
   )
 }
 

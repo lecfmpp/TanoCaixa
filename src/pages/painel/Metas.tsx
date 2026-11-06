@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Campo } from '@/components/ui/Campo'
 import { Chip } from '@/components/ui/Chip'
 import { Button } from '@/components/ui/Button'
@@ -148,8 +148,8 @@ export function Metas() {
         São as mesmas respostas do começo. Mude quando o negócio mudar — o Dashboard passa a usar na hora.
       </p>
 
-      <Cartao className="flex flex-col gap-4">
-        <h2 className="text-[15px] font-bold text-tinta">O restaurante</h2>
+      <Secoes>
+      <Secao titulo="O restaurante" abertaPorPadrao resumo={form.nome.trim() || undefined} corpoClassName="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-3">
           <Campo rotulo="Nome" value={form.nome} onChange={(e) => upd({ nome: e.target.value })} />
           <Campo rotulo="Bairro" value={form.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
@@ -163,13 +163,13 @@ export function Metas() {
             ))}
           </div>
         </div>
-      </Cartao>
+      </Secao>
 
-      <Cartao className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-[15px] font-bold text-tinta">Números de partida</h2>
-          <p className="text-sm text-tinta-3">Chute redondo já serve. Servem de base pra sugerir os tetos.</p>
-        </div>
+      <Secao
+        titulo="Números de partida"
+        descricao="Chute redondo já serve. Servem de base pra sugerir os tetos."
+        corpoClassName="flex flex-col gap-4"
+      >
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-2 tab:grid-cols-3">
           <Campo rotulo="Faturamento de um mês normal (R$)" inputMode="numeric" value={inteiro(form.faturamentoMensal) === '0' ? '' : inteiro(form.faturamentoMensal)} onChange={(e) => upd({ faturamentoMensal: soNumero(e.target.value) })} />
           <Campo rotulo="Ticket médio (R$)" inputMode="decimal" value={form.ticket} onChange={(e) => upd({ ticket: e.target.value })} />
@@ -184,13 +184,14 @@ export function Metas() {
             Ticket × pedidos × 30 dias dá cerca de <strong className="font-bold text-tinta-2">{brlInteiro(impliedFat)}</strong> por mês.
           </p>
         )}
-      </Cartao>
+      </Secao>
 
-      <Cartao className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-[15px] font-bold text-tinta">Metas</h2>
-          <p className="text-sm text-tinta-3">A meta de faturamento e o teto de cada gasto, em % da receita bruta. É contra isso que o Dashboard compara.</p>
-        </div>
+      <Secao
+        titulo="Metas"
+        descricao="A meta de faturamento e o teto de cada gasto, em % da receita bruta. É contra isso que o Dashboard compara."
+        resumo={form.meta > 0 ? <span className="mono">{brlInteiro(form.meta)}</span> : undefined}
+        corpoClassName="flex flex-col gap-4"
+      >
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-2">
           <Campo rotulo="Meta de faturamento do mês (R$)" inputMode="numeric" value={inteiro(form.meta) === '0' ? '' : inteiro(form.meta)} onChange={(e) => upd({ meta: soNumero(e.target.value) })} />
           <Campo rotulo="Imposto sobre venda (%) · alíquota estimada" inputMode="decimal" value={form.aliquota} onChange={(e) => upd({ aliquota: e.target.value })} />
@@ -220,7 +221,8 @@ export function Metas() {
             {form.meta > 0 && sobra > 0 ? ` — ${brlInteiro((form.meta * sobra) / 100)} se bater a meta` : ''}.
           </p>
         </div>
-      </Cartao>
+      </Secao>
+      </Secoes>
 
       <div className="flex justify-end">
         <Button onClick={gravar} disabled={salvar.isPending}>

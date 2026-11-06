@@ -9,6 +9,7 @@
  * ------------------------------------------------------------------ */
 import { CONTA } from './planoContas'
 import type { DespesaDoc, ItemNota } from './types'
+import { parcelasDaNota, type ParcelaDaNota } from './parcelas'
 
 /**
  * A compra de mercadoria é o lançamento que entrou pela nota fiscal. O que
@@ -49,8 +50,10 @@ export interface Nota {
   /** Desconto e acréscimo da nota inteira; `valorTotal` já os inclui. */
   desconto: number
   acrescimo: number
-  /** Lançamentos que formam a nota (uma conta de CMV cada). */
+  /** Lançamentos que formam a nota (uma conta de CMV cada, e uma por parcela). */
   lancamentos: DespesaDoc[]
+  /** Boleto com vários vencimentos: as parcelas, em ordem. Vazio = vencimento único. */
+  parcelas: ParcelaDaNota[]
 }
 
 /**
@@ -91,6 +94,7 @@ export function agruparEmNotas(despesas: DespesaDoc[]): Nota[] {
         desconto: base.descontoNota ?? 0,
         acrescimo: base.acrescimoNota ?? 0,
         lancamentos,
+        parcelas: parcelasDaNota(lancamentos),
       }
     })
     .sort((a, b) => (a.data < b.data ? 1 : -1))

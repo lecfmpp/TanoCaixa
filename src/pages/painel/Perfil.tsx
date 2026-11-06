@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Store } from 'lucide-react'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Campo } from '@/components/ui/Campo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useAuth } from '@/auth/AuthContext'
@@ -71,7 +71,8 @@ export function Perfil() {
     <div className="flex flex-col gap-4">
       <SectionHeader titulo="Perfil" subtitulo="Seus dados e o restaurante conectado" lancar={false} semMes />
 
-      <Cartao className="flex flex-col gap-5">
+      <Secoes>
+      <Secao titulo="Seus dados" abertaPorPadrao corpoClassName="flex flex-col gap-5">
         <div className="flex items-center gap-4">
           <div className="relative">
             <Avatar inicial={usuario.avatarInicial} cor={usuario.avatarCor} foto={usuario.photoURL} tamanho={72} />
@@ -112,10 +113,13 @@ export function Perfil() {
           />
           <Campo rotulo="E-mail" name="email" value={usuario.email} disabled readOnly />
         </div>
-      </Cartao>
+      </Secao>
 
-      <Cartao className="flex flex-col gap-1">
-        <h2 className="text-[15px] font-bold text-tinta">Restaurante conectado</h2>
+      <Secao
+        titulo="Restaurante conectado"
+        resumo={restaurante.nome}
+        corpoClassName="flex flex-col gap-1"
+      >
         <p className="text-sm text-tinta-2">
           {restaurante.nome}
           {restaurante.bairro ? ` · ${restaurante.bairro}` : ''}
@@ -123,18 +127,16 @@ export function Perfil() {
         <p className="mt-1 text-xs text-tinta-4">
           Toda conta no Tá no Caixa está sempre ligada a um restaurante — é por aqui que seus lançamentos e permissões valem.
         </p>
-      </Cartao>
-      <Cartao className="flex flex-col gap-3 !p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
-          <div>
-            <h2 className="text-[15px] font-bold text-tinta">{rede ? `Rede ${rede.nome}` : 'Mais de uma unidade?'}</h2>
-            <p className="text-xs text-tinta-4">
-              {rede
-                ? `${rede.lojas.length} ${rede.lojas.length === 1 ? 'unidade' : 'unidades'} · cada uma com caixa, equipe e DRE próprios`
-                : 'Abra outro restaurante ou franquia sem sair da sua conta.'}
-            </p>
-          </div>
-          {rede ? (
+      </Secao>
+      <Secao
+        titulo={rede ? `Rede ${rede.nome}` : 'Mais de uma unidade?'}
+        descricao={
+          rede
+            ? `${rede.lojas.length} ${rede.lojas.length === 1 ? 'unidade' : 'unidades'} · cada uma com caixa, equipe e DRE próprios`
+            : 'Abra outro restaurante ou franquia sem sair da sua conta.'
+        }
+        acoes={
+          rede ? (
             !abrindoLoja && (
               <button
                 onClick={() => setAbrindoLoja(true)}
@@ -152,12 +154,15 @@ export function Perfil() {
               <Plus size={16} strokeWidth={2.5} />
               Adicionar restaurante ou franquia
             </Link>
-          )}
-        </div>
+          )
+        }
+        className="overflow-hidden"
+        corpoClassName={rede && abrindoLoja ? '!pb-0' : undefined}
+      >
         {rede && (
-          <ul className="px-5 pb-1">
+          <ul>
             {rede.lojas.map((l) => (
-              <li key={l.restauranteId} className="flex items-center gap-2 border-t border-divisoria py-2.5 text-sm text-tinta-2 first:border-0">
+              <li key={l.restauranteId} className="flex items-center gap-2 border-t border-divisoria py-2.5 text-sm text-tinta-2 first:border-0 first:pt-0">
                 <Store size={15} className="shrink-0 text-tinta-4" />
                 <span className="font-semibold text-tinta">{l.nome}</span>
                 {l.bairro && <span className="text-tinta-4">· {l.bairro}</span>}
@@ -168,14 +173,18 @@ export function Perfil() {
             ))}
           </ul>
         )}
-        {rede && abrindoLoja && <FormAbrirLoja aoFechar={() => setAbrindoLoja(false)} />}
+        {rede && abrindoLoja && (
+          <div className="-mx-5 mt-2.5">
+            <FormAbrirLoja aoFechar={() => setAbrindoLoja(false)} />
+          </div>
+        )}
         {!rede && (
-          <p className="px-5 pb-5 text-xs text-tinta-4">
+          <p className="text-xs text-tinta-4">
             Você vai criar a rede (lojas suas ou franquia) e a loja atual entra como primeira unidade.
           </p>
         )}
-        {rede && !abrindoLoja && <div className="pb-4" />}
-      </Cartao>
+      </Secao>
+      </Secoes>
     </div>
   )
 }
