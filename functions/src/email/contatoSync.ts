@@ -20,12 +20,15 @@ export async function carregarRetrato(db: Firestore, uid: string): Promise<Retra
   const lojas: LojaDaPessoa[] = await Promise.all(
     lojasSnap.docs.map(async (r) => {
       const rid = r.id
-      const [membro, assin, contagem, ultimo] = await Promise.all([
+      const [membro, assin, contagem, ultimo, atividade, despesas] = await Promise.all([
         db.doc(`restaurants/${rid}/membros/${uid}`).get(),
         db.doc(`assinaturas/${rid}`).get(),
         db.collection(`restaurants/${rid}/receita_dia`).count().get(),
         db.collection(`restaurants/${rid}/receita_dia`).orderBy('data', 'desc').limit(1).get(),
+        db.collection(`restaurants/${rid}/atividades`).orderBy('criadoEm', 'desc').limit(1).get(),
+        db.collection(`restaurants/${rid}/despesas`).count().get(),
       ])
+      const quando = atividade.docs[0]?.data().criadoEm as string | { toDate?: () => Date } | undefined
       return {
         rid,
         nome: r.data().nome as string | undefined,
@@ -33,7 +36,10 @@ export async function carregarRetrato(db: Firestore, uid: string): Promise<Retra
         assinatura: assin.data() as LojaDaPessoa['assinatura'],
         diasLancados: contagem.data().count,
         ultimoLancamento: (ultimo.docs[0]?.data().data as string | undefined)?.slice(0, 10),
+        ultimaAtividade: typeof quando === 'string' ? quando : quando?.toDate?.().toISOString(),
         membros: ((r.data().memberUids as string[] | undefined) ?? []).length,
+        despesas: despesas.data().count,
+        desde: membro.createTime?.toDate().toISOString(),
       }
     }),
   )

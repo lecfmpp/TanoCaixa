@@ -41,7 +41,12 @@ function cadeadoFirestore(): Cadeado {
 export const boasVindas = onDocumentCreated(
   { document: 'users/{uid}', secrets: [RESEND_API_KEY] },
   async (event) => {
-    const dados = event.data?.data() as { nome?: string; email?: string } | undefined
+    const dados = event.data?.data() as { nome?: string; email?: string; acessos?: unknown } | undefined
+    // Quem entrou por convite não é dono: recebe o e-mail do papel dele (sequência de uso).
+    if (dados?.acessos) {
+      console.log(`boas-vindas ${event.params.uid}: entrou por convite, sem boas-vindas de dono`)
+      return
+    }
     const r = await enviarBoasVindas(event.params.uid, dados, {
       apiKey: RESEND_API_KEY.value(),
       cadeado: cadeadoFirestore(),

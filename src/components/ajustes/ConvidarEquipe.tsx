@@ -26,8 +26,8 @@ interface LojaEscolhida {
 }
 
 const criarConviteFn = httpsCallable<
-  { lojas: LojaEscolhida[] },
-  { token: string; url: string; lojas: { restauranteId: string; restauranteNome: string; papel: string }[] }
+  { lojas: LojaEscolhida[]; email?: string },
+  { token: string; url: string; emailEnviado?: boolean; lojas: { restauranteId: string; restauranteNome: string; papel: string }[] }
 >(functions, 'criarConvite')
 
 /**
@@ -46,7 +46,10 @@ export function ConvidarEquipe() {
   const [papelPadrao, setPapelPadrao] = useState<PapelConvite>('caixa')
   const [confirmando, setConfirmando] = useState(false)
   const [gerando, setGerando] = useState(false)
-  const [gerado, setGerado] = useState<{ url: string; lojas: { nome: string; papel: PapelConvite }[] } | null>(null)
+  const [gerado, setGerado] = useState<{ url: string; lojas: { nome: string; papel: PapelConvite }[]; email?: string } | null>(null)
+  // Opcional: com e-mail, o convite também chega por e-mail (o link continua valendo pra mandar por WhatsApp).
+  const [emailConvidado, setEmailConvidado] = useState('')
+  const emailValido = !emailConvidado.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailConvidado.trim())
 
   useEffect(() => {
     if (!lojas.length) return
@@ -89,10 +92,12 @@ export function ConvidarEquipe() {
     try {
       const resp = await criarConviteFn({
         lojas: escolhidas.map((l) => ({ restauranteId: l.restauranteId, papel: marcadas[l.restauranteId] })),
+        email: emailConvidado.trim() || undefined,
       })
       setGerado({
         url: resp.data.url,
         lojas: resp.data.lojas.map((l) => ({ nome: l.restauranteNome, papel: l.papel as PapelConvite })),
+        email: emailConvidado.trim() || undefined,
       })
       setConfirmando(false)
     } catch (e) {
@@ -184,9 +189,26 @@ export function ConvidarEquipe() {
         })}
       </ul>
 
+      <label className="mt-3 flex flex-col gap-1 text-xs text-tinta-4" htmlFor="convite-email">
+        E-mail da pessoa (opcional: o convite também chega por e-mail)
+        <input
+          id="convite-email"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          placeholder="nome@exemplo.com"
+          value={emailConvidado}
+          onChange={(e) => { setEmailConvidado(e.target.value); setGerado(null) }}
+          className={cn(
+            'rounded-campo border bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar',
+            emailValido ? 'border-[rgba(46,95,115,0.14)]' : 'border-telha-alerta',
+          )}
+        />
+      </label>
+
       <button
         onClick={() => setConfirmando(true)}
-        disabled={!escolhidas.length || gerando}
+        disabled={!escolhidas.length || gerando || !emailValido}
         className="mt-3 rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
       >
         {escolhidas.length > 1 ? `Revisar convite (${escolhidas.length} lojas)` : 'Revisar convite'}
@@ -203,6 +225,7 @@ export function ConvidarEquipe() {
               </span>
             ))}
             . Vale pra uma pessoa só.
+            {gerado.email && <> Mandamos também para <b>{gerado.email}</b>.</>}
           </p>
           <div className="flex flex-col gap-2 cel:flex-row cel:items-center">
             <input

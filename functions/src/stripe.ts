@@ -148,9 +148,9 @@ async function avisarDonos(rid: string, e: EmailCobranca) {
     const lojaNome = (loja.data()?.nome as string | undefined) ?? 'sua loja'
     const deps = { db, resend: clienteResend({ apiKey: RESEND_API_KEY.value() }), modo: modoAtual(), testePara: EMAIL_TESTE_PARA.value() }
     for (const dono of donos) {
-      const { assunto, html, text } = montarEmailCobranca(e, { primeiroNome: dono.primeiroNome, lojaNome, rid })
+      const email = montarEmailCobranca(e, { primeiroNome: dono.primeiroNome, lojaNome, rid })
       const r = await enviarUmaVez(
-        { chave: `${e.chave}_${dono.uid}`, para: dono.email, assunto, html, text, tipo: `cobranca_${e.tipo}`, uid: dono.uid, restauranteId: rid },
+        { chave: `${e.chave}_${dono.uid}`, para: dono.email, email, tipo: `cobranca_${e.tipo}`, uid: dono.uid, restauranteId: rid },
         deps,
       )
       console.log(`cobrança ${e.tipo} ${rid}/${dono.uid}: ${r}`)

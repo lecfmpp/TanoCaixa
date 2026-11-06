@@ -12,8 +12,9 @@ export interface EmailSaida {
   from: string
   to: string[]
   subject: string
-  html: string
-  text: string
+  html?: string
+  text?: string
+  template?: { id: string; variables?: Record<string, string | number> }
   reply_to?: string
   headers?: Record<string, string>
   tags?: Array<{ name: string; value: string }>
@@ -100,5 +101,12 @@ export function clienteResend(o: OpcoesCliente) {
 
     listarPropriedades: () => listarTudo<{ id: string; key: string }>('/contact-properties'),
     criarPropriedade: (key: string, type: 'string' | 'number') => chamar<{ id: string }>('POST', '/contact-properties', { key, type }),
+
+    listarTemplates: () => listarTudo<{ id: string; alias?: string; name: string }>('/templates'),
+    criarTemplate: (t: { name: string; alias: string; from?: string; subject?: string; reply_to?: string; html: string; variables: Array<{ key: string; type: 'string'; fallback_value?: string }> }) =>
+      chamar<{ id: string }>('POST', '/templates', t),
+    atualizarTemplate: (idOuAlias: string, t: { name?: string; subject?: string; html?: string; variables?: Array<{ key: string; type: 'string'; fallback_value?: string }> }) =>
+      chamar<{ id: string }>('PATCH', `/templates/${id(idOuAlias)}`, t),
+    publicarTemplate: (idOuAlias: string) => chamar<{ id: string }>('POST', `/templates/${id(idOuAlias)}/publish`),
   }
 }

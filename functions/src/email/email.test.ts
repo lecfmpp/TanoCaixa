@@ -126,6 +126,13 @@ test('dono que nunca lançou, com conta de 7+ dias, é inativo; conta nova não'
   assert.ok(!nova.segmentos.includes(SEGMENTOS.inativos7))
 })
 
+test('atividade recente (despesa, estoque) tira do inativo mesmo sem venda lançada', () => {
+  const c = calcularContato(pessoa([{ rid: 'r1', papel: 'dono', ultimaAtividade: '2026-11-05T18:00:00Z' }]), AGORA)!
+  assert.equal(c.propriedades.ultimo_lancamento, null)
+  assert.equal(c.propriedades.ultima_atividade, '2026-11-05')
+  assert.ok(!c.segmentos.includes(SEGMENTOS.inativos7))
+})
+
 test('sem e-mail: nada a sincronizar', () => {
   assert.equal(calcularContato(pessoa([], { email: '' }), AGORA), null)
 })

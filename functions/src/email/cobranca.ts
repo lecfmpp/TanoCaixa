@@ -6,7 +6,8 @@
  *   customer.subscription.deleted       → "Sua assinatura foi cancelada"
  * O recibo de cada mês é do próprio Stripe (ligar no painel do Stripe).
  * ------------------------------------------------------------------ */
-import { comUtm, montarHtml, URL_SITE } from './layout'
+import { renderizar, type EmailPronto } from './catalogo'
+import { comUtm, URL_SITE } from './layout'
 import { linkAssinar } from './lembretesTeste'
 
 export type EmailCobranca =
@@ -53,64 +54,26 @@ export function linkPortal(rid: string, campanha: string): string {
   return comUtm(`${URL_SITE}/painel/assinatura?portal=1&loja=${encodeURIComponent(rid)}`, campanha, 'botao')
 }
 
-export function montarEmailCobranca(
-  e: EmailCobranca,
-  p: { primeiroNome: string; lojaNome: string; rid: string },
-): { assunto: string; html: string; text: string } {
-  const oi = p.primeiroNome ? `${p.primeiroNome}, ` : ''
-  const motivo = 'Você recebe este e-mail porque é dono de uma loja com assinatura no Tá no Caixa.'
+export function montarEmailCobranca(e: EmailCobranca, p: { primeiroNome: string; lojaNome: string; rid: string }): EmailPronto {
+  const base = { NOME_VIRGULA: p.primeiroNome ? `${p.primeiroNome}, ` : '', LOJA: p.lojaNome }
   if (e.tipo === 'ativa') {
-    const { html, text } = montarHtml({
-      previa: 'Assinatura confirmada. Pode seguir lançando.',
-      rotulo: 'Assinatura',
-      titulo: `Pronto: a ${p.lojaNome} está assinada`,
-      blocos: [
-        { p: `${oi}obrigado por assinar o Tá no Caixa. Está tudo liberado, é só seguir lançando.` },
-        {
-          lista: [
-            `Valor: ${brl(e.valorCentavos)} por mês${e.lojas > 1 ? ` (${e.lojas} lojas × R$ 149)` : ''}`,
-            ...(e.proximaCobranca ? [`Próxima cobrança: ${data(e.proximaCobranca)}`] : []),
-            'O recibo de cada mês chega por e-mail, enviado pelo Stripe.',
-            'A nota fiscal é emitida à parte e enviada depois.',
-          ],
-        },
-        { botao: { texto: 'Abrir o Tá no Caixa', url: comUtm(`${URL_SITE}/painel`, 'tnc-assinatura-ativa', 'botao') } },
-        { nota: 'Para trocar o cartão, ver faturas ou cancelar: Assinatura › Trocar cartão e ver faturas, no app.' },
-      ],
-      motivo,
+    return renderizar('cobranca-ativa', {
+      ...base,
+      VALOR: `${brl(e.valorCentavos)}${e.lojas > 1 ? ` (${e.lojas} lojas × R$ 149)` : ''}`,
+      PROXIMA: e.proximaCobranca ? `Próxima cobrança: ${data(e.proximaCobranca)}` : '',
     })
-    return { assunto: `Pronto: a ${p.lojaNome} está assinada`, html, text }
   }
   if (e.tipo === 'falhou') {
-    const quando = e.proximaTentativa ? ` Vamos tentar de novo em ${data(e.proximaTentativa)}.` : ''
-    const { html, text } = montarHtml({
-      previa: 'Troque o cartão em um minuto para não interromper o acesso.',
-      rotulo: 'Assinatura',
-      titulo: e.ultimaTentativa ? `A cobrança da ${p.lojaNome} não passou de novo` : `Não conseguimos cobrar o cartão da ${p.lojaNome}`,
-      blocos: [
-        {
-          p: e.ultimaTentativa
-            ? `${oi}tentamos cobrar algumas vezes e o cartão não passou. Para não interromper o acesso da loja, atualize o cartão.`
-            : `${oi}a cobrança da assinatura não passou. Acontece: cartão vencido, limite ou bloqueio do banco.${quando}`,
-        },
-        { botao: { texto: 'Trocar o cartão', url: linkPortal(p.rid, e.ultimaTentativa ? 'tnc-pagamento-falhou-final' : 'tnc-pagamento-falhou') } },
-        { nota: 'Seus lançamentos continuam guardados.' },
-      ],
-      motivo,
+    const id = e.ultimaTentativa ? 'cobranca-falhou-final' : 'cobranca-falhou'
+    return renderizar(id, {
+      ...base,
+      QUANDO: e.proximaTentativa ? `Vamos tentar de novo em ${data(e.proximaTentativa)}.` : '',
+      LINK: linkPortal(p.rid, `tnc-${id}`),
     })
-    return { assunto: e.ultimaTentativa ? `Última tentativa: a cobrança da ${p.lojaNome} não passou` : `Não conseguimos cobrar o cartão da ${p.lojaNome}`, html, text }
   }
-  const { html, text } = montarHtml({
-    previa: 'Seus dados ficam guardados.',
-    rotulo: 'Assinatura',
-    titulo: `A assinatura da ${p.lojaNome} foi cancelada`,
-    blocos: [
-      { p: `${oi}a assinatura da ${p.lojaNome} foi encerrada${e.encerradaEm ? ` em ${data(e.encerradaEm)}` : ''}. Vendas, despesas e estoque ficam guardados do jeito que estão.` },
-      { p: 'Se quiser voltar, é só assinar de novo e continuar de onde parou.' },
-      { botao: { texto: 'Assinar de novo', url: linkAssinar(p.rid, 'cancelada') } },
-      { nota: 'Cancelou sem querer ou teve algum problema? Responda este e-mail que a gente ajuda.' },
-    ],
-    motivo,
+  return renderizar('cobranca-cancelada', {
+    ...base,
+    ENCERRADA: e.encerradaEm ? ` em ${data(e.encerradaEm)}` : '',
+    LINK: linkAssinar(p.rid, 'cancelada'),
   })
-  return { assunto: `A assinatura da ${p.lojaNome} foi cancelada`, html, text }
 }

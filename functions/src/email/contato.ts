@@ -41,6 +41,7 @@ export const PROPRIEDADES: Record<string, 'string' | 'number'> = {
   assinou_em: 'string',
   dias_lancados: 'number',
   ultimo_lancamento: 'string',
+  ultima_atividade: 'string',
   tem_equipe: 'string',
   entrou_por: 'string',
   criado_em: 'string',
@@ -72,7 +73,13 @@ export interface LojaDaPessoa {
   diasLancados?: number
   /** 'YYYY-MM-DD' do último dia lançado. */
   ultimoLancamento?: string
+  /** ISO da última ação registrada na loja (venda, despesa, estoque, caixa…). */
+  ultimaAtividade?: string
   membros?: number
+  /** Quantas despesas a loja tem. */
+  despesas?: number
+  /** Quando a pessoa entrou nesta loja (doc de membro criado). */
+  desde?: string
 }
 
 export interface RetratoPessoa {
@@ -136,6 +143,9 @@ export function calcularContato(r: RetratoPessoa, agora: Date): ContatoCalculado
   const lojasUso = lojas.filter((l) => l.p === 'dono' || l.p === 'gestao')
   const diasLancados = lojasUso.reduce((s, l) => s + (l.diasLancados ?? 0), 0)
   const ultimo = lojasUso.map((l) => l.ultimoLancamento).filter((x): x is string => !!x).sort().pop()
+  // Último uso: a ação mais recente (atividade) ou o último dia lançado, o que for mais novo.
+  const atividade = lojasUso.map((l) => dia(l.ultimaAtividade)).filter((x): x is string => !!x).sort().pop()
+  const ultimoUso = [ultimo, atividade].filter((x): x is string => !!x).sort().pop()
   const temEquipe = lojasDono.some((l) => (l.membros ?? 1) > 1)
 
   const veCobranca = principal !== null && VE_COBRANCA.includes(principal)
@@ -150,6 +160,7 @@ export function calcularContato(r: RetratoPessoa, agora: Date): ContatoCalculado
     assinou_em: veCobranca ? dia(assinouEm) : null,
     dias_lancados: lojasUso.length ? diasLancados : null,
     ultimo_lancamento: lojasUso.length ? ultimo ?? null : null,
+    ultima_atividade: lojasUso.length ? ultimoUso ?? null : null,
     tem_equipe: lojasDono.length ? (temEquipe ? 'sim' : 'nao') : null,
     entrou_por: r.entrouPor ?? null,
     criado_em: dia(r.criadoEm),
@@ -172,7 +183,7 @@ export function calcularContato(r: RetratoPessoa, agora: Date): ContatoCalculado
   // Inativo: dono/gestão com conta de 7+ dias e sem lançar há 7+ dias (ou nunca lançou).
   const seteDias = 7 * 86_400_000
   const contaVelha = r.criadoEm ? agora.getTime() - Date.parse(r.criadoEm) >= seteDias : true
-  const parado = !ultimo || agora.getTime() - Date.parse(`${ultimo}T12:00:00-03:00`) >= seteDias
+  const parado = !ultimoUso || agora.getTime() - Date.parse(`${ultimoUso}T12:00:00-03:00`) >= seteDias
   if (lojasUso.length && contaVelha && parado) seg.add(SEGMENTOS.inativos7)
 
   return { email, primeiroNome: primeiroNome(r.nome, email), propriedades, segmentos: [...seg].sort() }

@@ -50,9 +50,9 @@ export const lembretesFimDoTeste = onSchedule(
     const deps = { db, resend, modo: modoAtual(), testePara: EMAIL_TESTE_PARA.value() }
     const contagem: Record<string, number> = {}
     for (const { dono, passo, testeAte, lojas } of porDono.values()) {
-      const { assunto, html, text } = montarLembreteTeste(passo, { primeiroNome: dono.primeiroNome, lojas, testeAte })
+      const email = montarLembreteTeste(passo, { primeiroNome: dono.primeiroNome, lojas, testeAte })
       const r = await enviarUmaVez(
-        { chave: `${dono.uid}_teste_${passo}_${diaSP(new Date(testeAte))}`, para: dono.email, assunto, html, text, tipo: `teste_${passo}`, uid: dono.uid },
+        { chave: `${dono.uid}_teste_${passo}_${diaSP(new Date(testeAte))}`, para: dono.email, email, tipo: `teste_${passo}`, uid: dono.uid, usarTemplate: lojas.length === 1 },
         deps,
       )
       contagem[r] = (contagem[r] ?? 0) + 1

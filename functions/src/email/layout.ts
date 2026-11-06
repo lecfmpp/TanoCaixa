@@ -29,7 +29,11 @@ export interface ConteudoEmail {
   blocos: Bloco[]
   /** Por que a pessoa recebe isto (rodapé). */
   motivo: string
+  /** Link de descadastro (e-mails de uso e novidades). Transacional não tem. */
+  descadastro?: string
 }
+
+export const LOGO = `${URL_SITE}/apple-touch-icon.png`
 
 /** Junta UTM no link do site; outros domínios ficam como estão. */
 export function comUtm(url: string, campanha: string, conteudo: string): string {
@@ -79,7 +83,9 @@ export function montarHtml(c: ConteudoEmail): { html: string; text: string } {
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapaHtml(c.previa)}</div>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${COR.fundo}" style="background-color:${COR.fundo};"><tr><td align="center" style="padding:32px 16px;">` +
     `<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">` +
-    `<tr><td style="padding:0 4px 16px 4px;color:${COR.mar};font-family:${FONTE};font-size:18px;font-weight:800;">Tá no Caixa</td></tr>` +
+    `<tr><td style="padding:0 4px 16px 4px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
+    `<td style="padding-right:10px;"><a href="${URL_SITE}" target="_blank"><img src="${LOGO}" width="36" height="36" alt="" border="0" style="display:block;width:36px;height:36px;border-radius:9px;"></a></td>` +
+    `<td style="color:${COR.mar};font-family:${FONTE};font-size:18px;font-weight:800;">Tá no Caixa</td></tr></table></td></tr>` +
     `<tr><td bgcolor="${COR.cartao}" style="background-color:${COR.cartao};border:1px solid ${COR.borda};border-radius:16px;padding:28px 30px;">` +
     (c.rotulo
       ? `<p style="margin:0;color:${COR.tinta3};font-family:${FONTE};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;">${escapaHtml(c.rotulo)}</p>`
@@ -89,8 +95,10 @@ export function montarHtml(c: ConteudoEmail): { html: string; text: string } {
     `<p style="margin:18px 0 0 0;color:${COR.tinta2};font-family:${FONTE};font-size:15px;line-height:1.6;">Dúvidas? É só responder este e-mail.<br>Equipe Tá no Caixa</p>` +
     `</td></tr>` +
     `<tr><td style="padding:18px 4px 0 4px;color:${COR.tinta3};font-family:${FONTE};font-size:11px;line-height:1.6;">${escapaHtml(c.motivo)}<br>` +
-    `<a href="${URL_SITE}" style="color:${COR.tinta3};text-decoration:underline;">tanocaixa.com</a></td></tr>` +
+    `<a href="${URL_SITE}" style="color:${COR.tinta3};text-decoration:underline;">tanocaixa.com</a>` +
+    (c.descadastro ? ` · <a href="${escapaHtml(c.descadastro)}" style="color:${COR.tinta3};text-decoration:underline;">Não quero mais receber estes e-mails</a>` : '') +
+    `</td></tr>` +
     `</table></td></tr></table></body></html>`
-  const text = [c.titulo, '', ...c.blocos.flatMap((b) => [blocoTexto(b), '']), 'Dúvidas? É só responder este e-mail.', 'Equipe Tá no Caixa', '', c.motivo, URL_SITE].join('\n')
+  const text = [c.titulo, '', ...c.blocos.flatMap((b) => [blocoTexto(b), '']), 'Dúvidas? É só responder este e-mail.', 'Equipe Tá no Caixa', '', c.motivo, URL_SITE, ...(c.descadastro ? [`Não quero mais receber estes e-mails: ${c.descadastro}`] : [])].join('\n')
   return { html, text }
 }

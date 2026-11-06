@@ -25,6 +25,16 @@
     "src/email/cobranca.ts",
     "src/email/contatoSync.ts",
     "src/email/resend.ts",
-    "src/email/email.test.ts"
+    "src/email/email.test.ts",
+    "src/email/catalogo.ts",
+    "src/email/preferencias.ts",
+    "src/email/sequencias.ts",
+    "src/email/recado.ts",
+    "src/email/enviarUmaVez.ts",
+    "src/email/catalogo.test.ts",
+    "src/email/acesso.ts",
+    "src/email/convitesEmail.ts",
+    "src/email/params.ts",
+    "src/email/donos.ts"
   ]
 }

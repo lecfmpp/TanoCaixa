@@ -30,6 +30,8 @@ import { Dashboard } from '@/pages/painel/Numeros'
 import { Ajustes } from '@/pages/painel/Ajustes'
 import { Perfil } from '@/pages/painel/Perfil'
 import { ConvitePage } from '@/pages/auth/ConvitePage'
+import { AcaoContaPage } from '@/pages/auth/AcaoContaPage'
+import { EmailsPage } from '@/pages/auth/EmailsPage'
 import { Plano } from '@/pages/painel/Plano'
 import { PdvLayout } from '@/pages/pdv/PdvLayout'
 import { Cardapio } from '@/pages/pdv/Cardapio'
@@ -63,6 +65,8 @@ export default function App() {
               <Route path="/esqueci" element={<EsqueciSenhaPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/convite/:token" element={<ConvitePage />} />
+              <Route path="/conta/acao" element={<AcaoContaPage />} />
+              <Route path="/emails" element={<EmailsPage />} />
 
               <Route
                 path="/painel"

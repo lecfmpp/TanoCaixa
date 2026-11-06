@@ -315,3 +315,6 @@ export {
   conferirContatosResend,
 } from './email/contatoTriggers'
 export { lembretesFimDoTeste } from './email/lembretesTesteJob'
+export { emailsDeUso, recadoDeSegunda, descadastrarEmail } from './email/usoJobs'
+export { conviteEmailCriado, conviteEmailAceito, lembrarConvites } from './email/convitesEmail'
+export { enviarEmailDeAcesso } from './email/acesso'

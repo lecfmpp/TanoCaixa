@@ -266,6 +266,21 @@ Os links dos e-mails abrem `tanocaixa.com/painel/assinatura?assinar=1&loja={id}`
 `criarCheckoutAssinatura` sozinho (é o mesmo checkout do "Assinar plano"), e `?portal=1&loja={id}`, que abre o portal do Stripe.
 O recibo de cada mês sai pelo próprio Stripe: ligue em Dashboard › Settings › Customer emails › "Successful payments".
 
+### Fases 2 a 4 (catálogo, acesso, convites, uso, recado)
+
+- **Catálogo** (`src/email/catalogo.ts`): os 39 e-mails num lugar só. Cada um vira um template `tnc-<id>` no Resend, editável no painel.
+  O envio vai pelo template e, se ele recusar, manda o mesmo texto montado no código.
+  Para criar ou atualizar os templates: `RESEND_API_KEY="$(gcloud secrets versions access latest --secret RESEND_API_KEY --project tanocaixa)" node scripts/emails-resend.mjs publicar`.
+  Para receber todos de amostra, com o segmento no assunto: `… node scripts/emails-resend.mjs teste voce@exemplo.com`.
+- **Acesso** (`enviarEmailDeAcesso`): senha, verificação e troca de e-mail pelo Resend, com o link em `tanocaixa.com/conta/acao`.
+  O Firebase Auth não envia mais nada. Limite de 3 pedidos por hora por e-mail. Saem mesmo no modo `teste`, porque a própria pessoa pediu.
+- **Convites** (`conviteEmailCriado`, `conviteEmailAceito`, `lembrarConvites` às 11h): só quando o convite tem e-mail. O campo é opcional em Ajustes › Equipe.
+- **Uso por papel** (`emailsDeUso`, 10h): sequência do papel principal, limite de 1 a cada 3 dias, pausa na última semana do teste e inatividade (7 e 21 dias).
+  Só a partir de `USO_A_PARTIR` (padrão `2026-12-07`).
+- **Recado de segunda** (`recadoDeSegunda`, 8h): a semana da loja (dono/gestão) ou da rede (franqueador).
+- **Descadastro** (`descadastrarEmail`): link assinado em `tanocaixa.com/emails`. As preferências ficam em `users/{uid}.emails`
+  (dicas e recado ligados por padrão; novidades só com aceite) e aparecem em Ajustes › E-mails que recebo.
+
 ## Publicar pela nuvem
 
 Publicar não depende do computador de ninguém: abra o GitHub -> aba **Actions** -> escolha o workflow -> **Run workflow**. Nunca roda sozinho por push.
