@@ -1,15 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { sendPasswordResetEmail } from 'firebase/auth'
+import { httpsCallable } from 'firebase/functions'
 import { AuthLayout } from './AuthLayout'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
-import { auth } from '@/lib/firebase'
+import { functions } from '@/lib/firebase'
 import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 
 /** Códigos que NÃO mostramos como erro: dizer "não achamos conta com esse
  * e-mail" deixaria qualquer um descobrir quem é cliente. */
 const NEUTROS = new Set(['auth/user-not-found', 'auth/invalid-credential'])
+
+/** O e-mail sai pelo Resend (tanocaixa.com), não pelo Firebase. */
+const enviarAcesso = httpsCallable<{ tipo: 'senha'; email: string }, { ok: boolean }>(functions, 'enviarEmailDeAcesso')
 
 export function EsqueciSenhaPage() {
   const [email, setEmail] = useState('')
@@ -22,7 +25,7 @@ export function EsqueciSenhaPage() {
     setErro(null)
     setEnviando(true)
     try {
-      await sendPasswordResetEmail(auth, email.trim(), { url: `${window.location.origin}/entrar` })
+      await enviarAcesso({ tipo: 'senha', email: email.trim() })
       setEnviado(true)
     } catch (err) {
       const codigo = codigoDoErro(err)
@@ -30,7 +33,11 @@ export function EsqueciSenhaPage() {
         setEnviado(true)
       } else {
         console.error('Falha ao enviar link de senha:', codigo || err)
-        setErro(mensagemDeErroAuth(err, 'Não deu pra enviar o link agora.'))
+        setErro(
+          codigo === 'functions/resource-exhausted'
+            ? 'Muitos pedidos seguidos. Tente de novo daqui a uma hora.'
+            : mensagemDeErroAuth(err, 'Não deu pra enviar o link agora.'),
+        )
       }
     } finally {
       setEnviando(false)

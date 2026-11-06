@@ -308,3 +308,16 @@ export { capturarLead } from './leads'
 
 // Site do cliente: {sub}.tanocaixa.com.br + publicação pela tela Meu site.
 export { siteCliente, publicarSite, despublicarSite } from './site'
+
+/* ---------------- E-mail pelo Resend (contatos, teste, cobrança) ---------------- */
+export {
+  contatoResendUsuario,
+  contatoResendMembro,
+  contatoResendLoja,
+  contatoResendAssinatura,
+  conferirContatosResend,
+} from './email/contatoTriggers'
+export { lembretesFimDoTeste } from './email/lembretesTesteJob'
+export { emailsDeUso, recadoDeSegunda, descadastrarEmail } from './email/usoJobs'
+export { conviteEmailCriado, conviteEmailAceito, lembrarConvites } from './email/convitesEmail'
+export { enviarEmailDeAcesso } from './email/acesso'

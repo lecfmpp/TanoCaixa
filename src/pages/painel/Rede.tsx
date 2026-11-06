@@ -119,6 +119,7 @@ function PainelDaRede({
       <Secoes>
       {/* Comparativo loja a loja */}
       <Secao
+        id="lojas"
         titulo="Loja a loja"
         abertaPorPadrao
         resumo={`${lojas.length} loja${lojas.length === 1 ? '' : 's'}`}

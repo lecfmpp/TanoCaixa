@@ -52,12 +52,10 @@ const HISTORICO_INICIAL = 12
 /** "Onde te avisar": canais e o que chega em cada um. */
 export function OndeTeAvisar() {
   const [whatsapp, setWhatsapp] = useState(true)
-  const [email, setEmail] = useState(true)
   const [sms, setSms] = useState(false)
   return (
     <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
       <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
-      <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
       <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
     </Secao>
   )
@@ -332,6 +330,7 @@ export function Equipe() {
 
   return (
     <Secao
+      id="equipe"
       titulo="Quem usa e o que cada um pode"
       resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
       abertaPorPadrao
