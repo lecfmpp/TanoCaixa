@@ -104,3 +104,27 @@ test('textos fixos não deixam variável vazia', () => {
   assert.match(r.textoConectado('Cantina'), /Cantina/)
   assert.match(r.textoFaltaDono('final 5432'), /final 5432/)
 })
+
+test('link de convite do grupo: acha o código em formatos variados', () => {
+  assert.equal(r.codigoDoConvite('https://chat.whatsapp.com/EtqqYyOBkBTDwlcsk3Bt1d'), 'EtqqYyOBkBTDwlcsk3Bt1d')
+  assert.equal(r.codigoDoConvite('  chat.whatsapp.com/EtqqYyOBkBTDwlcsk3Bt1d?mode=r_c '), 'EtqqYyOBkBTDwlcsk3Bt1d')
+  assert.equal(r.codigoDoConvite('Entre no meu grupo: https://chat.whatsapp.com/invite/EtqqYyOBkBTDwlcsk3Bt1d'), 'EtqqYyOBkBTDwlcsk3Bt1d')
+  assert.equal(r.codigoDoConvite('https://wa.me/5521998765432'), null)
+  assert.equal(r.codigoDoConvite('https://chat.whatsapp.com/curto'), null)
+  assert.equal(r.codigoDoConvite(undefined), null)
+  assert.equal(r.linkDoConvite('EtqqYyOBkBTDwlcsk3Bt1d'), 'https://chat.whatsapp.com/EtqqYyOBkBTDwlcsk3Bt1d')
+})
+
+test('exemplo de cada lembrete: imagem, legenda com o nome da loja e link do app', () => {
+  const { exemploDoLembrete } = require('../lib/lembretesExemplos.js')
+  const { LEMBRETES } = require('../lib/lembretesCatalogo.js')
+  for (const id of Object.keys(LEMBRETES)) {
+    const e = exemploDoLembrete(id, 'Cantina da Praça')
+    assert.ok(e, `sem exemplo: ${id}`)
+    assert.match(e.imagemUrl, /^https:\/\/firebasestorage\.googleapis\.com\//)
+    assert.match(e.link, /^https:\/\/tanocaixa\.com\//)
+    assert.ok(e.legenda.includes(`Abrir no app: ${e.link}`), `link fora da legenda: ${id}`)
+    assert.doesNotMatch(e.legenda, /\{[a-z_0-9]+\}/, `variável sobrando: ${id}`)
+  }
+  assert.match(exemploDoLembrete('vendas_do_dia', 'Cantina da Praça').legenda, /_Cantina da Praça_$/)
+})

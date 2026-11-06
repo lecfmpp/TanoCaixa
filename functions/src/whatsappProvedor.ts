@@ -123,6 +123,30 @@ export async function participantes(grupoId: string): Promise<ResultadoParticipa
   return r.ok && ids.length ? { ok: true, participantes: ids } : { ok: false, participantes: [], erro: r.erro ?? 'sem acesso ao grupo' }
 }
 
+export interface ResultadoConvite {
+  ok: boolean
+  grupoId?: string
+  nome?: string
+  erro?: string
+}
+
+/**
+ * Descobre o grupo de um link de convite (sem entrar nele). Só a W-API tem isso;
+ * na Green API o caminho é o código de pareamento.
+ */
+export async function grupoPeloConvite(link: string, codigo: string): Promise<ResultadoConvite> {
+  if (!configurado()) return { ok: false, erro: 'WhatsApp não configurado' }
+  if (provedorAtual() !== 'wapi') return { ok: false, erro: 'Conectar pelo link ainda não funciona neste número. Use o código.' }
+  for (const tentativa of [link, codigo]) {
+    const r = await http(wapiUrl('/group/group-invitation-metadata', { inviteUrl: tentativa }), { method: 'GET', headers: wapiHeaders() })
+    const id = String(r.json.id ?? obj(r.json.group).id ?? '')
+    if (r.ok && id.endsWith('@g.us')) return { ok: true, grupoId: id, nome: String(r.json.subject ?? obj(r.json.group).subject ?? '') || undefined }
+  }
+  return { ok: false, erro: 'Não achamos o grupo deste link. Confira se o link é o mais recente (Dados do grupo → Convidar via link).' }
+}
+
+const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {})
+
 /** O número do Tá no Caixa está conectado ao provedor? */
 export async function instanciaConectada(): Promise<boolean> {
   if (!configurado()) return false

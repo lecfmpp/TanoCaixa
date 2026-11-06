@@ -17,10 +17,9 @@ import { defineSecret } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
 import { SEGREDOS, enviar } from './whatsapp'
 import { provedorAtual } from './whatsappProvedor'
-import { apagarCampo, atualizarStatusEnvio, celularDoDono, conferirGrupo, gravarConferencia, refGrupo, registrarEnvio } from './whatsappGrupoDb'
+import { atualizarStatusEnvio, celularDoDono, conectarGrupo, refGrupo } from './whatsappGrupoDb'
 import {
   codigoValido,
-  donoPresente,
   extrairCodigo,
   finalDoCelular,
   interpretarWebhook,
@@ -38,36 +37,17 @@ async function parear(codigo: string, grupoId: string, remetente: string): Promi
   const snap = await ref.get()
   if (!snap.exists || !codigoValido(snap.get('expiraEm') as string | undefined)) return // código velho: silêncio
   const rid = snap.get('rid') as string
-
-  const outro = await db.collection('whatsapp_grupos').where('grupoId', '==', grupoId).limit(2).get()
-  if (outro.docs.some((d) => d.id !== rid)) {
-    await enviar(textoGrupoDeOutraLoja(), undefined, grupoId)
-    return
-  }
-
-  const celular = await celularDoDono(rid)
-  const c = await conferirGrupo(grupoId, celular)
-  const foiODono = donoPresente([remetente], celular)
-  if (c.status === 'sem_acesso') {
-    console.error(`whatsappWebhook: código ${codigo} de ${grupoId}, mas sem acesso ao grupo`, c.erro)
-    return
-  }
-  if (!c.donoDentro && !foiODono) {
-    await enviar(textoFaltaDono(finalDoCelular(celular)), undefined, grupoId)
-    await refGrupo(rid).set({ statusMotivo: 'o código veio de um grupo sem o número do dono' }, { merge: true })
-    return
-  }
-
-  await refGrupo(rid).set(
-    { grupoId, origem: 'codigo', conectadoEm: new Date().toISOString(), conectadoPor: remetente, codigo: apagarCampo(), codigoExpiraEm: apagarCampo() },
-    { merge: true },
-  )
-  await gravarConferencia(rid, { ...c, status: 'conectado', donoDentro: true })
-  await ref.delete()
-
   const loja = ((await db.doc(`restaurants/${rid}`).get()).get('nome') as string | undefined) ?? 'sua loja'
-  const r = await enviar(textoConectado(loja), undefined, grupoId)
-  await registrarEnvio(rid, { tipo: 'boas_vindas', grupoId }, r)
+
+  const r = await conectarGrupo(rid, grupoId, { origem: 'codigo', por: remetente, remetente }, (g) => enviar(textoConectado(loja), undefined, g))
+  if (r.ok) {
+    await ref.delete()
+    return
+  }
+  if (r.motivo === 'outra_loja') await enviar(textoGrupoDeOutraLoja(), undefined, grupoId)
+  else if (r.motivo === 'dono_fora') await enviar(textoFaltaDono(finalDoCelular(await celularDoDono(rid))), undefined, grupoId)
+  else console.error(`whatsappWebhook: código ${codigo} de ${grupoId}, mas sem acesso ao grupo`)
+  await refGrupo(rid).set({ statusMotivo: r.mensagem }, { merge: true })
 }
 
 export const whatsappWebhook = onRequest({ secrets: [...SEGREDOS, WHATSAPP_WEBHOOK_TOKEN] }, async (req, res) => {

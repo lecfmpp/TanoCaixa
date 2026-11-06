@@ -13,6 +13,7 @@ import { participantes } from './whatsappProvedor'
 import {
   avancaStatus,
   donoPresente,
+  finalDoCelular,
   listaTemTelefones,
   statusDaConferencia,
   statusDepoisDoEnvio,
@@ -34,7 +35,9 @@ export interface GrupoDoc {
   ultimoEnvioOkEm?: string
   conectadoEm?: string
   conectadoPor?: string
-  origem?: 'codigo' | 'manual'
+  origem?: 'codigo' | 'link' | 'manual'
+  grupoNome?: string
+  grupoLink?: string
   codigo?: string
   codigoExpiraEm?: string
 }
@@ -158,3 +161,47 @@ export async function ultimosEnvios(rid: string, n = 20) {
 }
 
 export const apagarCampo = FieldValue.delete
+
+export type ResultadoConexao =
+  | { ok: true; status: StatusGrupo }
+  | { ok: false; motivo: 'outra_loja' | 'sem_acesso' | 'dono_fora'; mensagem: string }
+
+/**
+ * Liga um grupo à loja, valendo para os três caminhos (código, link, ID manual).
+ * Regras: o grupo não pode ser de outra loja; o número do Tá no Caixa precisa
+ * estar nele; o número do dono também (ou o dono foi quem mandou o código).
+ * Só grava se tudo estiver certo, e manda a boas-vindas no grupo.
+ */
+export async function conectarGrupo(
+  rid: string,
+  grupoId: string,
+  dados: { origem: 'codigo' | 'link' | 'manual'; por: string; remetente?: string; grupoNome?: string; grupoLink?: string },
+  enviarBoasVindas: (grupoId: string) => Promise<ResultadoEnvio>,
+): Promise<ResultadoConexao> {
+  const outro = await fs().collection('whatsapp_grupos').where('grupoId', '==', grupoId).limit(2).get()
+  if (outro.docs.some((d) => d.id !== rid)) return { ok: false, motivo: 'outra_loja', mensagem: 'Este grupo já recebe os lembretes de outra loja. Crie um grupo só para esta loja.' }
+
+  const celular = await celularDoDono(rid)
+  const c = await conferirGrupo(grupoId, celular)
+  if (c.status === 'sem_acesso') return { ok: false, motivo: 'sem_acesso', mensagem: 'O número do Tá no Caixa ainda não está neste grupo. Adicione o número ao grupo e tente de novo.' }
+  const foiODono = !!dados.remetente && donoPresente([dados.remetente], celular)
+  if (!c.donoDentro && !foiODono) return { ok: false, motivo: 'dono_fora', mensagem: `O número do dono (${finalDoCelular(celular)}) precisa estar no grupo. Adicione e tente de novo.` }
+
+  await refGrupo(rid).set(
+    {
+      grupoId,
+      origem: dados.origem,
+      conectadoEm: new Date().toISOString(),
+      conectadoPor: dados.por,
+      grupoNome: dados.grupoNome ?? FieldValue.delete(),
+      grupoLink: dados.grupoLink ?? FieldValue.delete(),
+      codigo: FieldValue.delete(),
+      codigoExpiraEm: FieldValue.delete(),
+    },
+    { merge: true },
+  )
+  await gravarConferencia(rid, { ...c, status: 'conectado', donoDentro: true })
+  const r = await enviarBoasVindas(grupoId)
+  await registrarEnvio(rid, { tipo: 'boas_vindas', grupoId }, r)
+  return { ok: true, status: 'conectado' }
+}

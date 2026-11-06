@@ -33,7 +33,7 @@ functions/scripts/configurar-wapi.sh conferir
    cd functions && npm run build && firebase deploy --project tanocaixa --only \
    functions:lembretesManha,functions:lembretesNoite,functions:conferirGruposWhatsapp,\
    functions:lembretesWhatsappConfig,functions:lembretesWhatsappSalvar,functions:lembretesWhatsappGrupo,\
-   functions:lembretesWhatsappCodigo,functions:lembretesWhatsappDesconectar,functions:lembretesWhatsappTeste,\
+   functions:lembretesWhatsappCodigo,functions:lembretesWhatsappLink,functions:lembretesWhatsappDesconectar,functions:lembretesWhatsappTeste,\
    functions:whatsappWebhook,functions:avisoAtividade,functions:resumoDoDia,functions:lembretes
    ```
 4. Cadastrar os webhooks na W-API: `functions/scripts/configurar-wapi.sh webhooks`.
@@ -41,7 +41,7 @@ functions/scripts/configurar-wapi.sh conferir
 6. Política de TTL do Firestore no campo `expiraEm` (grupo de coleção `envios` e `whatsapp_mensagens`).
 
 ## 4. Teste numa loja nossa
-Criar grupo → adicionar o número → "Gerar código" → mandar no grupo → ver "Conectado"
+Criar grupo → adicionar o número → colar o link do grupo (ou "Gerar código" e mandar no grupo) → ver "Conectado"
 → "Mandar mensagem de teste" → ver "entregue" → tirar o dono do grupo → teste mostra "Falta o dono no grupo".
 
 Confirmar no teste: o webhook de grupo traz `chat.id`, `sender.id` e o texto; `get-Participants`

@@ -303,6 +303,7 @@ export {
   lembretesWhatsappSalvar,
   lembretesWhatsappGrupo,
   lembretesWhatsappCodigo,
+  lembretesWhatsappLink,
   lembretesWhatsappDesconectar,
   lembretesWhatsappTeste,
 } from './lembretesEngine'

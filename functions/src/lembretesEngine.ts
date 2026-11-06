@@ -17,11 +17,13 @@ import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getFirestore } from 'firebase-admin/firestore'
 import { SEGREDOS, FUSO, diaSP, ehDemo, enviarLembrete, enviar } from './whatsapp'
-import { WHATSAPP_NUMERO, configurado } from './whatsappProvedor'
+import { WHATSAPP_NUMERO, configurado, grupoPeloConvite } from './whatsappProvedor'
+import { exemploDoLembrete } from './lembretesExemplos'
 import {
   anotarResultado,
   apagarCampo,
   celularDoDono,
+  conectarGrupo,
   conferirGrupo,
   gravarConferencia,
   refGrupo,
@@ -30,7 +32,7 @@ import {
   ultimosEnvios,
   type GrupoDoc,
 } from './whatsappGrupoDb'
-import { VALIDADE_CODIGO_MIN, codigoValido, finalDoCelular, gerarCodigo, podeEnviar, textoTeste, type StatusGrupo } from './whatsappGrupoRegras'
+import { VALIDADE_CODIGO_MIN, codigoDoConvite, codigoValido, finalDoCelular, gerarCodigo, linkDoConvite, podeEnviar, textoConectado, textoTeste, type StatusGrupo } from './whatsappGrupoRegras'
 import { LEMBRETES, type IdLembrete } from './lembretesCatalogo'
 import { REGRAS, PRIORIDADE, EM_BREVE, diasEntre, type Ctx, type DespesaMin } from './lembretesRegras'
 import { normalizarPapel } from './papel'
@@ -225,7 +227,8 @@ async function exigirGestao(uid: string | undefined, restauranteId: string | und
 
 /** O que o painel mostra. O número do Tá no Caixa vai inteiro (o dono precisa adicioná-lo); o do dono, só o final. */
 async function configDoRestaurante(rid: string, papel: 'dono' | 'gestao') {
-  const [snap, celular, envios] = await Promise.all([refGrupo(rid).get(), celularDoDono(rid), ultimosEnvios(rid)])
+  const [snap, celular, envios, rest] = await Promise.all([refGrupo(rid).get(), celularDoDono(rid), ultimosEnvios(rid), db.doc(`restaurants/${rid}`).get()])
+  const loja = (rest.get('nome') as string | undefined) ?? ''
   const cfg = (snap.data() ?? {}) as GrupoDoc
   const status: StatusGrupo = cfg.grupoId ? cfg.status ?? 'conectado' : 'sem_grupo'
   const codigoAtivo = !cfg.grupoId && cfg.codigo && codigoValido(cfg.codigoExpiraEm) ? { codigo: cfg.codigo, expiraEm: cfg.codigoExpiraEm! } : null
@@ -234,6 +237,8 @@ async function configDoRestaurante(rid: string, papel: 'dono' | 'gestao') {
     statusMotivo: cfg.statusMotivo ?? '',
     temGrupo: !!cfg.grupoId,
     grupoId: cfg.grupoId ?? '',
+    grupoNome: cfg.grupoNome ?? null,
+    grupoLink: cfg.grupoLink ?? null,
     pessoas: (snap.get('pessoas') as number | undefined) ?? null,
     conectadoEm: cfg.conectadoEm ?? null,
     /** Número do Tá no Caixa que o dono adiciona ao grupo. */
@@ -250,8 +255,12 @@ async function configDoRestaurante(rid: string, papel: 'dono' | 'gestao') {
       titulo: TITULOS[id],
       grupo: LEMBRETES[id].grupo,
       quando: LEMBRETES[id].gatilho,
+      /** Em qual rodada sai: manhã (9h) ou fim do dia (18h30). */
+      horario: REGRAS[id]?.quando === 'noite' ? '18h30' : '9h',
       disponivel: !EM_BREVE.includes(id),
       ativo: !!cfg.ativos?.[id],
+      /** A mesma imagem, legenda e link que o grupo recebe, com dados de exemplo. */
+      exemplo: exemploDoLembrete(id, loja),
     })),
     envios: envios.map((e) => ({ ...e, titulo: e.tipo === 'lembrete' && e.lembrete ? TITULOS[e.lembrete as IdLembrete] ?? e.lembrete : null })),
   }
@@ -309,17 +318,37 @@ export const lembretesWhatsappCodigo = onCall(async (req) => {
 /** ID de grupo do WhatsApp: dígitos (e hífen) + @g.us. Conversas individuais não valem. */
 export const ehIdDeGrupo = (v: string) => /^\d{8,}(-\d+)?@g\.us$/.test(v)
 
-/** Liga a loja a um grupo pelo ID (caminho manual, para o suporte). Dono ou gestão. Confere o dono no grupo. */
+async function nomeDaLoja(rid: string) {
+  return ((await db.doc(`restaurants/${rid}`).get()).get('nome') as string | undefined) ?? 'sua loja'
+}
+
+/** Liga a loja a um grupo pelo ID (caminho manual, para o suporte). Dono ou gestão. */
 export const lembretesWhatsappGrupo = onCall({ secrets: SEGREDOS }, async (req) => {
   const { restauranteId, grupoId } = dadosDe<{ restauranteId?: string; grupoId?: string }>(req)
   const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
   const novo = (grupoId ?? '').trim()
   if (!ehIdDeGrupo(novo)) throw new HttpsError('invalid-argument', 'ID de grupo inválido. Ele termina em @g.us (ex.: 120363012345678901@g.us).')
-  const outro = await db.collection('whatsapp_grupos').where('grupoId', '==', novo).limit(2).get()
-  if (outro.docs.some((d) => d.id !== rid)) throw new HttpsError('already-exists', 'Este grupo já recebe os lembretes de outra loja.')
-  const c = await conferirGrupo(novo, await celularDoDono(rid))
-  await refGrupo(rid).set({ grupoId: novo, origem: 'manual', conectadoEm: new Date().toISOString(), conectadoPor: req.auth!.uid, codigo: apagarCampo(), codigoExpiraEm: apagarCampo() }, { merge: true })
-  await gravarConferencia(rid, c)
+  const loja = await nomeDaLoja(rid)
+  const r = await conectarGrupo(rid, novo, { origem: 'manual', por: req.auth!.uid }, (g) => enviar(textoConectado(loja), undefined, g))
+  if (!r.ok) throw new HttpsError('failed-precondition', r.mensagem)
+  return configDoRestaurante(rid, papel)
+})
+
+/**
+ * Liga a loja ao grupo pelo link de convite ("https://chat.whatsapp.com/…").
+ * O dono cria o grupo, adiciona o número do Tá no Caixa e cola o link aqui.
+ * O link serve para achar o grupo; o número do Tá no Caixa não entra sozinho.
+ */
+export const lembretesWhatsappLink = onCall({ secrets: SEGREDOS }, async (req) => {
+  const { restauranteId, link } = dadosDe<{ restauranteId?: string; link?: string }>(req)
+  const { rid, papel } = await exigirGestao(req.auth?.uid, restauranteId)
+  const codigo = codigoDoConvite(link)
+  if (!codigo) throw new HttpsError('invalid-argument', 'Link inválido. Ele começa com https://chat.whatsapp.com/ (no grupo: Dados do grupo → Convidar via link → Copiar link).')
+  const g = await grupoPeloConvite(linkDoConvite(codigo), codigo)
+  if (!g.ok || !g.grupoId) throw new HttpsError('failed-precondition', g.erro ?? 'Não achamos o grupo deste link.')
+  const loja = await nomeDaLoja(rid)
+  const r = await conectarGrupo(rid, g.grupoId, { origem: 'link', por: req.auth!.uid, grupoNome: g.nome, grupoLink: linkDoConvite(codigo) }, (id) => enviar(textoConectado(loja), undefined, id))
+  if (!r.ok) throw new HttpsError('failed-precondition', r.mensagem)
   return configDoRestaurante(rid, papel)
 })
 
@@ -327,7 +356,7 @@ export const lembretesWhatsappGrupo = onCall({ secrets: SEGREDOS }, async (req) 
 export const lembretesWhatsappDesconectar = onCall(async (req) => {
   const { rid, papel } = await exigirGestao(req.auth?.uid, dadosDe<{ restauranteId?: string }>(req).restauranteId)
   if (papel !== 'dono') throw new HttpsError('permission-denied', 'Só o dono desconecta o grupo')
-  await refGrupo(rid).set({ grupoId: apagarCampo(), status: 'sem_grupo', statusMotivo: '', statusEm: new Date().toISOString() }, { merge: true })
+  await refGrupo(rid).set({ grupoId: apagarCampo(), grupoNome: apagarCampo(), grupoLink: apagarCampo(), status: 'sem_grupo', statusMotivo: '', statusEm: new Date().toISOString() }, { merge: true })
   return configDoRestaurante(rid, papel)
 })
 

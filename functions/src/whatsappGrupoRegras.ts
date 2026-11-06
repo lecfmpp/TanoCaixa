@@ -84,6 +84,19 @@ export function codigoValido(expiraEm: string | undefined, agora = new Date()): 
   return !!expiraEm && Date.parse(expiraEm) > agora.getTime()
 }
 
+/* ---------------------------- Link de convite --------------------------- */
+
+/**
+ * Código do link de convite do grupo ("https://chat.whatsapp.com/AbC123…").
+ * Aceita com ou sem https, com espaços ou texto em volta. Sem link válido, null.
+ */
+export function codigoDoConvite(texto: string | undefined): string | null {
+  const m = /(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{18,32})\b/.exec(texto ?? '')
+  return m ? m[1] : null
+}
+
+export const linkDoConvite = (codigo: string) => `https://chat.whatsapp.com/${codigo}`
+
 /* --------------------------------- Status ------------------------------- */
 
 export const FALHAS_PARA_ERRO = 2
