@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, ImagePlus, Plus, Star, Trash2, EyeOff } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
 import { Cartao } from '@/components/ui/Cartao'
+import { useAuth } from '@/auth/AuthContext'
+import { useSiteLiberado } from '@/auth/site'
 import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
 import { useUI } from '@/ui/UIProvider'
@@ -178,7 +181,16 @@ function JanelaPrevia({ html, modo }: { html: string; modo: Previa }) {
 
 /* ---------------------------------- Página ---------------------------------- */
 
+/** Trava de teste: fora da lista de contas liberadas, volta para o painel. */
 export function MeuSite() {
+  const liberado = useSiteLiberado()
+  const { carregando } = useAuth()
+  if (carregando) return null
+  if (!liberado) return <Navigate to="/painel" replace />
+  return <TelaMeuSite />
+}
+
+function TelaMeuSite() {
   const t = useTenant()
   const site = useSite()
   const pratosQ = usePratos().data

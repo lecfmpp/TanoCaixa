@@ -106,6 +106,7 @@ test('render: sem taxa e tempo, não mostra rótulos vazios', () => {
 test('render: página de links', () => {
   const html = r.renderLinks(dados(), { dominio: 'fausto.tanocaixa.com.br' })
   assert.ok(html.includes('Pedir no iFood'))
+  assert.ok(html.includes('selo-app'))
   assert.ok(!html.includes('Pedir no Uber Eats'))
   assert.ok(html.includes('/#cardapio'))
 })

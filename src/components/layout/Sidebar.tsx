@@ -3,6 +3,7 @@ import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
+import { useSiteLiberado } from '@/auth/site'
 import { useAuth } from '@/auth/AuthContext'
 import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
@@ -20,7 +21,10 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const lojaAtiva = useLojaAtiva()
   const tenantDoLogin = useTenantDoLogin()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
-  const itens = itensNav.filter((i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
+  const siteLiberado = useSiteLiberado()
+  const itens = itensNav.filter(
+    (i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede) && (i.recurso !== 'site' || siteLiberado),
+  )
 
   return (
     <nav className="flex h-full w-[236px] shrink-0 flex-col bg-mar text-creme">

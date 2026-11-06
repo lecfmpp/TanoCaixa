@@ -33,6 +33,9 @@ import { registrarDominio, removerDominio, type EstadoDominio } from './dominio'
 if (getApps().length === 0) initializeApp()
 const db = getFirestore()
 
+/** Em teste: só estas contas publicam (mesma lista de src/auth/site.ts). */
+const CONTAS_COM_SITE = ['lecfmpp@gmail.com', 'suporte@spoonconsultoria.com.br']
+
 /** Cache em memória por instância: o Firestore não é lido a cada visita. */
 const CACHE_MS = 30_000
 const cache = new Map<string, { em: number; dados: DadosSite | null }>()
@@ -96,6 +99,8 @@ export const siteCliente = onRequest({ region: 'us-central1', memory: '256MiB', 
 // Roda com uma conta própria (Firebase Hosting Admin + Firestore), para as
 // demais functions não ganharem acesso ao Hosting.
 export const publicarSite = onCall({ region: 'us-central1', serviceAccount: 'sites-publicador@tanocaixa.iam.gserviceaccount.com' }, async (req) => {
+  const email = String(req.auth?.token.email ?? '').toLowerCase()
+  if (!CONTAS_COM_SITE.includes(email)) throw new HttpsError('permission-denied', 'O site do cliente ainda está em teste e não está liberado para esta conta.')
   const rid = await exigirDonoOuGestao(req.auth?.uid, (req.data as { restauranteId?: string })?.restauranteId)
 
   const [restSnap, cfgSnap, pratosSnap] = await Promise.all([

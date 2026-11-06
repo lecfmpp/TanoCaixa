@@ -10,7 +10,6 @@ import {
   APPS,
   COR_ABERTO,
   COR_FECHADO,
-  COR_WHATSAPP,
   PALETAS,
   PROMO_TITULO_MAX,
   RAIOS,
@@ -27,6 +26,7 @@ import {
   type SecaoId,
   type SiteConfig,
 } from './modelo'
+import { ICONE_PATH } from './icones'
 
 export interface OpcoesRender {
   /** Domínio público do site, sem protocolo: faustoburger.tanocaixa.com.br */
@@ -52,6 +52,17 @@ const appsDaLoja = (l: LojaSite) =>
   APPS.filter((a) => urlSegura(l.apps[a.k])).map((a) => ({ ...a, url: urlSegura(l.apps[a.k]) }))
 const ponto = (cor: string, tam = 8, attr = '') =>
   `<span class="pt" ${attr} style="width:${tam}px;height:${tam}px;background:${cor}"></span>`
+/** Logo do app num selo quadrado arredondado (cor da marca). */
+function selo(k: 'ifood' | 'uber' | 'n99' | 'whatsapp', px: number): string {
+  const r = Math.round(px * 0.24)
+  const caixa = (bg: string, miolo: string) =>
+    `<span class="selo-app" style="width:${px}px;height:${px}px;border-radius:${r}px;background:${bg}" aria-hidden="true">${miolo}</span>`
+  if (k === 'n99')
+    return caixa('#FFC800', `<svg viewBox="0 0 24 24" width="${px * 0.78}" height="${px * 0.78}"><text x="12" y="17" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="14" fill="#111" letter-spacing="-1">99</text></svg>`)
+  const bg = k === 'ifood' ? '#EA1D2C' : k === 'uber' ? '#06C167' : '#25D366'
+  return caixa(bg, `<svg viewBox="0 0 24 24" width="${px * 0.62}" height="${px * 0.62}" fill="#fff"><path d="${ICONE_PATH[k]}"/></svg>`)
+}
+
 const igUrl = (h: string) => 'https://www.instagram.com/' + h.replace(/^@/, '') + '/'
 const igHandle = (h: string) => (h ? '@' + h.replace(/^@/, '') : '')
 
@@ -100,6 +111,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 img{display:block;max-width:100%}
 :focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .pt{display:inline-block;border-radius:50%;flex:none}
+.selo-app{display:inline-flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
 .tit{font-family:var(--tit);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.05}
 .h2{font-size:24px;white-space:nowrap}.h3{font-size:19px;letter-spacing:-.01em}
 .subt{font-size:14px;color:var(--sub)}
@@ -110,6 +122,7 @@ img{display:block;max-width:100%}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--rb);font-weight:700;white-space:nowrap;min-height:44px}
 .btn:hover{text-decoration:none;filter:brightness(.97)}
 .pri{background:var(--pri);color:var(--onPri)}
+.acc{background:var(--acc);color:var(--onAcc)}
 .ctn{border:1.5px solid var(--ink)}
 .seta{width:44px;height:44px;border-radius:var(--rb);border:1px solid var(--line);background:var(--sup);display:inline-flex;align-items:center;justify-content:center;font-size:18px}
 .chip{flex:none;padding:10px 16px;border-radius:var(--rch);border:1px solid var(--line);font-weight:600;font-size:14px;white-space:nowrap;min-height:44px}
@@ -119,6 +132,11 @@ img{display:block;max-width:100%}
 .cab{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .setas{display:flex;gap:8px}
 .so-pc{display:none!important}
+/* topo celular: mesma cor do rodapé, marca o começo da página */
+.topo-cel{background:var(--foot);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;min-height:52px}
+.topo-cel .logo{width:32px;height:32px;font-size:12px;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+.topo-cel b{font-family:var(--tit);font-weight:800;font-size:17px;letter-spacing:-.01em;flex:1;min-width:0}
+.topo-cel .st{font-size:13px;color:rgba(255,255,255,.8)}
 /* capa celular */
 .capa .foto{height:250px}
 .capa-txt{padding:0 20px 8px;display:flex;flex-direction:column;gap:14px}
@@ -204,16 +222,18 @@ footer b{color:#fff}
 .barra-b .ctn{padding:0 18px;min-height:52px;font-size:15px}
 .barra-b .pri{flex:1;min-height:52px;font-size:16px}
 .pop{position:absolute;top:calc(100% + 8px);right:max(40px,calc((100% - 1200px)/2 + 40px));width:380px;padding:20px;border-radius:var(--rc);background:var(--sup);border:1px solid var(--line);box-shadow:0 24px 48px rgba(0,0,0,.18)}
-.pop[hidden]{display:none}.pop .app{background:var(--bg);font-size:15px}
+.pop{color:var(--ink)}.pop[hidden]{display:none}.pop .app{background:var(--bg);font-size:15px}
 @media (min-width:768px){
  .so-cel{display:none!important}.so-pc{display:revert!important}.setas.so-pc{display:flex!important}
  .h2{font-size:32px}.h3{font-size:22px}
- .topo{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--line)}
+ .topo{position:sticky;top:0;z-index:40;background:var(--foot);color:#fff}
  .topo>.in{max-width:1200px;margin:0 auto;padding:14px 40px;display:flex;align-items:center;gap:28px}
  .topo .marca{display:flex;align-items:center;gap:12px}.topo .logo{width:40px;height:40px;font-size:15px}
  .topo .marca b{font-family:var(--tit);font-weight:800;font-size:20px;letter-spacing:-.01em;white-space:nowrap}
- .topo nav{display:flex;gap:24px;font-size:15px;font-weight:600;color:var(--sub)}
- .topo .esp{flex:1}.topo .st{color:var(--sub)}.topo .pri{padding:0 22px;font-size:15px}
+ .topo nav{display:flex;gap:24px;font-size:15px;font-weight:600;color:rgba(255,255,255,.8)}
+ .topo nav a:hover{color:#fff}
+ .topo .esp{flex:1}.topo .st{color:rgba(255,255,255,.8)}.topo .acc{padding:0 22px;font-size:15px}
+ .topo .logo{box-shadow:0 0 0 2px rgba(255,255,255,.15)}
  .hero{max-width:1200px;width:100%;margin:0 auto;padding:48px 40px 24px;display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center}
  .hero .c{display:flex;flex-direction:column;gap:20px;align-items:flex-start}
  .pil{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:var(--rch);background:var(--soft);font-size:14px;font-weight:600;white-space:nowrap}
@@ -262,11 +282,11 @@ function painelPedido(x: Ctx, onde: 'pop' | 'cel'): string {
   const porLoja = lojas
     .map((l, i) => {
       const apps = appsDaLoja(l)
-        .map((a) => `<a class="app" href="${esc(a.url)}" ${ext} data-ev="pedido" data-app="${a.k}">${ponto(a.cor, 12)}<span class="x">${esc(a.nome)}</span><span class="ab">abrir ↗</span></a>`)
+        .map((a) => `<a class="app" href="${esc(a.url)}" ${ext} data-ev="pedido" data-app="${a.k}">${selo(a.k, 28)}<span class="x">${esc(a.nome)}</span><span class="ab">abrir ↗</span></a>`)
         .join('')
       const zap =
         onde === 'pop' && wa(l)
-          ? `<a class="app" href="${esc(wa(l))}" ${ext}>${ponto(COR_WHATSAPP, 12)}<span class="x">WhatsApp da loja</span><span class="ab">conversar ↗</span></a>`
+          ? `<a class="app" href="${esc(wa(l))}" ${ext}>${selo('whatsapp', 28)}<span class="x">WhatsApp da loja</span><span class="ab">conversar ↗</span></a>`
           : ''
       const vazio = !apps && !zap ? `<p class="subt">Essa loja ainda não informou os apps de pedido.</p>` : ''
       return `<div data-da-loja="${i}"${i === x.sel ? ' data-on' : ''} style="display:flex;flex-direction:column;gap:12px">
@@ -289,7 +309,7 @@ function topoPc(x: Ctx): string {
 <div class="marca">${logo(c, '')}<b>${esc(c.nome)}</b></div>
 <nav>${nav}</nav><div class="esp"></div>
 <div class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="geral">${esc(x.st.geral)}</span></div>
-<a class="btn pri" href="#lojas" data-abrir-pedir>Pedir agora</a></div>
+<a class="btn acc" href="#lojas" data-abrir-pedir>Pedir agora</a></div>
 <div class="pop pedir" id="pop" hidden>${painelPedido(x, 'pop')}</div></header>`
 }
 
@@ -309,8 +329,8 @@ function heroPc(x: Ctx): string {
 <h1 class="tit">${esc(c.nome)}</h1>
 ${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}
 <div class="meta">${nota ? `<span><b>${esc(nota.valor)}</b> <span>${esc(nota.rotulo)}</span></span>` : ''}${l0?.tempoEntrega.trim() ? `<span><b>${esc(l0.tempoEntrega)}</b> <span>de entrega</span></span>` : ''}${taxaMin(lojas).trim() ? `<span><span>taxa a partir de</span> <b>${esc(taxaMin(lojas))}</b></span>` : ''}</div>
-<div class="bts"><a class="btn pri" href="#lojas" data-abrir-pedir>Pedir agora</a>${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>Pedir pelo WhatsApp</a>` : ''}</div>
-${todos.length ? `<div class="disp">Disponível em ${todos.map((a) => `<span>${ponto(a.cor, 9)}${esc(a.nome)}</span>`).join('')}</div>` : ''}
+<div class="bts"><a class="btn pri" href="#lojas" data-abrir-pedir>Pedir agora</a>${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>${selo('whatsapp', 22)}Pedir pelo WhatsApp</a>` : ''}</div>
+${todos.length ? `<div class="disp">Disponível em ${todos.map((a) => `<span>${selo(a.k, 18)}${esc(a.nome)}</span>`).join('')}</div>` : ''}
 </div><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="1200" height="960"')}</div></section>`
 }
 
@@ -318,7 +338,8 @@ function capaCel(x: Ctx): string {
   const { c, lojas } = x
   const nota = notaTexto(c)
   const l0 = lojas[0]
-  return `<section class="capa so-cel"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="780" height="500"')}</div>
+  const topo = `<header class="topo-cel so-cel">${logo(c, '')}<b class="um">${esc(c.nome)}</b><span class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="geral">${esc(x.st.geral)}</span></span></header>`
+  return `${topo}<section class="capa so-cel"><div class="foto">${img(c.capaUrl, 'Foto de ' + c.nome, 'fetchpriority="high" width="780" height="500"')}</div>
 <div class="capa-txt">${logo(c, '')}<div><h1 class="tit um">${esc(c.nome)}</h1>${c.slogan ? `<p class="slogan">${esc(c.slogan)}</p>` : ''}</div>
 <div class="st">${ponto(x.st.n ? COR_ABERTO : COR_FECHADO, 8, 'data-dot="g"')}<span data-st="longo">${esc(x.st.longo)}</span></div>
 ${(() => {
@@ -389,7 +410,7 @@ function secLojas(x: Ctx): string {
 <div class="cab"><b class="um">${esc(l.nome)}</b><span class="st">${ponto(st.lojas[i].aberta ? COR_ABERTO : COR_FECHADO, 8, `data-dot="${i}"`)}<span data-st="c${i}">${esc(st.lojas[i].curto)}</span></span></div>
 ${l.endereco ? `<div class="subt">${esc(l.endereco)}</div>` : ''}
 <div style="font-size:14px">${esc(textoDias(l.dias))}, ${esc(horaTexto(l.abre))} às ${esc(horaTexto(l.fecha))}${entregaTaxa(l)}</div>
-${apps.length ? `<div class="apps">${apps.map((a) => `<a href="${esc(a.url)}" ${ext}><span>${ponto(a.cor)}${esc(a.nome)}</span></a>`).join('')}</div>` : ''}
+${apps.length ? `<div class="apps">${apps.map((a) => `<a href="${esc(a.url)}" ${ext}><span>${selo(a.k, 18)}${esc(a.nome)}</span></a>`).join('')}</div>` : ''}
 <div class="lks">${l.endereco ? `<a href="${esc(rota(l))}" ${ext} data-ev="rota">Como chegar ↗</a>` : ''}${wa(l) ? `<a href="${esc(wa(l))}" ${ext}>WhatsApp ↗</a>` : ''}</div></div>`
     })
     .join('')
@@ -557,7 +578,7 @@ export function renderSite(d: DadosSite, o: OpcoesRender): string {
     .join('')
   const l0 = x.lojas[0]
   const barra = `<div class="barra so-cel"><div class="pedir" id="painel" hidden>${painelPedido(x, 'cel')}</div>
-<div class="barra-b">${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>WhatsApp</a>` : ''}<a class="btn pri" href="#lojas" id="btn-pedir" data-abrir-pedir>Pedir agora</a></div></div>`
+<div class="barra-b">${l0 && wa(l0) ? `<a class="btn ctn" href="${esc(wa(l0))}" ${ext} data-wa>${selo('whatsapp', 22)}WhatsApp</a>` : ''}<a class="btn pri" href="#lojas" id="btn-pedir" data-abrir-pedir>Pedir agora</a></div></div>`
   const rodape = `<footer><div><span><b>${esc(c.nome)}</b> · ${esc(o.dominio)}</span><span>Site feito com <a href="https://tanocaixa.com" ${ext}>Tá no Caixa</a></span></div></footer>`
   const corpo = `${topoPc(x)}${heroPc(x)}${capaCel(x)}<main>${secoes}</main>${rodape}${barra}`
   const desc = c.slogan || `Cardápio, lojas e pedidos de ${c.nome}.`
@@ -581,9 +602,9 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
   const botoes = lojas
     .map((l, i) => {
       const apps = appsDaLoja(l)
-        .map((a) => `<a class="gr pri" href="${esc(a.url)}" ${ext} data-ev="pedido" data-app="${a.k}"><span class="bola" style="background:${a.cor};border:2px solid var(--onPri)"></span><span class="x">Pedir no ${esc(a.nome)}</span><span>↗</span></a>`)
+        .map((a) => `<a class="gr pri" href="${esc(a.url)}" ${ext} data-ev="pedido" data-app="${a.k}">${selo(a.k, 34)}<span class="x">Pedir no ${esc(a.nome)}</span><span>↗</span></a>`)
         .join('')
-      const zap = wa(l) ? `<a class="gr ctn" href="${esc(wa(l))}" ${ext}><span class="bola" style="background:${COR_WHATSAPP}"></span><span class="x">Pedir pelo WhatsApp</span><span>↗</span></a>` : ''
+      const zap = wa(l) ? `<a class="gr ctn" href="${esc(wa(l))}" ${ext}>${selo('whatsapp', 34)}<span class="x">Pedir pelo WhatsApp</span><span>↗</span></a>` : ''
       return `<div data-da-loja="${i}"${i === 0 ? ' data-on' : ''} style="width:100%;display:flex;flex-direction:column;gap:10px">${apps}${zap}<div class="subt" style="font-size:13px">Loja ${esc(l.nome)}${entregaTaxa(l)}</div></div>`
     })
     .join('')
@@ -615,7 +636,6 @@ export function renderLinks(d: DadosSite, o: OpcoesRender): string {
 .seg button.on{background:var(--sup);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .gr{display:flex;align-items:center;gap:14px;min-height:62px;padding:0 20px;border-radius:var(--rb);font-weight:700;font-size:17px;text-align:left}
 .gr:hover,.sec:hover{text-decoration:none;opacity:.92}.gr .x,.sec .x{flex:1}
-.bola{width:30px;height:30px;border-radius:50%;flex:none}
 .pr{width:100%;padding:18px 20px;border-radius:var(--rc);background:var(--acc);color:var(--onAcc);text-align:left;display:flex;flex-direction:column;gap:2px}
 .sec{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 18px;border-radius:var(--rs);background:var(--sup);border:1px solid var(--line);font-weight:700;font-size:16px;text-align:left;width:100%}
 .ver{position:absolute;right:6px;bottom:6px;padding:4px 8px;border-radius:var(--rch);background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:700}
