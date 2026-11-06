@@ -305,3 +305,13 @@ export { repetirDespesasRecorrentes } from './recorrentesJob'
 
 // Captura de e-mail das iscas digitais do blog (planilhas e checklists)
 export { capturarLead } from './leads'
+
+/* ---------------- E-mail pelo Resend (contatos, teste, cobrança) ---------------- */
+export {
+  contatoResendUsuario,
+  contatoResendMembro,
+  contatoResendLoja,
+  contatoResendAssinatura,
+  conferirContatosResend,
+} from './email/contatoTriggers'
+export { lembretesFimDoTeste } from './email/lembretesTesteJob'

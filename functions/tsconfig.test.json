@@ -17,6 +17,14 @@
     "src/assinatura.test.ts",
     "src/papel.ts",
     "src/convitesRegras.ts",
-    "src/convitesRegras.test.ts"
+    "src/convitesRegras.test.ts",
+    "src/email/contato.ts",
+    "src/email/envio.ts",
+    "src/email/layout.ts",
+    "src/email/lembretesTeste.ts",
+    "src/email/cobranca.ts",
+    "src/email/contatoSync.ts",
+    "src/email/resend.ts",
+    "src/email/email.test.ts"
   ]
 }
