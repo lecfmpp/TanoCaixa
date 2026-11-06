@@ -293,9 +293,20 @@ export { analisarFoto, perguntarEstoque } from './gemini'
 /* ----------------------------- Convites de equipe ------------------------ */
 export { criarConvite, verConvite, aceitarConvite } from './convites'
 
-/* ---------------- Avisos no WhatsApp (Green-API) ------------------------- */
+/* ------------- Avisos no WhatsApp (Green API ou W-API) ------------------- */
 export { avisoAtividade, resumoDoDia, lembretes } from './whatsapp'
-export { lembretesManha, lembretesNoite, lembretesWhatsappConfig, lembretesWhatsappSalvar, lembretesWhatsappGrupo } from './lembretesEngine'
+export {
+  lembretesManha,
+  lembretesNoite,
+  conferirGruposWhatsapp,
+  lembretesWhatsappConfig,
+  lembretesWhatsappSalvar,
+  lembretesWhatsappGrupo,
+  lembretesWhatsappCodigo,
+  lembretesWhatsappDesconectar,
+  lembretesWhatsappTeste,
+} from './lembretesEngine'
+export { whatsappWebhook } from './whatsappWebhook'
 
 /* ----------------------- E-mail de boas-vindas (Resend) ------------------- */
 export { boasVindas } from './boasVindasTrigger'
