@@ -95,11 +95,21 @@ export interface PostSite {
   legenda: string
 }
 
+/** Avaliação curta de um prato (o dono copia do iFood/Google ou de clientes). */
+export interface AvaliacaoItem {
+  nome: string
+  /** 1 a 5 */
+  nota: number
+  texto: string
+}
+export const AVALIACOES_MAX = 5
+
 /** O que o site acrescenta a um prato do Cardápio (sem mexer no prato do PDV). */
 export interface ItemExtra {
   fotoUrl?: string
   destaque?: boolean
   oculto?: boolean
+  avaliacoes?: AvaliacaoItem[]
 }
 
 export interface SiteConfig {
@@ -140,6 +150,15 @@ export interface ItemSite {
   preco: number
   fotoUrl?: string
   destaque: boolean
+  avaliacoes?: AvaliacaoItem[]
+}
+
+/** Avaliações válidas (texto, nota 1–5), no máximo AVALIACOES_MAX. */
+export function limparAvaliacoes(a: AvaliacaoItem[] | undefined): AvaliacaoItem[] {
+  return (a ?? [])
+    .map((x) => ({ nome: String(x.nome ?? '').trim().slice(0, 40), nota: Math.min(5, Math.max(1, Math.round(Number(x.nota) || 5))), texto: String(x.texto ?? '').trim().slice(0, 280) }))
+    .filter((x) => x.texto)
+    .slice(0, AVALIACOES_MAX)
 }
 
 /** Tudo que o render precisa. É o que fica publicado em `sites/{sub}`. */
@@ -246,6 +265,7 @@ export function montarItens(pratos: PratoBase[], extras: Record<string, ItemExtr
       preco: p.preco,
       fotoUrl: extras[p.id]?.fotoUrl || undefined,
       destaque: !!extras[p.id]?.destaque,
+      avaliacoes: limparAvaliacoes(extras[p.id]?.avaliacoes),
     }))
 }
 
@@ -382,9 +402,12 @@ export function textoDias(dias: number[]): string {
   const d = [...new Set(dias)].sort((a, b) => a - b)
   if (d.length === 7) return 'Todos os dias'
   if (d.length === 0) return 'Fechado'
-  const seq = d.every((x, i) => i === 0 || x === d[i - 1] + 1)
   const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
-  if (seq && d.length > 2) return cap(NOMES_DIA[d[0]]) + ' a ' + NOMES_DIA[d[d.length - 1]]
+  // Sequência contínua, inclusive passando pelo domingo (qua, qui, sex, sáb, dom → "Qua a dom").
+  for (const ini of d) {
+    const seq = d.map((_, k) => (ini + k) % 7)
+    if (d.length > 2 && seq.every((x) => d.includes(x))) return cap(NOMES_DIA[ini]) + ' a ' + NOMES_DIA[seq[seq.length - 1]]
+  }
   return cap(d.map((x) => NOMES_DIA[x]).join(', '))
 }
 

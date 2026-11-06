@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, ImagePlus, Plus, Star, Trash2, EyeOff } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, ImagePlus, MessageSquareQuote, Plus, Star, Trash2, EyeOff } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { Cartao } from '@/components/ui/Cartao'
 import { useAuth } from '@/auth/AuthContext'
@@ -13,6 +13,7 @@ import { mensagemDeErro } from '@/lib/erros'
 import { cn } from '@/lib/cn'
 import {
   APPS,
+  AVALIACOES_MAX,
   DOMINIO_SITES,
   PAGAMENTOS_SUGERIDOS,
   PALETAS,
@@ -27,6 +28,7 @@ import {
   novaLoja,
   siglaDe,
   type AppId,
+  type AvaliacaoItem,
   type LojaSite,
   type PaletaId,
   type SiteConfig,
@@ -203,6 +205,7 @@ function TelaMeuSite() {
   const [livre, setLivre] = useState<boolean | 'erro' | null>(null)
   const [celula, setCelula] = useState<{ loja: string; app: AppId } | null>(null)
   const [copiado, setCopiado] = useState(false)
+  const [avAberto, setAvAberto] = useState<string | null>(null)
 
   // Carrega o rascunho uma vez; depois o que vale é o que a pessoa edita.
   useEffect(() => {
@@ -258,7 +261,7 @@ function TelaMeuSite() {
 
   const mudar = (p: Partial<SiteConfig>) => setCfg((c) => (c ? { ...c, ...p } : c))
   const mudarLoja = (id: string, p: Partial<LojaSite>) => mudar({ lojas: cfg.lojas.map((l) => (l.id === id ? { ...l, ...p } : l)) })
-  const mudarItem = (id: string, p: { fotoUrl?: string; destaque?: boolean; oculto?: boolean }) =>
+  const mudarItem = (id: string, p: { fotoUrl?: string; destaque?: boolean; oculto?: boolean; avaliacoes?: AvaliacaoItem[] }) =>
     mudar({ itens: { ...cfg.itens, [id]: { ...cfg.itens[id], ...p } } })
 
   const publicadoCfg = site.data?.publicado?.config
@@ -616,16 +619,19 @@ function TelaMeuSite() {
 
           {/* Cardápio */}
           <Bloco titulo="Cardápio no site" dica={`${itens.length} itens no site`}>
-            <p className="text-xs text-tinta-4">Itens e preços vêm do seu Cardápio no Tá no Caixa. Aqui você põe a foto, marca os mais pedidos e esconde o que não vai para o site.</p>
+            <p className="text-xs text-tinta-4">Itens e preços vêm do seu Cardápio no Tá no Caixa. Aqui você põe a foto, marca os mais pedidos, cola avaliações de clientes e esconde o que não vai para o site. Tocar no prato abre os detalhes com as avaliações.</p>
             {pratos.filter((p) => p.ativo !== false).length === 0 && <p className="text-sm text-tinta-3">Nenhum prato ativo no Cardápio ainda.</p>}
-            <ul className="flex max-h-[420px] flex-col gap-1.5 overflow-y-auto pr-1">
+            <ul className="flex max-h-[560px] flex-col gap-1.5 overflow-y-auto pr-1">
               {pratos
                 .filter((p) => p.ativo !== false)
                 .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome))
                 .map((p) => {
                   const ex = cfg.itens[p.id] ?? {}
+                  const avs = ex.avaliacoes ?? []
+                  const mudarAv = (lista: AvaliacaoItem[]) => mudarItem(p.id, { avaliacoes: lista })
                   return (
-                    <li key={p.id} className={cn('flex items-center gap-3 rounded-campo border border-[rgba(46,95,115,0.1)] bg-superficie p-2', ex.oculto && 'opacity-50')}>
+                    <li key={p.id} className={cn('flex flex-col gap-2 rounded-campo border border-[rgba(46,95,115,0.1)] bg-superficie p-2', ex.oculto && 'opacity-50')}>
+                    <div className="flex items-center gap-3">
                       <Upload url={ex.fotoUrl ?? ''} aoEnviar={(u) => mudarItem(p.id, { fotoUrl: u })} nome={`item-${p.id}`} maxLado={900} className="h-12 w-12 shrink-0" vazio={<ImagePlus size={14} />} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-bold text-tinta">{p.nome}</div>
@@ -649,6 +655,57 @@ function TelaMeuSite() {
                       >
                         <EyeOff size={15} />
                       </button>
+                      <button
+                        type="button"
+                        title="Avaliações deste prato"
+                        aria-expanded={avAberto === p.id}
+                        onClick={() => setAvAberto(avAberto === p.id ? null : p.id)}
+                        className={cn('flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-bold', avs.length ? 'bg-mata/10 text-mata' : 'text-tinta-5 hover:bg-preenchimento')}
+                      >
+                        <MessageSquareQuote size={15} />
+                        {avs.length || ''}
+                      </button>
+                    </div>
+                    {avAberto === p.id && (
+                      <div className="flex flex-col gap-2 border-t border-[rgba(46,95,115,0.1)] pt-2">
+                        {avs.map((a, k) => {
+                          const muda = (q: Partial<AvaliacaoItem>) => mudarAv(avs.map((x, j) => (j === k ? { ...x, ...q } : x)))
+                          return (
+                            <div key={k} className="flex flex-col gap-1.5 rounded-lg bg-preenchimento/60 p-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex" role="radiogroup" aria-label="Nota">
+                                  {[1, 2, 3, 4, 5].map((n) => (
+                                    <button key={n} type="button" role="radio" aria-checked={a.nota === n} aria-label={`${n} estrelas`} onClick={() => muda({ nota: n })} className={cn('px-0.5 text-lg leading-none', n <= a.nota ? 'text-[#F2B01E]' : 'text-tinta-5')}>
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Entrada placeholder="Nome (ex.: Ana, Realengo)" value={a.nome} maxLength={40} onChange={(e) => muda({ nome: e.target.value })} />
+                                </div>
+                                <button type="button" aria-label="Remover avaliação" className="flex h-8 w-8 items-center justify-center rounded-lg text-tinta-4 hover:text-telha-alerta" onClick={() => mudarAv(avs.filter((_, j) => j !== k))}>
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <textarea
+                                value={a.texto}
+                                maxLength={280}
+                                rows={2}
+                                placeholder="O que o cliente disse (ex.: Melhor smash da Zona Oeste, chegou quentinho!)"
+                                onChange={(e) => muda({ texto: e.target.value })}
+                                className="w-full rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3 py-2 text-sm text-tinta outline-none focus:border-mar"
+                              />
+                            </div>
+                          )
+                        })}
+                        {avs.length < AVALIACOES_MAX && (
+                          <Button variante="secundario" onClick={() => mudarAv([...avs, { nome: '', nota: 5, texto: '' }])}>
+                            <Plus size={14} /> Adicionar avaliação
+                          </Button>
+                        )}
+                        <p className="text-[11px] text-tinta-4">Use avaliações reais (do iFood, do Google ou de clientes). Até {AVALIACOES_MAX} por prato.</p>
+                      </div>
+                    )}
                     </li>
                   )
                 })}

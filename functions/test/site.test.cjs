@@ -48,6 +48,8 @@ test('validações de subdomínio e links', () => {
 test('textoDias', () => {
   assert.equal(m.textoDias([0, 1, 2, 3, 4, 5, 6]), 'Todos os dias')
   assert.equal(m.textoDias([1, 2, 3, 4, 5]), 'Seg a sex')
+  assert.equal(m.textoDias([0, 3, 4, 5, 6]), 'Qua a dom')
+  assert.equal(m.textoDias([1, 3]), 'Seg, qua')
 })
 
 function dados(extra = {}) {
@@ -102,6 +104,19 @@ test('render: sem taxa e tempo, não mostra rótulos vazios', () => {
   assert.ok(!html.includes('taxa a partir de'))
   assert.ok(!html.includes('entrega  ·'))
   assert.ok(!html.includes('de entrega'))
+})
+
+test('render: aba de detalhes leva itens e avaliações no JSON', () => {
+  const d = dados()
+  d.itens = m.montarItens([{ id: 'a', nome: 'Clássico', categoria: 'Burgers', preco: 32.9, ativo: true }], {
+    a: { avaliacoes: [{ nome: 'Ana', nota: 9, texto: 'Ótimo </script> burger' }, { nome: 'x', nota: 3, texto: '' }] },
+  })
+  assert.equal(d.itens[0].avaliacoes.length, 1)
+  assert.equal(d.itens[0].avaliacoes[0].nota, 5)
+  const html = r.renderSite(d, { dominio: 'x.tanocaixa.com.br' })
+  assert.ok(html.includes('id="folha"'))
+  assert.ok(html.includes('data-item="a"'))
+  assert.ok(!html.includes('Ótimo </script>'))
 })
 
 test('render: página de links', () => {
