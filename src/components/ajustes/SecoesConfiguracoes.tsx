@@ -8,6 +8,7 @@ import { Chip } from '@/components/ui/Chip'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { Campo } from '@/components/ui/Campo'
 import { ConvidarEquipe } from '@/components/ajustes/ConvidarEquipe'
+import { EmailsQueRecebo } from '@/components/ajustes/EmailsQueRecebo'
 import { CampoLogo } from '@/components/ajustes/CampoLogo'
 import { brl, quando } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -49,17 +50,20 @@ const HISTORICO_INICIAL = 12
  * (pages/painel/Configuracoes.tsx) distribui estas seções pelas abas.
  */
 
-/** "Onde te avisar": canais e o que chega em cada um. */
+/** "Onde te avisar": canais e o que chega em cada um, mais os e-mails que a pessoa recebe. */
 export function OndeTeAvisar() {
   const [whatsapp, setWhatsapp] = useState(true)
-  const [email, setEmail] = useState(true)
   const [sms, setSms] = useState(false)
   return (
-    <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
-      <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
-      <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
-      <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
-    </Secao>
+    <>
+      <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
+        <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
+        <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
+      </Secao>
+
+      {/* E-mails de dicas, recado e novidades (LGPD) */}
+      <EmailsQueRecebo />
+    </>
   )
 }
 
@@ -332,6 +336,7 @@ export function Equipe() {
 
   return (
     <Secao
+      id="equipe"
       titulo="Quem usa e o que cada um pode"
       resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
       abertaPorPadrao

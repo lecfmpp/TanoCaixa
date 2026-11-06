@@ -21,9 +21,20 @@ service cloud.firestore {
       return logado() && (request.auth.uid in dadosRestaurante(rid).memberUids);
     }
 
-    // Perfil do usuário: só o próprio.
+    // Perfil do usuário: só o próprio. Os e-mails do Tá no Caixa vão pro
+    // campo `email`, então ele só pode ser o e-mail da conta (do login) —
+    // ninguém aponta nossos e-mails pra um endereço qualquer.
+    function emailDaConta(dados) {
+      return !('email' in dados) || dados.email == ''
+        || (request.auth.token.email is string
+            && dados.email.lower() == request.auth.token.email.lower());
+    }
     match /users/{userId} {
-      allow read, write: if logado() && request.auth.uid == userId;
+      allow read, delete: if logado() && request.auth.uid == userId;
+      allow create: if logado() && request.auth.uid == userId && emailDaConta(request.resource.data);
+      allow update: if logado() && request.auth.uid == userId
+        && (request.resource.data.get('email', null) == resource.data.get('email', null)
+            || emailDaConta(request.resource.data));
     }
 
     // Convites de equipe: só acessados via Cloud Functions (Admin SDK, que

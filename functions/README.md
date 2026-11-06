@@ -234,6 +234,53 @@ Segredo (nunca no código): `firebase functions:secrets:set RESEND_API_KEY`
 
 Teste sem rede: `cd functions && npm test` (fetch e Firestore simulados).
 
+## E-mails pelo Resend: contatos, fim do teste e cobrança (`src/email/`)
+
+Todo e-mail sai pelo Resend, do domínio `tanocaixa.com`. O Firebase Auth não envia e-mail.
+
+| Função | Quando roda | O que faz |
+| --- | --- | --- |
+| `contatoResendUsuario` / `Membro` / `Loja` / `Assinatura` | Escrita em `users/{uid}`, `restaurants/{rid}/membros/{uid}`, `restaurants/{rid}` (memberUids), `assinaturas/{rid}` | Atualiza o contato da pessoa no Resend: propriedades e segmentos `TNC · …` |
+| `conferirContatosResend` | Todo dia, 6h (Brasília) | Passa por todos os usuários (pega teste vencido e dias sem lançar). A 1ª execução é a carga inicial. |
+| `lembretesFimDoTeste` | Todo dia, 9h (Brasília) | D-7, D-2, D-0 e D+1 do fim do teste, só pro dono de loja sem assinatura (isentas e demos ficam de fora) |
+| `stripeWebhook` | Eventos do Stripe | Além do status: e-mail de assinatura ativa (1ª fatura), pagamento que falhou (1ª e última tentativa) e cancelamento |
+
+Regras puras e testadas em `contato.ts`, `lembretesTeste.ts` e `cobranca.ts`. O Firestore guarda
+`contatos_resend/{uid}` (id do contato e impressão da última sincronização, que serve para não chamar a API à toa)
+e `emails_enviados/{chave}` (cadeado de envio único). As duas coleções são só do servidor.
+
+Chaves (params; o padrão é seguro, então publicar não manda nada para cliente):
+
+| Param | Padrão | Valores |
+| --- | --- | --- |
+| `EMAILS_MODO` | `teste` | `desligado`: não envia. `teste`: tudo vai para `EMAIL_TESTE_PARA`, com o destino real no assunto. `ativo`: envia para quem deve receber. |
+| `EMAIL_TESTE_PARA` | `ola@tanocaixa.com` | Caixa que recebe os testes |
+| `SINCRONIZAR_CONTATOS` | `false` | `true` liga a sincronização com o Resend (cria os segmentos e as propriedades na 1ª vez) |
+
+Para mudar: crie `functions/.env.tanocaixa` (fica fora do git) com, por exemplo,
+`EMAILS_MODO=ativo` e `SINCRONIZAR_CONTATOS=true`, e publique de novo.
+Carga inicial dos contatos: depois de ligar `SINCRONIZAR_CONTATOS`, rode o job uma vez:
+`gcloud scheduler jobs run firebase-schedule-conferirContatosResend-us-central1 --location us-central1 --project tanocaixa`.
+
+Os links dos e-mails abrem `tanocaixa.com/painel/assinatura?assinar=1&loja={id}`, que chama
+`criarCheckoutAssinatura` sozinho (é o mesmo checkout do "Assinar plano"), e `?portal=1&loja={id}`, que abre o portal do Stripe.
+O recibo de cada mês sai pelo próprio Stripe: ligue em Dashboard › Settings › Customer emails › "Successful payments".
+
+### Fases 2 a 4 (catálogo, acesso, convites, uso, recado)
+
+- **Catálogo** (`src/email/catalogo.ts`): os 39 e-mails num lugar só. Cada um vira um template `tnc-<id>` no Resend, editável no painel.
+  O envio vai pelo template e, se ele recusar, manda o mesmo texto montado no código.
+  Para criar ou atualizar os templates: `RESEND_API_KEY="$(gcloud secrets versions access latest --secret RESEND_API_KEY --project tanocaixa)" node scripts/emails-resend.mjs publicar`.
+  Para receber todos de amostra, com o segmento no assunto: `… node scripts/emails-resend.mjs teste voce@exemplo.com`.
+- **Acesso** (`enviarEmailDeAcesso`): senha, verificação e troca de e-mail pelo Resend, com o link em `tanocaixa.com/conta/acao`.
+  O Firebase Auth não envia mais nada. Limite de 3 pedidos por hora por e-mail. Saem mesmo no modo `teste`, porque a própria pessoa pediu.
+- **Convites** (`conviteEmailCriado`, `conviteEmailAceito`, `lembrarConvites` às 11h): só quando o convite tem e-mail. O campo é opcional em Ajustes › Equipe.
+- **Uso por papel** (`emailsDeUso`, 10h): sequência do papel principal, limite de 1 a cada 3 dias, pausa na última semana do teste e inatividade (7 e 21 dias).
+  Só a partir de `USO_A_PARTIR` (padrão `2026-12-07`).
+- **Recado de segunda** (`recadoDeSegunda`, 8h): a semana da loja (dono/gestão) ou da rede (franqueador).
+- **Descadastro** (`descadastrarEmail`): link assinado em `tanocaixa.com/emails`. As preferências ficam em `users/{uid}.emails`
+  (dicas e recado ligados por padrão; novidades só com aceite) e aparecem em Ajustes › E-mails que recebo.
+
 ## Publicar pela nuvem
 
 Publicar não depende do computador de ninguém: abra o GitHub -> aba **Actions** -> escolha o workflow -> **Run workflow**. Nunca roda sozinho por push.
