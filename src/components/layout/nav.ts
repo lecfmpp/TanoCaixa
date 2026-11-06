@@ -30,5 +30,4 @@ export const itensNav: ItemNav[] = [
   { para: '/painel/rede', rotulo: 'Rede', chave: 'veRede' },
   { para: '/painel/metas', rotulo: 'Metas e números', chave: 'veAjustes' },
   { para: '/painel/configuracoes', rotulo: 'Configurações', chave: 'veAjustes' },
-  { para: '/painel/ajustes', rotulo: 'Ajustes', chave: 'veAjustes' },
 ]

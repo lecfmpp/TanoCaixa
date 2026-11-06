@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { mensagemDeErro } from '@/lib/erros'
-import { useLocation } from 'react-router-dom'
 import { Download } from 'lucide-react'
-import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Secao, Secoes } from '@/components/ui/Acordeao'
-import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
+import { Secao } from '@/components/ui/Acordeao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Switch } from '@/components/ui/Switch'
 import { Chip } from '@/components/ui/Chip'
@@ -47,18 +44,46 @@ const ORIGEM_ROTULO: Record<Origem, string> = {
 /** Quantas linhas o histórico mostra antes de pedir "ver tudo". */
 const HISTORICO_INICIAL = 12
 
-export function Ajustes() {
-  const restaurante = useRestaurante()
-  const cfg = restaurante.data
+/*
+ * Seções da página Configurações, uma por bloco de assunto. A página
+ * (pages/painel/Configuracoes.tsx) distribui estas seções pelas abas.
+ */
+
+/** "Onde te avisar": canais e o que chega em cada um. */
+export function OndeTeAvisar() {
+  const [whatsapp, setWhatsapp] = useState(true)
+  const [email, setEmail] = useState(true)
+  const [sms, setSms] = useState(false)
+  return (
+    <Secao titulo="Onde te avisar" corpoClassName="!pt-1" abertaPorPadrao>
+      <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
+      <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
+      <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
+    </Secao>
+  )
+}
+
+/** Notificações de WhatsApp para as contas que ainda não têm a funcionalidade. */
+export function WhatsappEmBreve() {
+  return (
+    <Secao
+      titulo="Notificações de WhatsApp"
+      resumo={<SeloEmBreve />}
+      descricao="Avisos de rotina da loja no grupo de WhatsApp. Estamos preparando: assim que estiver pronto, aparece aqui."
+    >
+      <p className="text-sm text-tinta-3">Em breve você vai poder escolher quais avisos chegam no WhatsApp da loja.</p>
+    </Secao>
+  )
+}
+
+/** Histórico de tudo que foi feito na loja, com filtro por pessoa e exportação. */
+export function Historico() {
+  const cfg = useRestaurante().data
   const atividadesData = useAtividades().data ?? []
   const atividades = useMemo(
     () => [...atividadesData].sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1)),
     [atividadesData],
   )
-
-  const [whatsapp, setWhatsapp] = useState(true)
-  const [email, setEmail] = useState(true)
-  const [sms, setSms] = useState(false)
   const [filtro, setFiltro] = useState('Todos')
   const [verTudo, setVerTudo] = useState(false)
 
@@ -71,14 +96,6 @@ export function Ajustes() {
 
   const filtrada = atividades.filter((a) => (filtro === 'Todos' ? true : a.quem === filtro))
   const lista = verTudo ? filtrada : filtrada.slice(0, HISTORICO_INICIAL)
-
-  // Chegando de "Ver tudo" (/painel/ajustes#historico): o router não rola até
-  // a âncora sozinho, e o histórico fica lá embaixo, depois de quatro cartões.
-  const hash = useLocation().hash
-  useEffect(() => {
-    if (hash !== '#historico') return
-    document.getElementById('historico')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [hash, atividades.length])
 
   /** Histórico completo (respeitando o filtro) em CSV, pro Excel pt-BR. */
   function exportarHistorico() {
@@ -97,92 +114,60 @@ export function Ajustes() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <SectionHeader
-        titulo="Ajustes"
-        subtitulo={cfg ? [cfg.nome, cfg.bairro].filter(Boolean).join(' · ') : ''}
-        semMes
-      />
+    <Secao
+      id="historico"
+      titulo="Histórico de tudo que foi feito"
+      descricao="Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho."
+      resumo={`${atividades.length} ${atividades.length === 1 ? 'registro' : 'registros'}`}
+      abertaPorPadrao
+      acoes={
+        <button
+          onClick={exportarHistorico}
+          disabled={!filtrada.length}
+          className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-mar hover:underline disabled:opacity-40"
+        >
+          <Download size={15} />
+          Exportar
+        </button>
+      }
+    >
+      <div className="mb-3 flex flex-wrap gap-2">
+        {filtros.map((f) => (
+          <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
+        ))}
+      </div>
 
-      <Secoes>
-      {/* Logo da loja — aparece no topo de todas as páginas */}
-      <LogoDaLojaCartao />
+      <div className="-mx-5 overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
+              <Th>Quem</Th>
+              <Th>Ação</Th>
+              <Th>Origem</Th>
+              <Th>Tipo</Th>
+              <Th className="text-right">Valor</Th>
+              <Th>Hora</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((a) => (
+              <LinhaAtividade key={a.id} a={a} />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Natureza do negócio — governa o DRE e a visão de rede */}
-      <SeuNegocio />
-
-      {/* Quem usa / gestão de permissões */}
-      <Equipe />
-
-      {/* Plano de contas — as linhas da DRE que a loja lança */}
-      <PlanoDeContas />
-
-      {/* Onde te avisar */}
-      <Secao titulo="Onde te avisar" corpoClassName="!pt-1">
-        <LinhaAviso rotulo="WhatsApp" apoio="alerta de teto" ligado={whatsapp} aoTrocar={setWhatsapp} primeira />
-        <LinhaAviso rotulo="E-mail" apoio="resumo de segunda" ligado={email} aoTrocar={setEmail} />
-        <LinhaAviso rotulo="SMS" apoio="só emergência" ligado={sms} aoTrocar={setSms} />
-      </Secao>
-
-      {/* Integrações */}
-      <Integracoes />
-
-      {/* Histórico */}
-      <Secao
-        id="historico"
-        titulo="Histórico de tudo que foi feito"
-        descricao="Cada lançamento, correção e fechamento fica registrado com nome, hora e aparelho."
-        resumo={`${atividades.length} ${atividades.length === 1 ? 'registro' : 'registros'}`}
-        acoes={
-          <button
-            onClick={exportarHistorico}
-            disabled={!filtrada.length}
-            className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-mar hover:underline disabled:opacity-40"
-          >
-            <Download size={15} />
-            Exportar
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <span className="text-tinta-4">
+          {lista.length} de {filtrada.length} {filtrada.length === 1 ? 'registro' : 'registros'}
+        </span>
+        {filtrada.length > HISTORICO_INICIAL && (
+          <button onClick={() => setVerTudo((v) => !v)} className="font-bold text-mar hover:underline">
+            {verTudo ? 'Ver menos' : `Ver todos os ${filtrada.length}`}
           </button>
-        }
-      >
-        <div className="mb-3 flex flex-wrap gap-2">
-          {filtros.map((f) => (
-            <Chip key={f} rotulo={f} selecionado={filtro === f} aoClicar={() => { setFiltro(f); setVerTudo(false) }} />
-          ))}
-        </div>
-
-        <div className="-mx-5 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
-                <Th>Quem</Th>
-                <Th>Ação</Th>
-                <Th>Origem</Th>
-                <Th>Tipo</Th>
-                <Th className="text-right">Valor</Th>
-                <Th>Hora</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((a) => (
-                <LinhaAtividade key={a.id} a={a} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-tinta-4">
-            {lista.length} de {filtrada.length} {filtrada.length === 1 ? 'registro' : 'registros'}
-          </span>
-          {filtrada.length > HISTORICO_INICIAL && (
-            <button onClick={() => setVerTudo((v) => !v)} className="font-bold text-mar hover:underline">
-              {verTudo ? 'Ver menos' : `Ver todos os ${filtrada.length}`}
-            </button>
-          )}
-        </div>
-      </Secao>
-      </Secoes>
-    </div>
+        )}
+      </div>
+    </Secao>
   )
 }
 
@@ -200,7 +185,7 @@ const INTEGRACOES_EM_BREVE = [
 ]
 
 /** Logo da loja aberta. Dono e gestão enviam e trocam; os outros só veem. */
-function LogoDaLojaCartao() {
+export function LogoDaLojaCartao() {
   const { permissoes } = useAuth()
   const pode = (permissoes?.gerenciaEquipe ?? 'nao') !== 'nao'
   return (
@@ -211,7 +196,7 @@ function LogoDaLojaCartao() {
 }
 
 /** Loja única, várias lojas, franqueada ou franqueadora — e o que ela paga. */
-function SeuNegocio() {
+export function SeuNegocio() {
   const cfg = useRestaurante().data
   const salvar = useSalvarRestaurante()
   const { adicionarToast } = useUI()
@@ -296,7 +281,7 @@ function SeuNegocio() {
   )
 }
 
-function Integracoes() {
+export function Integracoes() {
   return (
     <Secao
       titulo={
@@ -304,6 +289,7 @@ function Integracoes() {
           Integrações <SeloEmBreve />
         </span>
       }
+      abertaPorPadrao
     >
       <p className="mb-3 text-sm text-tinta-3">
         Por enquanto as vendas entram pelo fechamento do dia (botão "Lançar vendas") e as despesas por foto ou
@@ -334,7 +320,7 @@ function Integracoes() {
   )
 }
 
-function Equipe() {
+export function Equipe() {
   const { sessao, permissoes } = useAuth()
   const membros = (useMembros().data ?? []) as (MembroDoc & { id: string })[]
   const salvar = useSalvarMembro()
@@ -348,6 +334,7 @@ function Equipe() {
     <Secao
       titulo="Quem usa e o que cada um pode"
       resumo={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}
+      abertaPorPadrao
     >
       {gestao === 'proposta' && (
         <p className="mb-2 rounded-campo bg-sol/15 px-3 py-2 text-xs text-insight-rotulo">

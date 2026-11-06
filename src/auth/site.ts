@@ -15,3 +15,17 @@ export function useSiteLiberado(): boolean {
   if (import.meta.env.DEV && sessao.demo) return true
   return CONTAS_COM_SITE.includes(sessao.usuario.email.trim().toLowerCase())
 }
+
+/**
+ * Página "Configurações" (abas de notificações de WhatsApp e Meu site) em
+ * teste: só estas contas veem o item no menu e abrem a página. As demais
+ * continuam com os lembretes de WhatsApp em Ajustes.
+ */
+export const CONTAS_COM_CONFIGURACOES = ['lecfmpp@gmail.com', 'suporte@spoonconsultoria.com.br']
+
+export function useConfiguracoesLiberadas(): boolean {
+  const { sessao } = useAuth()
+  if (!sessao) return false
+  if (import.meta.env.DEV && sessao.demo) return true
+  return CONTAS_COM_CONFIGURACOES.includes(sessao.usuario.email.trim().toLowerCase())
+}
