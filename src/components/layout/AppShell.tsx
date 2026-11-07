@@ -5,7 +5,9 @@ import { Sidebar } from './Sidebar'
 import { BarraTeste } from '@/components/assinatura/BarraTeste'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
-import { usePlanoContas } from '@/data/hooks'
+import { useLojasAcessiveis, usePlanoContas, useTenant } from '@/data/hooks'
+import { definirLojaAtiva } from '@/data/lojaAtiva'
+import { useAuth } from '@/auth/AuthContext'
 import { useVigiaAcesso } from '@/auth/vigiaAcesso'
 import { useMesRef } from '@/ui/periodo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
@@ -39,6 +41,17 @@ export function AppShell() {
     resto.delete('acao')
     setBusca(resto, { replace: true })
   }, [acao, abrirGaveta, busca, setBusca])
+
+  // Link de e-mail com ?loja={id}: abre o painel daquela loja (só se a pessoa tem acesso a ela).
+  const { sessao } = useAuth()
+  const tenant = useTenant()
+  const acessiveis = useLojasAcessiveis()
+  const lojaDoLink = busca.get('loja')
+  useEffect(() => {
+    if (!sessao || sessao.demo || !lojaDoLink || lojaDoLink === tenant) return
+    if (lojaDoLink !== sessao.tenantId && !acessiveis.some((l) => l.restauranteId === lojaDoLink)) return
+    definirLojaAtiva(lojaDoLink === sessao.tenantId ? null : lojaDoLink)
+  }, [sessao, lojaDoLink, tenant, acessiveis])
 
   return (
     <div className="flex h-dvh overflow-hidden bg-fundo-app">

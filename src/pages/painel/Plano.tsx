@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Check, Minus, Plus } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { useAuth } from '@/auth/AuthContext'
 import { useTenant } from '@/data/hooks'
+import { definirLojaAtiva } from '@/data/lojaAtiva'
 import { functions } from '@/lib/firebase'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -17,7 +19,6 @@ const INCLUI = [
   'Dashboard, metas e caminho até o equilíbrio',
   'DRE, despesas, estoque e produtos',
   'Rede e franquias, com a visão de cada loja',
-  'Recado semanal por e-mail',
 ]
 const EM_BREVE = ['PDV (frente de caixa e KDS)', 'CMV por ficha técnica']
 const MAX_LOJAS = 50
@@ -30,6 +31,49 @@ export function Plano() {
   const { adicionarToast } = useUI()
   const [lojas, setLojas] = useState(1)
   const [abrindo, setAbrindo] = useState(false)
+  const [abrindoPortal, setAbrindoPortal] = useState(false)
+
+  // Links dos e-mails: /painel/assinatura?assinar=1&loja={id} abre o checkout
+  // daquela loja; ?portal=1&loja={id} abre o portal do Stripe (trocar cartão).
+  const [params, setParams] = useSearchParams()
+  const lojaPedida = params.get('loja')
+  const acao = params.get('assinar') === '1' ? 'assinar' : params.get('portal') === '1' ? 'portal' : null
+  const jaAbriu = useRef(false)
+
+  useEffect(() => {
+    if (!sessao || sessao.demo || !lojaPedida || lojaPedida === tenant) return
+    definirLojaAtiva(lojaPedida === sessao.tenantId ? null : lojaPedida)
+  }, [sessao, lojaPedida, tenant])
+
+  useEffect(() => {
+    if (!sessao || sessao.demo || !acao || jaAbriu.current) return
+    if (lojaPedida && lojaPedida !== tenant) return // espera a troca de loja
+    jaAbriu.current = true
+    setParams({}, { replace: true })
+    if (acao === 'assinar') void contratar()
+    else void abrirPortal()
+  }, [sessao, acao, lojaPedida, tenant])
+
+  async function abrirPortal() {
+    if (!sessao) return
+    setAbrindoPortal(true)
+    try {
+      const portal = httpsCallable(functions, 'portalAssinatura')
+      const res = await portal({ restauranteId: tenant, returnUrl: `${window.location.origin}/painel/assinatura` })
+      const { url } = res.data as { url?: string }
+      if (!url) throw new Error('portal sem URL')
+      window.location.href = url
+    } catch (e) {
+      console.error('Erro ao abrir o portal:', e)
+      const semAssinatura = (e as { code?: string }).code === 'functions/failed-precondition'
+      adicionarToast({
+        tipo: 'erro',
+        titulo: semAssinatura ? 'Esta loja ainda não tem assinatura' : 'Não abriu o portal',
+        texto: semAssinatura ? 'Assine o plano abaixo para começar.' : 'Tente de novo em instantes.',
+      })
+      setAbrindoPortal(false)
+    }
+  }
 
   async function contratar() {
     if (!sessao) return
@@ -93,8 +137,11 @@ export function Plano() {
         <Button variante="lancar" bloco className="mt-5 py-3" onClick={contratar} disabled={abrindo}>
           {abrindo ? 'Abrindo o pagamento…' : 'Assinar agora'}
         </Button>
+        <Button variante="secundario" bloco className="mt-2.5 py-2.5" onClick={abrirPortal} disabled={abrindoPortal}>
+          {abrindoPortal ? 'Abrindo o portal…' : 'Trocar cartão e ver faturas'}
+        </Button>
         <p className="mt-3 text-center text-xs text-tinta-4">
-          Pagamento seguro pelo Stripe. Cancela quando quiser, sem multa. Troca de cartão e faturas no portal da assinatura.
+          Pagamento seguro pelo Stripe. Cancela quando quiser, sem multa.
         </p>
       </Cartao>
     </div>

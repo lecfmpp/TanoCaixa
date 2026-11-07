@@ -30,6 +30,8 @@ import { Dashboard } from '@/pages/painel/Numeros'
 import { Configuracoes } from '@/pages/painel/Configuracoes'
 import { Perfil } from '@/pages/painel/Perfil'
 import { ConvitePage } from '@/pages/auth/ConvitePage'
+import { AcaoContaPage } from '@/pages/auth/AcaoContaPage'
+import { EmailsPage } from '@/pages/auth/EmailsPage'
 import { Plano } from '@/pages/painel/Plano'
 import { PdvLayout } from '@/pages/pdv/PdvLayout'
 import { Cardapio } from '@/pages/pdv/Cardapio'
@@ -44,10 +46,15 @@ import { Kds } from '@/pages/pdv/Kds'
  * Com query (?acao=…, ?assinatura=ok) a página continua sendo o Início, pra não
  * perder o gesto do link; a rota segue existindo.
  */
-/** Antiga página Ajustes: hoje é Configurações (o #historico vira a aba Histórico). */
+/**
+ * Antiga página Ajustes: hoje é Configurações. Links velhos (e-mails já
+ * enviados, mensagens no grupo) mantêm o ?loja= e caem na aba da âncora.
+ */
+const ABA_DA_ANCORA: Record<string, string> = { '#historico': 'historico', '#equipe': 'equipe', '#emails': 'notificacoes' }
 function RedirecionaAjustes() {
-  const { hash } = useLocation()
-  return <Navigate to={hash === '#historico' ? '/painel/configuracoes/historico' : '/painel/configuracoes'} replace />
+  const { hash, search } = useLocation()
+  const aba = ABA_DA_ANCORA[hash]
+  return <Navigate to={`/painel/configuracoes${aba ? `/${aba}` : ''}${search}`} replace />
 }
 
 function PaginaInicial() {
@@ -69,6 +76,8 @@ export default function App() {
               <Route path="/esqueci" element={<EsqueciSenhaPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/convite/:token" element={<ConvitePage />} />
+              <Route path="/conta/acao" element={<AcaoContaPage />} />
+              <Route path="/emails" element={<EmailsPage />} />
 
               <Route
                 path="/painel"

@@ -15,7 +15,6 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signInAnonymously,
-  sendEmailVerification,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -426,7 +425,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (nome) await updateProfile(cred.user, { displayName: nome })
       // Confirmação de e-mail: só envia, não bloqueia o acesso. Falha aqui
       // (cota, domínio não autorizado) não pode impedir o cadastro.
-      sendEmailVerification(cred.user, { url: `${window.location.origin}/entrar` }).catch((e) =>
+      // O e-mail sai pelo Resend (tanocaixa.com), não pelo Firebase.
+      httpsCallable(functions, 'enviarEmailDeAcesso')({ tipo: 'verificacao' }).catch((e) =>
         console.warn('verificação de e-mail:', e),
       )
       return cred.user.uid

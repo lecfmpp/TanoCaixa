@@ -32,7 +32,7 @@ export function RotaProtegida({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!sessao) return <Navigate to="/entrar" replace state={{ voltar: local.pathname + local.search }} />
+  if (!sessao) return <Navigate to="/entrar" replace state={{ voltar: local.pathname + local.search + local.hash }} />
 
   return <>{children}</>
 }
