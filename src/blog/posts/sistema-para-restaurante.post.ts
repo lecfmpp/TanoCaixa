@@ -44,7 +44,7 @@ const post: Post = {
         '**Preço de entrada:** de R$ 0 (planos grátis com limite) a R$ 240,79 por mês nas páginas oficiais conferidas, mas o total real depende de módulos, taxas e número de pedidos.',
         '**Cuidado com o que não aparece:** fidelidade, taxa por pedido pago online, módulo cobrado à parte e preço depois da promoção.',
         '**Como escolher:** comece pela dor (pedido, nota fiscal ou saber quanto sobrou), peça teste grátis e confira o preço de saída antes de migrar os dados.',
-        '**Onde o Tá no Caixa entra:** ele não é PDV nem cardápio digital. Mostra quanto sobrou, por R$ 149 por loja ao mês. Conferido em 21/10/2026.',
+        '**Onde o Tá no Caixa entra:** ele não é PDV nem cardápio digital. Mostra quanto sobrou, por R$ 149 ao mês com 1 loja. Conferido em 21/10/2026.',
       ],
     },
     {
@@ -107,7 +107,7 @@ const post: Post = {
         ['GrandChef', 'PDV e delivery', 'Mensal R$ 90 (adesão R$ 100); semestral R$ 420; anual R$ 810; NFC-e e Delivery Online aparecem como módulos', 'Teste grátis'],
         ['OlaClick', 'Delivery e WhatsApp', 'Advanced R$ 64, Premium R$ 157, Elite R$ 247 ou Impulso R$ 825/mês (valores da página, com plano anual)', 'Grátis para começar'],
         ['Consumer', 'PDV e delivery', 'Valores dos planos pagos sob consulta; anuncia versão gratuita', '7 dias'],
-        ['Tá no Caixa', 'Gestão financeira', 'R$ 149 por loja/mês (de R$ 249, preço de lançamento)', '14 dias, sem cartão'],
+        ['Tá no Caixa', 'Gestão financeira', 'R$ 149/mês com 1 loja (de R$ 249, preço de lançamento); + R$ 79 por loja a mais', '14 dias, sem cartão'],
       ],
       destaqueColuna: 2,
       legenda: 'Preços e condições mudam. Confirme na página do fabricante antes de decidir. Cardápio Web publica planos sob consulta.',
@@ -124,7 +124,7 @@ const post: Post = {
       subtitulo: 'Em R$ por mês. "A partir de" ou mínimo publicado; não inclui módulos, taxas por pedido nem adesão.',
       dados: [
         { rotulo: 'Saipos', valor: 240.79, nota: 'plano mensal, a partir de' },
-        { rotulo: 'Tá no Caixa', valor: 149, destaque: true, nota: 'por loja; financeiro, não PDV' },
+        { rotulo: 'Tá no Caixa', valor: 149, destaque: true, nota: 'Pro, com 1 loja; financeiro, não PDV' },
         { rotulo: 'Brendi', valor: 120, nota: 'mínimo, varia com faturamento' },
         { rotulo: 'Anota AI', valor: 99.99, nota: 'até 150 pedidos/mês' },
         { rotulo: 'Goomer Básico', valor: 99.9, nota: 'existe plano grátis limitado' },
@@ -250,7 +250,7 @@ const post: Post = {
     },
     {
       t: 'p',
-      texto: 'O plano custa **R$ 149 por loja ao mês** (de R$ 249, preço de lançamento), com 14 dias grátis e sem cartão. A integração automática com iFood e outros apps também está em breve; hoje o lançamento dos apps é feito no fechamento do dia.',
+      texto: 'O Pro custa **R$ 149 por mês com 1 loja** (+ R$ 79 por loja a mais) (de R$ 249, preço de lançamento), com 14 dias grátis e sem cartão. A integração automática com iFood e outros apps também está em breve; hoje o lançamento dos apps é feito no fechamento do dia.',
     },
     { t: 'cartao-link', slug: 'comparativo-saipos-anota-ai-goomer-consumer', rotulo: 'Comparativo lado a lado' },
 
@@ -294,7 +294,7 @@ const post: Post = {
         { p: 'Qual PDV é o mais barato?', r: 'Entre os conferidos que vendem PDV, o GrandChef publica o plano mensal mais baixo: R$ 90 por mês, mais R$ 100 de adesão. Módulos como nota fiscal e delivery aparecem à parte, então some tudo antes de comparar.' },
         { p: 'O que é PDV em restaurante?', r: 'PDV é o ponto de venda: o sistema que registra o pedido, fecha a conta e, quando necessário, emite a nota fiscal. Ele cuida da operação do salão, do balcão e da entrega, mas não substitui o controle financeiro.' },
         { p: 'Preciso de PDV e de um controle financeiro separados?', r: 'Muitos donos usam os dois: o PDV registra o pedido e o controle financeiro mostra quanto sobrou. Alguns PDVs trazem módulo financeiro. O Tá no Caixa é só financeiro e não substitui o PDV.' },
-        { p: 'Quanto custa o Tá no Caixa?', r: 'R$ 149 por loja ao mês (de R$ 249, preço de lançamento), com 14 dias grátis e sem cartão. PDV, CMV por ficha técnica e integração automática com iFood e outros apps estão em breve.' },
+        { p: 'Quanto custa o Tá no Caixa?', r: 'R$ 149 por mês com 1 loja, + R$ 79 por loja a mais (de R$ 249, preço de lançamento), com 14 dias grátis e sem cartão. PDV, CMV por ficha técnica e integração automática com iFood e outros apps estão em breve.' },
       ],
     },
   ],

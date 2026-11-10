@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
 import { useSiteLiberado } from '@/auth/site'
 import { useAuth } from '@/auth/AuthContext'
-import { useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
+import { numerosPendentes, useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
 import { SeletorLoja } from './SeletorLoja'
@@ -26,6 +26,7 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const lojas = useLojasAcessiveis()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
   const siteLiberado = useSiteLiberado()
+  const pendente = numerosPendentes(cfg)
   const itens = itensNav.filter(
     (i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede) && (i.recurso !== 'site' || siteLiberado),
   )
@@ -70,6 +71,14 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
               }
             >
               {item.rotulo}
+              {item.alertaNumeros && pendente && (
+                <span
+                  title="Falta conferir faturamento e meta"
+                  className="ml-2 inline-grid h-[18px] w-[18px] place-items-center rounded-full bg-sol align-middle text-[11px] font-extrabold text-noite"
+                >
+                  !
+                </span>
+              )}
               {item.emBreve && (
                 <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
               )}

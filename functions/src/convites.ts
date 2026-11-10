@@ -13,13 +13,20 @@
  * O acesso é por loja: a pessoa vira membro (memberUids + membros/{uid}) só
  * das lojas marcadas. Convidar a partir de uma rede NÃO dá acesso às outras
  * lojas da rede.
+ *
+ * Gestor de loja (convidarGestor): o dono cadastra um e-mail por loja. O
+ * convite vai por e-mail (Resend), já com papel "gestao", e só pode ser
+ * aceito por quem entrar com aquele e-mail.
  * ------------------------------------------------------------------ */
 import { randomBytes } from 'node:crypto'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
+import { defineSecret } from 'firebase-functions/params'
+import { REMETENTE, RESPONDER_PARA } from './boasVindas'
 import { emailConfere, lojasDoConvite, pedidoDeLojas, podeConvidar, type ConviteDoc, type LojaDoConvite } from './convitesRegras'
 
 const db = getFirestore()
+const RESEND_API_KEY = defineSecret('RESEND_API_KEY')
 
 function gerarToken(): string {
   return randomBytes(18).toString('base64url')
@@ -124,4 +131,70 @@ export const aceitarConvite = onCall(async (req) => {
 
     return { restauranteId, lojas: lojas.map((l) => l.restauranteId) }
   })
+})
+
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function escapaHtml(t: string): string {
+  return t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+}
+
+/**
+ * Cadastra o gestor de uma loja: guarda o e-mail na loja, gera o convite
+ * (papel gestão, preso ao e-mail) e manda o link por e-mail. Sem chave do
+ * Resend, devolve o link pro dono mandar por WhatsApp.
+ */
+export const convidarGestor = onCall({ secrets: [RESEND_API_KEY] }, async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Faça login primeiro')
+  const { restauranteId, email: bruto } = (req.data ?? {}) as { restauranteId?: string; email?: string }
+  const email = (bruto ?? '').trim().toLowerCase()
+  if (!restauranteId) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+  if (!EMAIL_OK.test(email)) throw new HttpsError('invalid-argument', 'E-mail do gestor inválido')
+
+  const [membroSnap, restauranteSnap] = await Promise.all([
+    db.doc(`restaurants/${restauranteId}/membros/${uid}`).get(),
+    db.doc(`restaurants/${restauranteId}`).get(),
+  ])
+  if (!restauranteSnap.exists) throw new HttpsError('not-found', 'Loja não encontrada')
+  const papel = membroSnap.data()?.papel as string | undefined
+  if (papel !== 'dono' && papel !== 'franqueador') throw new HttpsError('permission-denied', 'Só o dono cadastra o gestor da loja')
+
+  const lojaNome = (restauranteSnap.data()?.nome as string) ?? 'sua loja'
+  const token = gerarToken()
+  const convite: ConviteDoc = {
+    restauranteId,
+    restauranteNome: lojaNome,
+    papel: 'gestao',
+    criadoPor: uid,
+    criadoEm: new Date().toISOString(),
+    status: 'pendente',
+    email,
+  }
+  await db.doc(`convites/${token}`).set(convite)
+  await db.doc(`restaurants/${restauranteId}`).set({ gestorEmail: email, gestorConvite: token }, { merge: true })
+  const url = `https://tanocaixa.com/convite/${token}`
+
+  const chave = RESEND_API_KEY.value()
+  if (!chave) return { url, enviado: false }
+  const quem = (req.auth?.token.name as string) || 'O dono'
+  const texto = `${quem} cadastrou você como gestor da loja ${lojaNome} no Tá no Caixa. Entre com este e-mail (${email}) pelo link: ${url}`
+  const html =
+    `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#1d2b2a;max-width:520px">` +
+    `<p>${escapaHtml(quem)} cadastrou você como <strong>gestor da loja ${escapaHtml(lojaNome)}</strong> no Tá no Caixa.</p>` +
+    `<p>Entre com este e-mail (${escapaHtml(email)}) para aceitar.</p>` +
+    `<p><a href="${url}" style="display:inline-block;background:#2E5F73;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px">Aceitar convite</a></p>` +
+    `<p>Equipe Tá no Caixa</p></div>`
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json', 'Idempotency-Key': `gestor/${token}` },
+      body: JSON.stringify({ from: REMETENTE, to: [email], reply_to: RESPONDER_PARA, subject: `Você é gestor da loja ${lojaNome}`, html, text: texto }),
+    })
+    if (!resp.ok) console.error(`convite gestor: resend http ${resp.status}`)
+    return { url, enviado: resp.ok }
+  } catch (e) {
+    console.error('convite gestor:', e)
+    return { url, enviado: false }
+  }
 })

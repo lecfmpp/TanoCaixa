@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Outlet, useSearchParams } from 'react-router-dom'
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
-import { BarraTeste } from '@/components/assinatura/BarraTeste'
+import { AbasDeLojas } from './AbasDeLojas'
+import { BarraPlano } from '@/components/assinatura/BarraPlano'
+import { TelaBloqueio } from '@/components/assinatura/TelaBloqueio'
+import { useAssinatura } from '@/data/assinatura'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
 import { useVigiaAcesso } from '@/auth/vigiaAcesso'
 import { useMesRef } from '@/ui/periodo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
+
+/** Com o teste vencido, só dá pra assinar ou mexer no perfil. */
+const LIVRES_SEM_ASSINATURA = ['/painel/assinatura', '/painel/perfil']
 
 /** Gavetas que um link de lembrete (?acao=…) pode abrir direto. */
 const ACOES_POR_LINK: TipoGaveta[] = ['despesa', 'compra', 'produto', 'estoque', 'fechamento']
@@ -27,6 +33,9 @@ export function AppShell() {
   const [gaveta, setGaveta] = useState(false)
   // Trocar o mês refaz a página inteira: os números leem o mês na hora de renderizar.
   const mes = useMesRef()
+  const assinatura = useAssinatura().data
+  const { pathname } = useLocation()
+  const bloqueado = assinatura?.acesso === 'bloqueada' && !LIVRES_SEM_ASSINATURA.includes(pathname)
 
   // Link do lembrete de WhatsApp: /painel/compras?acao=compra abre a tela com a gaveta já aberta.
   const { abrirGaveta } = useUI()
@@ -62,7 +71,7 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Aviso do teste grátis pro dono, acima de tudo */}
-        <BarraTeste />
+        <BarraPlano />
 
         {/* Topo só no mobile/tablet */}
         <header className="flex items-center justify-between border-b border-divisoria bg-superficie px-4 py-3 tab:hidden">
@@ -76,9 +85,12 @@ export function AppShell() {
           </button>
         </header>
 
+        {/* Topo no desktop: as lojas que a pessoa pode abrir, uma aba cada */}
+        <AbasDeLojas />
+
         <main className={cn('scroll-fina flex-1 overflow-y-auto', 'px-5 py-5 tab:px-7 tab:py-6')}>
           <div className="mx-auto max-w-[1180px]">
-            <Outlet key={mes} />
+            {bloqueado && assinatura ? <TelaBloqueio status={assinatura} /> : <Outlet key={mes} />}
           </div>
         </main>
       </div>
