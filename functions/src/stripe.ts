@@ -87,7 +87,9 @@ export const situacaoDaAssinatura = onCall(async (req) => {
   const dados = assin.data() ?? {}
   const testeAte = fimDoTesteDaConta(dados.testeAte as string | undefined)
   const { situacao, diasRestantes } = situacaoDoPainel(dados.status as string | undefined, testeAte, new Date())
-  return { situacao, diasRestantes, testeAte, ehDono: normalizarPapel(membro.data()?.papel as string | undefined) === 'dono' }
+  // Começo do teste (gatilho comecarTeste ou migração): a barra usa pra desenhar o progresso.
+  const testeDesde = (dados.testeDesde as string | undefined) ?? null
+  return { situacao, diasRestantes, testeAte, testeDesde, ehDono: normalizarPapel(membro.data()?.papel as string | undefined) === 'dono' }
 })
 
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { httpsCallable } from 'firebase/functions'
 import { Link } from 'react-router-dom'
-import { Clock, CreditCard, AlertTriangle } from 'lucide-react'
+import { CreditCard, AlertTriangle } from 'lucide-react'
 import { functions } from '@/lib/firebase'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthContext'
@@ -15,6 +15,8 @@ interface Resposta {
   situacao: Situacao
   diasRestantes: number
   testeAte: string
+  /** Começo do teste; sem ele, a barra conta com 14 dias. */
+  testeDesde?: string | null
   ehDono: boolean
 }
 
@@ -24,9 +26,19 @@ const checkoutFn = httpsCallable<
   { url?: string }
 >(functions, 'criarCheckoutAssinatura')
 
-/** "25 de novembro", no fuso de Brasília. */
+/** "25/11", no fuso de Brasília. */
 function diaDoFim(iso: string): string {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' })
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+}
+
+const DIA = 86_400_000
+
+/** Quanto do teste ainda resta (0 a 1): enche no começo e esvazia até o fim. */
+function fracaoRestante(s: Resposta): number {
+  const fim = Date.parse(s.testeAte)
+  const inicio = s.testeDesde ? Date.parse(s.testeDesde) : NaN
+  const total = Number.isFinite(inicio) && fim > inicio ? (fim - inicio) / DIA : Math.max(14, s.diasRestantes)
+  return Math.min(1, Math.max(0, s.diasRestantes / total))
 }
 
 /**
@@ -77,55 +89,56 @@ export function BarraTeste() {
   const falhou = s.situacao === 'pagamento_falhou'
   const acabou = s.situacao === 'teste_acabou'
   const urgente = falhou || acabou || s.diasRestantes <= 3
+  const dias = s.diasRestantes === 1 ? '1 dia' : `${s.diasRestantes} dias`
+  const botao =
+    'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-botao bg-telhado px-3 text-[13px] font-bold text-creme transition hover:brightness-95 disabled:opacity-60'
 
-  let titulo: string
-  let apoio: string
-  if (falhou) {
-    titulo = 'O pagamento da assinatura não passou'
-    apoio = 'Atualize o cartão pra continuar usando o Tá no Caixa.'
-  } else if (acabou) {
-    titulo = `Seu período de teste terminou em ${fim}`
-    apoio = 'Assine o plano pra continuar lançando e vendo seus números.'
-  } else {
-    titulo = `Você está no período de teste grátis até ${fim}`
-    apoio =
-      s.diasRestantes === 1
-        ? 'Falta 1 dia. Assine pra não perder o acesso.'
-        : `Faltam ${s.diasRestantes} dias. Assine pra não perder o acesso.`
-  }
-
+  // Uma linha só, em qualquer largura: recado curto (ou a barra de dias) + botão.
   return (
     <div
       role="status"
       className={cn(
-        'flex flex-col gap-2 border-b px-4 py-2.5 text-sm cel:flex-row cel:items-center cel:gap-4 tab:px-7',
+        'flex h-12 items-center gap-3 border-b px-4 text-sm tab:px-7',
         urgente ? 'border-telha-alerta/25 bg-telha-alerta/10' : 'border-sol/40 bg-insight-fundo',
       )}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-2.5">
-        <span className={cn('mt-0.5 shrink-0', urgente ? 'text-telha-alerta' : 'text-insight-rotulo')}>
-          {falhou || acabou ? <AlertTriangle size={17} /> : <Clock size={17} />}
-        </span>
-        <p className="min-w-0 text-insight-texto">
-          <b className="font-bold text-tinta">{titulo}.</b> <span className="text-tinta-2">{apoio}</span>
+      {falhou || acabou ? (
+        <p className="flex min-w-0 flex-1 items-center gap-2 font-bold text-tinta">
+          <AlertTriangle size={16} className="shrink-0 text-telha-alerta" />
+          <span className="truncate">
+            {falhou ? 'Pagamento falhou' : `Seu teste acabou em ${fim}`}
+          </span>
         </p>
-      </div>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="hidden shrink-0 font-bold text-tinta tab:inline">Teste grátis até {fim}</span>
+          <div
+            className="h-2 min-w-12 flex-1 overflow-hidden rounded-full bg-tinta/10 tab:max-w-60"
+            role="progressbar"
+            aria-label="Dias de teste que faltam"
+            aria-valuenow={s.diasRestantes}
+            aria-valuemin={0}
+          >
+            <div
+              className={cn('h-full rounded-full', urgente ? 'bg-telha-alerta' : 'bg-mar')}
+              style={{ width: `${Math.max(4, fracaoRestante(s) * 100)}%` }}
+            />
+          </div>
+          <span className="mono shrink-0 whitespace-nowrap text-[13px] font-bold text-tinta">
+            {dias}
+            <span className="hidden font-normal text-tinta-3 cel:inline"> {s.diasRestantes === 1 ? 'restante' : 'restantes'}</span>
+          </span>
+        </div>
+      )}
       {falhou ? (
-        <Link
-          to="/painel/assinatura"
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme transition hover:brightness-95 cel:self-auto"
-        >
-          <CreditCard size={15} />
-          Atualizar pagamento
+        <Link to="/painel/assinatura" className={botao}>
+          <CreditCard size={14} className="hidden cel:block" />
+          Atualizar<span className="hidden cel:inline"> cartão</span>
         </Link>
       ) : (
-        <button
-          onClick={assinar}
-          disabled={abrindo}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme transition hover:brightness-95 disabled:opacity-60 cel:self-auto"
-        >
-          <CreditCard size={15} />
-          {abrindo ? 'Abrindo pagamento…' : 'Assinar plano'}
+        <button onClick={assinar} disabled={abrindo} className={botao}>
+          <CreditCard size={14} className="hidden cel:block" />
+          {abrindo ? 'Abrindo…' : 'Assinar'}
         </button>
       )}
     </div>
