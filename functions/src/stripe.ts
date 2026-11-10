@@ -68,8 +68,8 @@ const cliente = () => new Stripe(STRIPE_SECRET_KEY.value())
 
 /**
  * Situação da assinatura de UMA loja, pra barra do painel: em teste (até
- * quando e quantos dias faltam), ativa ou com pagamento falhando. Cada loja
- * tem a própria assinatura. Qualquer membro pode perguntar; `ehDono` diz se
+ * quando e quantos dias faltam), ativa ou com pagamento falhando. Loja extra
+ * da rede herda o status de quem paga. Qualquer membro pode perguntar; `ehDono` diz se
  * quem pergunta é quem paga (só o dono vê o botão de assinar).
  */
 export const situacaoDaAssinatura = onCall(async (req) => {

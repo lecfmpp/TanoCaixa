@@ -31,8 +31,8 @@ function diaDoFim(iso: string): string {
 
 /**
  * Aviso no topo do painel pro DONO da loja aberta: está no teste grátis e até
- * quando. "Assinar plano" já abre o pagamento do Stripe pra esta loja (uma
- * assinatura comum, 1 loja). Some quando a assinatura está ativa, na
+ * quando. "Assinar plano" já abre o pagamento do Stripe pra esta loja (R$ 149;
+ * se a loja tiver rede, o servidor soma as outras lojas a R$ 79). Some quando a assinatura está ativa, na
  * demonstração e pra quem não é dono (quem paga é o dono).
  */
 export function BarraTeste() {
