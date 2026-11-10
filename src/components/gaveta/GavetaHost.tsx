@@ -10,6 +10,7 @@ import { Campo } from '@/components/ui/Campo'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { CampoVencimento } from '@/components/ui/CampoVencimento'
+import { EditorParcelas, conferirParcelas, numeroDoCampo, parcelasIniciais, valorDoCampo, type ParcelaForm } from './EditorParcelas'
 import { usePlanoContas, useCriarDespesa, useAtualizarDespesa, useCriarProduto, useEditarProduto, useCriarFechamento, useCriarMovimento, useCriarNota, useAtualizarNota, useDesfazer, useProdutos, useReceitaDia, useRestaurante } from '@/data/hooks'
 import { pagaFranqueadora } from '@/types'
 import { ImportarCSV } from '@/components/importar/ImportarCSV'
@@ -152,6 +153,9 @@ const NOTA_VAZIA = {
   desconto: '',
   acrescimo: '',
   itens: [ITEM_VAZIO],
+  /** Boleto com mais de um vencimento (só quando ainda vai pagar). */
+  parcelado: false,
+  parcelas: [] as ParcelaForm[],
 }
 
 const DESPESA_VAZIA = {
@@ -274,6 +278,14 @@ export function GavetaHost() {
               preco: valorFormatado(i.precoUnitario),
             }))
           : [ITEM_VAZIO],
+        parcelado: n.parcelas.length > 1,
+        parcelas: n.parcelas.map((p) => ({
+          vencimento: p.vencimento ?? '',
+          valor: valorDoCampo(p.valor),
+          status: p.pago ? ('pago' as const) : ('a_pagar' as const),
+          pagoEm: p.pagoEm,
+          pagoPorNome: p.pagoPorNome,
+        })),
       })
       setDespesa({ ...DESPESA_VAZIA, data: hojeISO() })
       return
@@ -320,13 +332,18 @@ export function GavetaHost() {
   /** Soma dos produtos, antes de descontos e acréscimos. */
   const totalProdutos = itensValidos.reduce((s2, i) => s2 + soNum(i.quantidade) * soNum(i.preco), 0)
   const totalNota = Math.max(0, totalProdutos - soNum(nota.desconto) + soNum(nota.acrescimo))
+  /** Parcelas só valem pra quem ainda vai pagar o boleto. */
+  const parcelada = nota.parcelado && nota.pagamento === 'Ainda vou pagar'
+  const parcelasOk = !parcelada || conferirParcelas(nota.parcelas, Math.round(totalNota * 100) / 100).ok
 
   const totalFechamento =
     soNum(fecha.pix) + soNum(fecha.cartao) + soNum(fecha.dinheiro) + soNum(fecha.apps) + soNum(fecha.delivery) + soNum(fecha.outras)
 
   /** Trava o "Continuar": nota sem item, movimento sem produto e dia sem venda não existem. */
   const podeAvancar =
-    gaveta === 'compra' ? itensValidos.length > 0 && totalProdutos > 0 && totalNota > 0 && (nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
+    gaveta === 'compra'
+      ? itensValidos.length > 0 && totalProdutos > 0 && totalNota > 0 &&
+        (parcelada ? parcelasOk : nota.pagamento !== 'Ainda vou pagar' || !!nota.vencimento)
     : gaveta === 'despesa' ? despesa.pagamento !== 'Ainda vou pagar' || !!despesa.vencimento
     : gaveta === 'produto' ? produto.nome.trim().length > 0
     : gaveta === 'estoque' ? !!estoque.produtoId && soNum(estoque.quantidade) > 0
@@ -352,7 +369,14 @@ export function GavetaHost() {
         { rot: 'Itens', val: `${itensValidos.length}` },
         { rot: 'Data', val: nota.data.split('-').reverse().join('/') },
         { rot: 'Pagamento', val: nota.pagamento },
-        ...(nota.vencimento ? [{ rot: 'Vencimento', val: nota.vencimento.split('-').reverse().join('/') }] : []),
+        ...(parcelada
+          ? nota.parcelas.map((p, i) => ({
+              rot: `Parcela ${i + 1} de ${nota.parcelas.length}`,
+              val: `${p.vencimento.split('-').reverse().join('/')} · ${brl(numeroDoCampo(p.valor))}${p.status === 'pago' ? ' · paga' : ''}`,
+            }))
+          : nota.vencimento
+            ? [{ rot: 'Vencimento', val: nota.vencimento.split('-').reverse().join('/') }]
+            : []),
         { rot: 'Valor total dos produtos', val: brl(totalProdutos) },
         ...(soNum(nota.desconto) > 0 ? [{ rot: 'Descontos', val: `− ${brl(soNum(nota.desconto))}` }] : []),
         ...(soNum(nota.acrescimo) > 0 ? [{ rot: 'Acréscimos', val: `+ ${brl(soNum(nota.acrescimo))}` }] : []),
@@ -548,7 +572,16 @@ export function GavetaHost() {
         fornecedor: nota.fornecedor,
         data: nota.data,
         ...pagamentoParaDoc(nota.pagamento, gavetaEdicao?.alvo === 'nota' ? gavetaEdicao.nota : undefined),
-        vencimento: nota.vencimento || undefined,
+        vencimento: (parcelada ? nota.parcelas[0]?.vencimento : nota.vencimento) || undefined,
+        ...(parcelada
+          ? {
+              parcelas: nota.parcelas.map((p) => ({
+                vencimento: p.vencimento,
+                valor: numeroDoCampo(p.valor),
+                ...(p.status === 'pago' ? { status: 'pago' as const, pagoEm: p.pagoEm, pagoPorNome: p.pagoPorNome } : {}),
+              })),
+            }
+          : {}),
         observacao: nota.obs,
         numeroNota: nota.numero.trim() || undefined,
         desconto: soNum(nota.desconto),
@@ -844,14 +877,44 @@ export function GavetaHost() {
                   {PAGAMENTOS.map((p) => <Chip key={p} rotulo={p} selecionado={nota.pagamento === p} aoClicar={() => setNota({ ...nota, pagamento: p })} />)}
                 </div>
               </div>
-              <CampoVencimento
-                rotulo="Vencimento do boleto"
-                valor={nota.vencimento}
-                aoTrocar={(v) => setNota({ ...nota, vencimento: v })}
-                base={nota.data || hojeISO()}
-                obrigatorio={nota.pagamento === 'Ainda vou pagar'}
-                apoio="Qualquer dia, de qualquer mês. É com essa data que o Início avisa “vence hoje” ou “vencido há X dias”."
-              />
+              {nota.pagamento === 'Ainda vou pagar' && (
+                <div className="flex items-start justify-between gap-3 rounded-campo border border-[rgba(46,95,115,0.14)] px-3.5 py-3">
+                  <span>
+                    <span className="block text-sm font-bold text-tinta">Boleto com mais de um vencimento</span>
+                    <span className="block text-xs text-tinta-4">Ex.: 3 parcelas com datas e valores diferentes, todas da mesma nota.</span>
+                  </span>
+                  <Switch
+                    ligado={nota.parcelado}
+                    aoTrocar={(v) =>
+                      setNota((n) => ({
+                        ...n,
+                        parcelado: v,
+                        parcelas:
+                          v && n.parcelas.length < 2
+                            ? parcelasIniciais(Math.round(totalNota * 100) / 100, 2, n.data || hojeISO(), n.vencimento)
+                            : n.parcelas,
+                      }))
+                    }
+                  />
+                </div>
+              )}
+              {parcelada ? (
+                <EditorParcelas
+                  parcelas={nota.parcelas}
+                  aoMudar={(p) => setNota((n) => ({ ...n, parcelas: p }))}
+                  total={Math.round(totalNota * 100) / 100}
+                  base={nota.data || hojeISO()}
+                />
+              ) : (
+                <CampoVencimento
+                  rotulo="Vencimento do boleto"
+                  valor={nota.vencimento}
+                  aoTrocar={(v) => setNota({ ...nota, vencimento: v })}
+                  base={nota.data || hojeISO()}
+                  obrigatorio={nota.pagamento === 'Ainda vou pagar'}
+                  apoio="Qualquer dia, de qualquer mês. É com essa data que o Início avisa “vence hoje” ou “vencido há X dias”."
+                />
+              )}
               <Campo rotulo="Observação · opcional" destaque={daIA('obs')} placeholder="Ex: entrega da semana" value={nota.obs} onChange={(e) => setNota({ ...nota, obs: e.target.value })} />
               <p className="text-xs text-tinta-4">
                 A nota dá entrada no estoque, atualiza o custo de cada produto e entra no CMV do DRE — tudo de uma vez.

@@ -11,6 +11,8 @@ export interface CanalDoDia {
   canal: string
   valorBruto: number
   recebimentoEm?: string
+  /** Quando alguém confirmou que o dinheiro caiu (o "Marcar como recebido"). */
+  recebidoEm?: string
 }
 
 export interface DiaDeVendas {
@@ -31,6 +33,13 @@ export interface ParteRecebida {
   venda: string
   /** Dia em que o dinheiro cai. */
   recebimento: string
+  /**
+   * O dinheiro já está no caixa. Quem recebe no dia da venda (loja) já nasce
+   * recebido; quem paga depois (apps) fica "a receber" até alguém confirmar.
+   */
+  recebido: boolean
+  /** Dia confirmado do recebimento ('YYYY-MM-DD'), quando alguém marcou. */
+  recebidoEm?: string
 }
 
 /** Só aceita 'YYYY-MM-DD' que não seja anterior à venda (recebimento antes da venda não existe). */
@@ -44,13 +53,19 @@ export function recebimentoValido(venda: string, recebimentoEm: string | undefin
 export function partesDoDia(r: DiaDeVendas): ParteRecebida[] {
   return r.canais
     .filter((c) => c.valorBruto > 0)
-    .map((c) => ({
-      diaId: r.id,
-      canal: c.canal,
-      valor: c.valorBruto,
-      venda: r.data.slice(0, 10),
-      recebimento: recebimentoValido(r.data, c.recebimentoEm),
-    }))
+    .map((c) => {
+      const venda = r.data.slice(0, 10)
+      const recebimento = recebimentoValido(r.data, c.recebimentoEm)
+      return {
+        diaId: r.id,
+        canal: c.canal,
+        valor: c.valorBruto,
+        venda,
+        recebimento,
+        recebido: recebimento === venda || !!c.recebidoEm,
+        ...(c.recebidoEm ? { recebidoEm: c.recebidoEm.slice(0, 10) } : {}),
+      }
+    })
 }
 
 /** As partes cujo recebimento (ou venda, conforme a base) cai em [de, ate]. */
@@ -62,5 +77,8 @@ export function partesNaJanela(dias: DiaDeVendas[], base: BaseReceita, de: strin
       return dia >= de && dia <= ate
     })
 }
+
+/** Só o que ainda vai cair: pagamento depois da venda, sem confirmação. */
+export const aReceber = (ps: ParteRecebida[]) => ps.filter((p) => !p.recebido)
 
 export const somarPartes = (ps: ParteRecebida[]) => ps.reduce((s, p) => s + p.valor, 0)

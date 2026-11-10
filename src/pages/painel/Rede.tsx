@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Store, Plus } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
@@ -118,22 +119,28 @@ function PainelDaRede({
 
       {carregando && <p className="text-sm text-tinta-4">Somando as lojas…</p>}
 
+      <Secoes>
       {/* Comparativo loja a loja */}
-      <Cartao className="overflow-hidden p-0">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-[15px] font-bold text-tinta">Loja a loja</h2>
+      <Secao
+        titulo="Loja a loja"
+        abertaPorPadrao
+        resumo={`${lojas.length} loja${lojas.length === 1 ? '' : 's'}`}
+        acoes={
           <button
             onClick={() => setAberta((v) => !v)}
             className="flex items-center gap-1.5 text-sm font-bold text-mar hover:underline"
           >
             <Plus size={15} /> Abrir loja
           </button>
-        </div>
-        {aberta && <FormAbrirLoja aoFechar={() => setAberta(false)} />}
+        }
+        className="overflow-hidden"
+        corpoClassName="!p-0"
+      >
+        {aberta && <div className="-mt-px"><FormAbrirLoja aoFechar={() => setAberta(false)} /></div>}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
+              <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
                 <Th>Loja</Th>
                 <Th className="text-right">Receita</Th>
                 <Th className="text-right">CMV</Th>
@@ -183,18 +190,19 @@ function PainelDaRede({
             </tbody>
           </table>
         </div>
-      </Cartao>
+      </Secao>
 
       {/* DRE consolidado */}
-      <Cartao className="overflow-hidden p-0">
-        <div className="px-4 py-3">
-          <h2 className="text-[15px] font-bold text-tinta">DRE consolidado</h2>
-          <p className="text-xs text-tinta-4">Mesmo plano de contas das lojas, somado.</p>
-        </div>
+      <Secao
+        titulo="DRE consolidado"
+        descricao="Mesmo plano de contas das lojas, somado."
+        className="overflow-hidden"
+        corpoClassName="!p-0"
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
             <thead>
-              <tr className="border-y border-divisoria bg-preenchimento/40 text-left">
+              <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
                 <Th>Conta</Th>
                 <Th className="text-right">Rede</Th>
                 <Th className="text-right">% receita</Th>
@@ -224,7 +232,8 @@ function PainelDaRede({
             </tbody>
           </table>
         </div>
-      </Cartao>
+      </Secao>
+      </Secoes>
     </div>
   )
 }

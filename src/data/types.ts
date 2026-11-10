@@ -31,6 +31,10 @@ export interface RestauranteDoc {
   redeId?: string
   /** Nome da bandeira, quando faz parte de uma rede. */
   bandeira?: string
+  /** Logo da loja (Storage), mostrada no header. Ver src/data/logo.ts. */
+  logoUrl?: string
+  /** Formato da logo enviada: decide a caixa do header (quadrada ou horizontal). */
+  logoFormato?: 'quadrado' | 'horizontal'
   /** % da receita bruta cobrados pela franqueadora. Só para franqueadas. */
   taxasFranquia?: { royalties: number; fundoPromocao: number }
   /**
@@ -111,6 +115,10 @@ export interface DespesaDoc extends Autoria {
   notaId?: string
   /** Número impresso na nota fiscal (o do fornecedor, não o `notaId` interno). */
   numeroNota?: string
+  /** Parcela deste lançamento (1, 2, 3…) quando o boleto da nota tem vários vencimentos. */
+  parcela?: number
+  /** Quantas parcelas a nota tem. Sem o campo (ou 1): nota à vista / vencimento único. */
+  parcelas?: number
   /** Desconto e acréscimo da nota INTEIRA (iguais em todos os lançamentos dela);
    *  o `valorTotal` de cada lançamento já carrega a sua parte proporcional. */
   descontoNota?: number
@@ -149,8 +157,11 @@ export interface ReceitaDiaDoc extends Autoria {
   data: string // ISO dia
   /** Trilha de quem lançou as vendas do dia e quando — do primeiro ao último. */
   historico?: LancamentoDeVendas[]
-  /** `recebimentoEm`: dia em que o dinheiro do canal cai (apps pagam depois). Sem ele, cai no dia da venda. Não muda o DRE. */
-  canais: { canal: CanalVenda; valorBruto: number; taxa: number; pedidos: number; recebimentoEm?: string }[]
+  /**
+   * `recebimentoEm`: dia em que o dinheiro do canal cai (apps pagam depois). Sem ele, cai no dia da venda.
+   * `recebidoEm`/`recebidoPorNome`: quem confirmou que caiu e quando ("Marcar como recebido"). Nada disso muda o DRE.
+   */
+  canais: { canal: CanalVenda; valorBruto: number; taxa: number; pedidos: number; recebimentoEm?: string; recebidoEm?: string; recebidoPorNome?: string }[]
   recebimentos: { forma: string; valor: number }[]
   sangria: number
   totalDia: number

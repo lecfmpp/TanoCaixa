@@ -7,7 +7,7 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon'
 import { getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/auth/AuthContext'
-import { ErroDeSessao } from '@/auth/ErroDeSessao'
+import { AvisoSaida, ErroDeSessao } from '@/auth/ErroDeSessao'
 import { codigoDoErro, mensagemDeErroAuth } from '@/auth/erros'
 
 export function EntrarPage() {
@@ -95,6 +95,7 @@ export function EntrarPage() {
       </div>
 
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
+        <AvisoSaida />
         <Campo
           rotulo="E-mail"
           name="email"

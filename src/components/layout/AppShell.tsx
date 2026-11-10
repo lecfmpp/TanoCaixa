@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Outlet, useSearchParams } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
-import { AvisoAssinatura } from './AvisoAssinatura'
+import { BarraTeste } from '@/components/assinatura/BarraTeste'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { usePlanoContas } from '@/data/hooks'
+import { useVigiaAcesso } from '@/auth/vigiaAcesso'
 import { useMesRef } from '@/ui/periodo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 
@@ -21,6 +22,8 @@ export function AppShell() {
   // Carrega o plano de contas da loja antes de qualquer tela renderizar: é ele
   // que diz quais contas existem no DRE, nos filtros e nas gavetas.
   usePlanoContas()
+  // Perdeu o acesso à loja aberta ou o papel mudou → desloga explicando o motivo.
+  useVigiaAcesso()
   const [gaveta, setGaveta] = useState(false)
   // Trocar o mês refaz a página inteira: os números leem o mês na hora de renderizar.
   const mes = useMesRef()
@@ -58,6 +61,9 @@ export function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Aviso do teste grátis pro dono, acima de tudo */}
+        <BarraTeste />
+
         {/* Topo só no mobile/tablet */}
         <header className="flex items-center justify-between border-b border-divisoria bg-superficie px-4 py-3 tab:hidden">
           <Logo tom="escuro" tamanho={20} href="/painel" />
@@ -72,7 +78,6 @@ export function AppShell() {
 
         <main className={cn('scroll-fina flex-1 overflow-y-auto', 'px-5 py-5 tab:px-7 tab:py-6')}>
           <div className="mx-auto max-w-[1180px]">
-            <AvisoAssinatura />
             <Outlet key={mes} />
           </div>
         </main>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { fotos } from '@/lib/fotos'
 import { brlInteiro, inteiro } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -191,73 +192,73 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
         <CartaoKpi rotulo="Saiu" valor={brlInteiro(r.saiu)} visivel mini={r.barras.map((b) => b.saiu)} cor={TELHA} variacao={saiuVar} />
       </div>
 
+      <Secoes>
       {/* Metas */}
-      <Cartao className="min-w-0">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-1">
-          <h2 className="text-[15px] font-bold text-tinta">Metas {periodo === 'mes' ? 'do mês' : 'do período'}</h2>
-          <span className="text-xs text-tinta-4">a marca vertical é a meta definida em <Link to="/painel/metas" className="font-semibold text-mar hover:underline">Metas e números</Link></span>
-        </div>
+      <Secao titulo={`Metas ${periodo === 'mes' ? 'do mês' : 'do período'}`} abertaPorPadrao className="min-w-0">
+        <span className="text-xs text-tinta-4">a marca vertical é a meta definida em <Link to="/painel/metas" className="font-semibold text-mar hover:underline">Metas e números</Link></span>
         <div className="mt-[18px] gap-x-8 gap-y-5" style={GRADE(340)}>
           {metas.map((m) => (
             <BarraMeta key={m.nome} nome={m.nome} desc={m.desc} valor={m.valor} teto={m.teto} semVendas={fat <= 0} />
           ))}
         </div>
-      </Cartao>
+      </Secao>
 
-      <div className="gap-3.5" style={GRADE(460)}>
-        {/* Gráfico principal: caminho até o equilíbrio (mês) ou entrou × saiu (semana / intervalo) */}
-        {periodo === 'mes' ? (
-          <CartaoGrafico
-            className="col-span-full"
-            titulo="Caminho até o ponto de equilíbrio"
-            sub="quanto já vendeu no mês, dia a dia"
-            direita={
-              <div className="flex flex-wrap items-center gap-3.5 text-xs text-tinta-2">
-                <span className="flex items-center gap-1.5"><span className="h-[3px] w-3.5 rounded-sm bg-mar" />vendido</span>
-                <span className="flex items-center gap-1.5"><span className="w-3.5 border-t-[3px] border-dotted border-mar" />projeção</span>
-              </div>
-            }
-          >
-            {acumulado.acum[acumulado.acum.length - 1] > 0 || r.pontoEquilibrio > 0 ? (
-              <>
-                <CaminhoEquilibrio
-                  acum={acumulado.acum}
-                  proj={acumulado.proj}
-                  ultimoDia={acumulado.ultimoDia}
-                  hojeDia={acumulado.hojeDia}
-                  pontoEquilibrio={r.pontoEquilibrio}
-                  meta={metaMes}
-                  cruzouDia={acumulado.cruzouDia}
-                />
-                <Leitura>{leituraAcumulado(acumulado, r.pontoEquilibrio, metaMes)}</Leitura>
-              </>
-            ) : (
-              <VazioGrafico>{vazio}</VazioGrafico>
-            )}
-          </CartaoGrafico>
-        ) : (
-          <CartaoGrafico
-            className="col-span-full"
-            titulo={periodo === 'semana' ? 'Entrou × saiu, dia a dia' : 'Entrou × saiu no período'}
-            sub={rotuloDoPeriodo(periodo)}
-            direita={
-              <div className="flex items-center gap-3.5 text-xs text-tinta-2">
-                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" />entrou</span>
-                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" />saiu</span>
-              </div>
-            }
-          >
-            {r.barras.some((b) => b.entrou > 0 || b.saiu > 0) ? (
-              <>
-                <BarrasEntrouSaiu barras={r.barras} />
-                <Leitura>{leituraBarras(r.barras)}</Leitura>
-              </>
-            ) : (
-              <VazioGrafico>{vazio}</VazioGrafico>
-            )}
-          </CartaoGrafico>
-        )}
+      {/* Gráfico principal: caminho até o equilíbrio (mês) ou entrou × saiu (semana / intervalo) */}
+      {periodo === 'mes' ? (
+        <Secao
+          className="min-w-0"
+          titulo="Caminho até o ponto de equilíbrio"
+          descricao="quanto já vendeu no mês, dia a dia"
+          acoes={
+            <div className="flex flex-wrap items-center gap-3.5 text-xs text-tinta-2">
+              <span className="flex items-center gap-1.5"><span className="h-[3px] w-3.5 rounded-sm bg-mar" />vendido</span>
+              <span className="flex items-center gap-1.5"><span className="w-3.5 border-t-[3px] border-dotted border-mar" />projeção</span>
+            </div>
+          }
+        >
+          {acumulado.acum[acumulado.acum.length - 1] > 0 || r.pontoEquilibrio > 0 ? (
+            <>
+              <CaminhoEquilibrio
+                acum={acumulado.acum}
+                proj={acumulado.proj}
+                ultimoDia={acumulado.ultimoDia}
+                hojeDia={acumulado.hojeDia}
+                pontoEquilibrio={r.pontoEquilibrio}
+                meta={metaMes}
+                cruzouDia={acumulado.cruzouDia}
+              />
+              <Leitura>{leituraAcumulado(acumulado, r.pontoEquilibrio, metaMes)}</Leitura>
+            </>
+          ) : (
+            <VazioGrafico>{vazio}</VazioGrafico>
+          )}
+        </Secao>
+      ) : (
+        <Secao
+          className="min-w-0"
+          titulo={periodo === 'semana' ? 'Entrou × saiu, dia a dia' : 'Entrou × saiu no período'}
+          descricao={rotuloDoPeriodo(periodo)}
+          acoes={
+            <div className="flex items-center gap-3.5 text-xs text-tinta-2">
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" />entrou</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" />saiu</span>
+            </div>
+          }
+        >
+          {r.barras.some((b) => b.entrou > 0 || b.saiu > 0) ? (
+            <>
+              <BarrasEntrouSaiu barras={r.barras} />
+              <Leitura>{leituraBarras(r.barras)}</Leitura>
+            </>
+          ) : (
+            <VazioGrafico>{vazio}</VazioGrafico>
+          )}
+        </Secao>
+      )}
 
+      {/* Para onde foi o dinheiro · de onde vêm as vendas */}
+      <Secao className="min-w-0" titulo="Gastos e vendas" descricao="para onde foi o dinheiro e de onde vêm as vendas">
+        <div className="gap-3.5" style={GRADE(460)}>
         {/* Para onde foi o dinheiro */}
         <CartaoGrafico titulo="Para onde foi o dinheiro" sub="tudo que saiu, por grupo do DRE">
           {gastos.length ? (
@@ -327,6 +328,12 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
           )}
         </CartaoGrafico>
 
+        </div>
+      </Secao>
+
+      {/* Dias da semana e histórico do ano */}
+      <Secao className="min-w-0" titulo="Ao longo do tempo" descricao="quais dias vendem mais, compras e quanto sobrou mês a mês">
+        <div className="gap-3.5" style={GRADE(460)}>
         {/* Quais dias vendem mais */}
         <CartaoGrafico titulo="Quais dias vendem mais" sub={`média por dia da semana, em ${nomeCurtoDoMes(MES_REF)}`}>
           {dias.some((d) => d.media > 0) ? (
@@ -384,7 +391,9 @@ export function DashboardView({ ctx, cfg, planoDoMes, permissoes, periodo, setPe
             <VazioGrafico>Assim que houver venda e despesa lançadas, o quanto sobrou de cada mês aparece aqui.</VazioGrafico>
           )}
         </CartaoGrafico>
-      </div>
+        </div>
+      </Secao>
+      </Secoes>
     </div>
   )
 }

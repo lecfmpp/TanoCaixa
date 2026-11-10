@@ -62,6 +62,20 @@ test('vencimentos: vencido, hoje e amanhã entram; longe e pago não; nota com 2
   assert.match(m, /^⏰ \*2 vencimentos pedem atenção\*\n• Luz: R\$ 100,00, vencido há 2 dias\n• Boa Safra: R\$ 200,00, vence amanhã \(06\/10\)\nAo pagar/)
 })
 
+test('vencimentos: boleto parcelado conta cada parcela no seu dia e valor, não a soma', () => {
+  const r = REGRAS.vencimentos.detectar
+  const p = (id, parcela, venc, valor, extra = {}) => ({ id, fornecedor: 'Atacadão', valorTotal: valor, dataCompetencia: '2026-10-01', dataVencimento: venc, status: 'a_pagar', notaId: 'nf9', parcela, parcelas: 3, ...extra })
+  const despesas = [
+    // parcela 1 vence amanhã, em 2 contas do DRE (alimento + bebida) que somam R$ 1.200
+    p('a1', 1, '2026-10-06', 700), p('b1', 1, '2026-10-06', 500),
+    // parcela 2 vence em 30 dias: fica de fora; parcela 3 já paga
+    p('a2', 2, '2026-11-05', 1200), p('a3', 3, '2026-10-04', 1100, { status: 'pago' }),
+  ]
+  const m = legenda('vencimentos', r(ctx({ despesas })))
+  assert.match(m, /Atacadão \(parcela 1\/3\): R\$ 1\.200,00, vence amanhã \(06\/10\)/)
+  assert.doesNotMatch(m, /3\.500|2\.400|parcela 2|parcela 3/)
+})
+
 test('alta de preço: usa a variação que o app já grava, de nota de hoje ou ontem', () => {
   const r = REGRAS.alta_de_preco.detectar
   const despesa = (criadoEm, variacao) => ({ id: 'a', fornecedor: 'Boa Safra', valorTotal: 50, dataCompetencia: '2026-10-05', status: 'pago', criadoEm, itens: [{ produto: 'Tomate', unidade: 'kg', precoUnitario: 7.41, variacao }] })

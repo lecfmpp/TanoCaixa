@@ -14,6 +14,9 @@
     "src/recorrentesDb.ts",
     "src/recorrentesDb.test.ts",
     "src/assinatura.ts",
-    "src/assinatura.test.ts"
+    "src/assinatura.test.ts",
+    "src/papel.ts",
+    "src/convitesRegras.ts",
+    "src/convitesRegras.test.ts"
   ]
 }

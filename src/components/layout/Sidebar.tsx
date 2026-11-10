@@ -3,10 +3,12 @@ import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/cn'
 import { itensNav } from './nav'
+import { useSiteLiberado } from '@/auth/site'
 import { useAuth } from '@/auth/AuthContext'
-import { useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
+import { useLojasAcessiveis, useRede, useRestaurante, useTenantDoLogin } from '@/data/hooks'
 import { useLojaAtiva, definirLojaAtiva } from '@/data/lojaAtiva'
 import { temRede } from '@/types'
+import { SeletorLoja } from './SeletorLoja'
 
 /** Barra lateral 236px cor Mar, menu em texto (sem ícones). */
 export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
@@ -19,8 +21,14 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
   const rede = useRede().data
   const lojaAtiva = useLojaAtiva()
   const tenantDoLogin = useTenantDoLogin()
+  // Só as lojas que esta pessoa pode abrir: a rede toda pro dono dela, as do
+  // convite pra quem foi convidado.
+  const lojas = useLojasAcessiveis()
   const mostraRede = !!rede || temRede(cfg?.tipoNegocio) || usuario?.papel === 'franqueador'
-  const itens = itensNav.filter((i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede))
+  const siteLiberado = useSiteLiberado()
+  const itens = itensNav.filter(
+    (i) => !i.oculto && permissoes?.[i.chave] && (!i.para.match(/\/(rede|franquias)$/) || mostraRede) && (i.recurso !== 'site' || siteLiberado),
+  )
 
   return (
     <nav className="flex h-full w-[236px] shrink-0 flex-col bg-mar text-creme">
@@ -29,22 +37,16 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       </div>
 
       {/* Trocar de loja — o painel inteiro passa a ser da loja escolhida */}
-      {rede && rede.lojas.length > 1 && (
+      {lojas.length > 1 && (
         <div className="px-4 pb-4">
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-creme/50">
             Loja
-          </label>
-          <select
-            value={lojaAtiva ?? tenantDoLogin}
-            onChange={(e) => definirLojaAtiva(e.target.value === tenantDoLogin ? null : e.target.value)}
-            className="w-full rounded-botao border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-creme outline-none focus:border-white/40"
-          >
-            {rede.lojas.map((l) => (
-              <option key={l.restauranteId} value={l.restauranteId} className="text-tinta">
-                {l.nome}
-              </option>
-            ))}
-          </select>
+          </span>
+          <SeletorLoja
+            lojas={lojas}
+            ativa={lojaAtiva ?? tenantDoLogin}
+            aoEscolher={(rid) => definirLojaAtiva(rid === tenantDoLogin ? null : rid)}
+          />
         </div>
       )}
 
@@ -54,16 +56,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
       <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-4">
         {itens.map((item) => (
           <li key={item.para}>
-            {item.recurso === 'pdv' ? (
-              <span
-                aria-disabled
-                title="O PDV está chegando"
-                className="block cursor-not-allowed rounded-botao px-4 py-2.5 text-[15px] font-medium text-creme/40"
-              >
-                {item.rotulo}
-                <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
-              </span>
-            ) : (
             <NavLink
               to={item.para}
               end={item.para === '/painel'}
@@ -82,7 +74,6 @@ export function Sidebar({ aoNavegar }: { aoNavegar?: () => void }) {
                 <span className="ml-2 rounded-chip bg-sol/25 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-sol">em breve</span>
               )}
             </NavLink>
-            )}
           </li>
         ))}
       </ul>

@@ -1,8 +1,10 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { recebimentoValido } from './recebimentos'
-import { doc, deleteDoc, getDoc } from 'firebase/firestore'
+import { arrayRemove, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getRestaurante, setRestaurante, repo } from './repo'
+import { dividirEmParcelas, type ParcelaEntrada } from './parcelas'
 import { getRede, getRedeDoDono, criarRede, abrirLoja, type LojaDaRede } from './rede'
 import { acessoDaAssinatura, diasDeTeste, getAssinatura, type Acesso } from './planos'
 import { getPlanoMes, salvarPlanoMes, nomeDoMesAtual, type PlanoMesDoc } from './planoMes'
@@ -20,7 +22,7 @@ import { useLojaAtiva } from './lojaAtiva'
 import { useAuth } from '@/auth/AuthContext'
 import { numeroBR, dataBRparaISO } from '@/lib/csv'
 import { brl } from '@/lib/format'
-import { temRede, type TipoNegocio } from '@/types'
+import { temRede, type Papel, type TipoNegocio } from '@/types'
 import type { TipoImport } from './importar'
 import { precosPorItem, type Nota } from './compras'
 import { jurosDoPagamento } from './fluxo'
@@ -29,7 +31,9 @@ import {
   contaDeCmvDoProduto,
   aplicarPlanoDeContas,
   CONTA,
+  LINHAS_RECEITA,
   TETOS_PADRAO,
+  type CanalVenda,
   type Tetos,
   type CategoriaDespesa,
   type ContaPersonalizada,
@@ -139,6 +143,51 @@ export function useRede() {
     },
     enabled: demo || !!uid,
   })
+}
+
+export interface LojaAcessivel {
+  restauranteId: string
+  nome: string
+  /** Papel nesta loja, quando a pessoa entrou por convite. Dono da rede: vazio. */
+  papel?: Papel
+  /** Pode gerar convite pra esta loja (dono, dono da rede ou gestão). */
+  podeConvidar: boolean
+}
+
+const PAPEIS_QUE_CONVIDAM: Papel[] = ['dono', 'franqueador', 'gestao']
+
+/**
+ * Lojas que a pessoa logada pode abrir: a rede inteira só pra quem é dono da
+ * rede; pra quem entrou por convite, só as lojas marcadas no convite
+ * (`sessao.acessos`). A loja do login sempre entra.
+ */
+export function useLojasAcessiveis(): LojaAcessivel[] {
+  const { sessao } = useAuth()
+  const rede = useRede().data
+  return useMemo(() => {
+    if (!sessao) return []
+    const lista: LojaAcessivel[] = []
+    const vistas = new Set<string>()
+    const add = (l: LojaAcessivel) => {
+      if (vistas.has(l.restauranteId)) return
+      vistas.add(l.restauranteId)
+      lista.push(l)
+    }
+    const donoDaRede = !!rede && (sessao.demo || rede.donoUid === sessao.usuario.id)
+    if (donoDaRede) {
+      for (const l of rede.lojas) add({ restauranteId: l.restauranteId, nome: l.nome, podeConvidar: true })
+    }
+    add({
+      restauranteId: sessao.tenantId,
+      nome: sessao.restaurante.nome,
+      papel: sessao.usuario.papel,
+      podeConvidar: PAPEIS_QUE_CONVIDAM.includes(sessao.usuario.papel),
+    })
+    for (const [rid, a] of Object.entries(sessao.acessos ?? {})) {
+      add({ restauranteId: rid, nome: a.nome, papel: a.papel, podeConvidar: PAPEIS_QUE_CONVIDAM.includes(a.papel) })
+    }
+    return lista
+  }, [sessao, rede])
 }
 
 export interface LojaComContexto {
@@ -764,7 +813,12 @@ export function useRemoverMembro() {
   const t = useTenant()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => repo.membros.remover(t, id),
+    // Apagar só o doc de membro não tira o acesso: as regras do Firestore
+    // liberam a loja por `memberUids`. Tira dos dois — primeiro o acesso.
+    mutationFn: async (id: string) => {
+      await updateDoc(doc(db, 'restaurants', t), { memberUids: arrayRemove(id) })
+      await repo.membros.remover(t, id)
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: [t, 'membros'] }),
   })
 }
@@ -885,6 +939,11 @@ export function useCriarFechamento() {
 
       // Trilha: se o dia já tinha lançamento, ele continua na lista.
       const anterior = (await repo.receitaDia.listar(t)).find((r) => r.id === id)
+      // Relançar o dia não desfaz o "recebido" de um canal que já caiu.
+      const canaisFinais = canais.map((c) => {
+        const antes = anterior?.canais.find((a) => a.canal === c.canal)
+        return antes?.recebidoEm ? { ...c, recebidoEm: antes.recebidoEm, recebidoPorNome: antes.recebidoPorNome ?? '' } : c
+      })
       const historicoAnterior =
         anterior?.historico ??
         (anterior
@@ -898,7 +957,7 @@ export function useCriarFechamento() {
       const receita = {
         id,
         data: hoje,
-        canais,
+        canais: canaisFinais,
         recebimentos: [
           { forma: 'pix', valor: pix },
           { forma: 'cartao', valor: cartao },
@@ -959,6 +1018,62 @@ export function useRestaurarReceitaDia() {
   })
 }
 
+/**
+ * "Marcar como recebido": o dinheiro de um canal (app, delivery) caiu. Grava
+ * quem confirmou e o dia no próprio canal do dia de vendas. Não mexe no DRE —
+ * a venda continua contando no dia em que foi feita.
+ */
+export function useMarcarRecebido() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { r: ReceitaDiaDoc; canal: CanalVenda; dia: string }) => {
+      const autor = getAutor()
+      // Recebido hoje: a hora de agora. Em outro dia: meio-dia, pra não virar de dia no fuso.
+      const recebidoEm = p.dia === diaDeHoje() ? autor.criadoEm : `${p.dia}T12:00:00.000Z`
+      const canais = p.r.canais.map((c) => (c.canal === p.canal ? { ...c, recebidoEm, recebidoPorNome: autor.criadoPorNome } : c))
+      await repo.receitaDia.salvar(t, p.r.id, { canais })
+      const valor = p.r.canais.find((c) => c.canal === p.canal)?.valorBruto ?? 0
+      await registrarAtividade(
+        t,
+        { acao: 'recebeu', entidade: `${nomeDoCanalDeVenda(p.canal)} da venda de ${dataBRDe(p.r.data)}`, tipo: 'Recebimento', valor, quem: '', quemInicial: '', quemCor: '' },
+        autor,
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+/** Volta o canal pra "a receber" (o desfazer do recebimento). */
+export function useDesfazerRecebimento() {
+  const t = useTenant()
+  const qc = useQueryClient()
+  const getAutor = useAutor()
+  return useMutation({
+    mutationFn: async (p: { r: ReceitaDiaDoc; canal: CanalVenda }) => {
+      const canais = p.r.canais.map((c) => (c.canal === p.canal ? { ...c, recebidoEm: '', recebidoPorNome: '' } : c))
+      await repo.receitaDia.salvar(t, p.r.id, { canais })
+      const valor = p.r.canais.find((c) => c.canal === p.canal)?.valorBruto ?? 0
+      await registrarAtividade(
+        t,
+        { acao: 'voltou pra “a receber”', entidade: `${nomeDoCanalDeVenda(p.canal)} da venda de ${dataBRDe(p.r.data)}`, tipo: 'Recebimento', valor, quem: '', quemInicial: '', quemCor: '' },
+        getAutor(),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [t, 'receita_dia'] })
+      qc.invalidateQueries({ queryKey: [t, 'atividades'] })
+    },
+  })
+}
+
+const dataBRDe = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
+const nomeDoCanalDeVenda = (canal: CanalVenda) => LINHAS_RECEITA.find((l) => l.canais.includes(canal))?.nome ?? canal
+
 export interface ItemDaNota {
   produtoId: string
   quantidade: number
@@ -979,6 +1094,8 @@ export interface EntradaNota {
   desconto?: number
   acrescimo?: number
   itens: ItemDaNota[]
+  /** Boleto com mais de um vencimento. Com 2+ parcelas, `vencimento` é ignorado. */
+  parcelas?: ParcelaEntrada[]
 }
 
 /** Autoria já resolvida, sem os campos privados do `useAutor`. */
@@ -1060,35 +1177,52 @@ async function gravarNota(
   const desconto = Math.max(0, e.desconto ?? 0)
   const acrescimo = Math.max(0, e.acrescimo ?? 0)
   const ajuste = acrescimo - desconto
-  let valorTotal = 0
-  for (const [categoria, itens] of porConta) {
+  const contas = [...porConta].map(([categoria, itens]) => {
     const bruto = itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0)
     const parte = totalProdutos > 0 ? bruto / totalProdutos : 0
-    const valor = Math.round((bruto + ajuste * parte) * 100) / 100
-    valorTotal += valor
-    const despesaId = novoId('d')
-    await repo.despesas.salvar(t, despesaId, {
-      id: despesaId,
-      fornecedor: e.fornecedor || 'Fornecedor',
-      descricao: itens.map((i) => i.produto).join(', '),
-      categoria,
-      valorTotal: valor,
-      dataCompetencia: e.data,
-      ...(e.vencimento ? { dataVencimento: e.vencimento } : {}),
-      formaPagamento: e.formaPagamento,
-      status: e.status,
-      recorrente: false,
-      tipoLancamento: 'compra',
-      notaId,
-      itens,
-      ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
-      ...(desconto > 0 ? { descontoNota: desconto } : {}),
-      ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
-      ...(e.observacao ? { observacao: e.observacao } : {}),
-      ...autoria,
-      ...extras,
-    })
-    criados.push({ colecao: 'despesas', id: despesaId })
+    return { categoria, itens, valor: Math.round((bruto + ajuste * parte) * 100) / 100 }
+  })
+  const valorTotal = contas.reduce((s, c) => s + c.valor, 0)
+
+  // Boleto parcelado: cada conta vira um lançamento por parcela, com o
+  // vencimento e a parte dela no valor da parcela. Sem parcelas, uma "parcela"
+  // única com o vencimento da nota — o mesmo lançamento de sempre.
+  const parcelas = e.parcelas && e.parcelas.length > 1 ? e.parcelas : null
+  const matriz = parcelas ? dividirEmParcelas(contas.map((c) => c.valor), parcelas.map((p) => p.valor)) : null
+
+  for (const [ci, { categoria, itens, valor }] of contas.entries()) {
+    const fatias = parcelas ?? [{ vencimento: e.vencimento ?? '', valor } as ParcelaEntrada]
+    for (const [pi, parcela] of fatias.entries()) {
+      const status = parcela.status ?? e.status
+      const despesaId = novoId('d')
+      await repo.despesas.salvar(t, despesaId, {
+        id: despesaId,
+        fornecedor: e.fornecedor || 'Fornecedor',
+        descricao: itens.map((i) => i.produto).join(', '),
+        categoria,
+        valorTotal: matriz ? matriz[ci][pi] : valor,
+        dataCompetencia: e.data,
+        ...(parcela.vencimento ? { dataVencimento: parcela.vencimento } : {}),
+        formaPagamento: e.formaPagamento,
+        status,
+        recorrente: false,
+        tipoLancamento: 'compra',
+        notaId,
+        // Os itens ficam só na 1ª parcela: senão a nota remontada mostraria a
+        // mercadoria repetida uma vez por parcela.
+        ...(pi === 0 ? { itens } : { itens: [] }),
+        ...(parcelas ? { parcela: pi + 1, parcelas: parcelas.length } : {}),
+        ...(e.numeroNota ? { numeroNota: e.numeroNota } : {}),
+        ...(desconto > 0 ? { descontoNota: desconto } : {}),
+        ...(acrescimo > 0 ? { acrescimoNota: acrescimo } : {}),
+        ...(e.observacao ? { observacao: e.observacao } : {}),
+        ...autoria,
+        ...extras,
+        // Parcela que já estava paga (correção da nota) mantém quem pagou.
+        ...(parcelas && status === 'pago' && parcela.pagoEm ? { pagoEm: parcela.pagoEm, pagoPorNome: parcela.pagoPorNome } : {}),
+      })
+      criados.push({ colecao: 'despesas', id: despesaId })
+    }
   }
 
   // O custo do produto é sempre o da compra mais recente que existe hoje —
@@ -1212,7 +1346,9 @@ export function useAtualizarNota() {
       // Já estava paga: mantém quem pagou. Passou a paga agora: quem corrigiu pagou.
       const pagaAntes = antiga.despesas.length > 0 && antiga.despesas.every((d) => d.status === 'pago')
       const marcaPago =
-        entrada.status === 'pago'
+        entrada.parcelas && entrada.parcelas.length > 1
+          ? {}
+          : entrada.status === 'pago'
           ? pagaAntes
             ? { pagoEm: original?.pagoEm, pagoPorNome: original?.pagoPorNome }
             : { pagoEm: autor.criadoEm, pagoPorNome: autor.criadoPorNome }

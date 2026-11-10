@@ -37,6 +37,8 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { exigirDonoOuGestao } from './acesso'
 import {
   eventoEhMaisNovo,
+  fimDoTesteDaConta,
+  situacaoDoPainel,
   itensDaAssinatura,
   estaPago,
   statusDoStripe,
@@ -46,6 +48,7 @@ import {
   PRECO_LOJA_EXTRA_CENTAVOS,
   type Situacao,
 } from './assinatura'
+import { normalizarPapel } from './papel'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
@@ -62,6 +65,31 @@ const comContexto = {
 
 const db = getFirestore()
 const cliente = () => new Stripe(STRIPE_SECRET_KEY.value())
+
+/**
+ * Situação da assinatura de UMA loja, pra barra do painel: em teste (até
+ * quando e quantos dias faltam), ativa ou com pagamento falhando. Cada loja
+ * tem a própria assinatura. Qualquer membro pode perguntar; `ehDono` diz se
+ * quem pergunta é quem paga (só o dono vê o botão de assinar).
+ */
+export const situacaoDaAssinatura = onCall(async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Faça login primeiro')
+  const rid = (req.data as Record<string, string> | undefined)?.restauranteId
+  if (!rid) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+  const [rest, membro, assin] = await Promise.all([
+    db.doc(`restaurants/${rid}`).get(),
+    db.doc(`restaurants/${rid}/membros/${uid}`).get(),
+    db.doc(`assinaturas/${rid}`).get(),
+  ])
+  const membros = rest.data()?.memberUids as string[] | undefined
+  if (!membros?.includes(uid)) throw new HttpsError('permission-denied', 'Você não faz parte desta loja')
+  const dados = assin.data() ?? {}
+  const testeAte = fimDoTesteDaConta(dados.testeAte as string | undefined)
+  const { situacao, diasRestantes } = situacaoDoPainel(dados.status as string | undefined, testeAte, new Date())
+  return { situacao, diasRestantes, testeAte, ehDono: normalizarPapel(membro.data()?.papel as string | undefined) === 'dono' }
+})
+
 
 /* ------------------------------ Preços ---------------------------------- */
 

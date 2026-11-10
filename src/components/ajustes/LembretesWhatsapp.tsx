@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '@/lib/firebase'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao } from '@/components/ui/Acordeao'
 import { Switch } from '@/components/ui/Switch'
 import { Campo } from '@/components/ui/Campo'
 import { Button } from '@/components/ui/Button'
@@ -35,7 +35,7 @@ const salvar = httpsCallable<{ restauranteId: string; id: string; ativo: boolean
  * tem grupo cadastrado (e é dono ou gestão): sem grupo, ou sem permissão, o
  * servidor responde e a seção simplesmente não existe. Tudo começa desligado.
  */
-export function LembretesWhatsapp() {
+export function LembretesWhatsapp({ semGrupo }: { semGrupo?: ReactNode } = {}) {
   const t = useTenant()
   const qc = useQueryClient()
   const { adicionarToast } = useUI()
@@ -66,18 +66,17 @@ export function LembretesWhatsapp() {
     onError: (e) => adicionarToast({ tipo: 'erro', titulo: 'Não deu pra trocar o grupo', texto: mensagemDeErro(e, 'O grupo não foi alterado.') }),
   })
 
-  if (!config.data?.temGrupo) return null
+  // Sem grupo: some (ou mostra o aviso `semGrupo`, depois de carregar).
+  if (!config.data?.temGrupo) return config.isPending ? null : <>{semGrupo ?? null}</>
   const mudou = grupoId.trim() !== config.data.grupoId
   const grupos = [...new Set(config.data.lembretes.map((l) => l.grupo))]
 
   return (
-    <Cartao className="flex flex-col">
-      <h2 className="text-[15px] font-bold text-tinta">Lembretes no WhatsApp</h2>
-      <p className="mt-1 mb-2 text-sm text-tinta-3">
-        Avisos de rotina no grupo do seu restaurante, no máximo um por dia e sempre com o link da tela certa. Tudo
-        começa desligado: ligue só o que ajuda você.
-      </p>
-      <div className="mt-2 flex flex-col gap-2 rounded-campo bg-preenchimento/40 p-3.5 sm:flex-row sm:items-end">
+    <Secao
+      titulo="Lembretes no WhatsApp"
+      descricao="Avisos de rotina no grupo do seu restaurante, no máximo um por dia e sempre com o link da tela certa. Tudo começa desligado: ligue só o que ajuda você."
+    >
+      <div className="flex flex-col gap-2 rounded-campo bg-preenchimento/40 p-3.5 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
           <Campo
             rotulo="Grupo do WhatsApp (ID)"
@@ -123,6 +122,6 @@ export function LembretesWhatsapp() {
           </ul>
         </div>
       ))}
-    </Cartao>
+    </Secao>
   )
 }

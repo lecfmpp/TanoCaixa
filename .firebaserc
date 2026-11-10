@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "tanocaixa"
+  },
+  "targets": {
+    "tanocaixa": {
+      "hosting": {
+        "app": [
+          "tanocaixa"
+        ],
+        "lojas": [
+          "tanocaixa-lojas"
+        ]
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArchiveRestore, Check, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao } from '@/components/ui/Acordeao'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Campo } from '@/components/ui/Campo'
@@ -231,24 +231,20 @@ export function PlanoDeContas() {
   const arquivadas = CONTAS.filter((c) => c.arquivada)
 
   return (
-    <Cartao className="flex flex-col">
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-bold text-tinta">Plano de contas</h2>
-          <p className="pretty mt-1 max-w-xl text-sm text-tinta-3">
-            As contas em que você lança despesa. Cada uma é uma linha da sua DRE — renomeie no jeito que a sua
-            operação fala, crie o que faltar e tire de uso o que não usa.
-          </p>
-        </div>
-        {arquivadas.length > 0 && (
+    <Secao
+      titulo="Plano de contas"
+      descricao="As contas em que você lança despesa. Cada uma é uma linha da sua DRE — renomeie no jeito que a sua operação fala, crie o que faltar e tire de uso o que não usa."
+      acoes={
+        arquivadas.length > 0 && (
           <button
             onClick={() => setVerArquivadas((v) => !v)}
             className="shrink-0 text-sm font-bold text-mar underline underline-offset-2 hover:text-mar-escuro"
           >
             {verArquivadas ? 'Esconder fora de uso' : `Ver ${arquivadas.length} fora de uso`}
           </button>
-        )}
-      </div>
+        )
+      }
+    >
 
       {GRUPOS.map((g) => {
         const contas = contasDoGrupo(g.id).filter((c) => verArquivadas || !c.arquivada)
@@ -369,7 +365,7 @@ export function PlanoDeContas() {
           </div>
         )
       })}
-    </Cartao>
+    </Secao>
   )
 }
 

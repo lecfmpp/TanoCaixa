@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useRef, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import type { Intervalo } from '@/types'
 import { cn } from '@/lib/cn'
 import { diaDeHoje } from '@/data/derive'
-import { rotuloIntervalo } from '@/ui/periodo'
+import { rotuloIntervalo, useMesRef } from '@/ui/periodo'
+import { Calendario, proximaSelecao } from './Calendario'
+import { Flutuante } from './Flutuante'
 
 interface SeletorIntervaloProps {
   /** Intervalo ativo; null quando o filtro é Semana ou Mês. */
@@ -23,76 +24,19 @@ function somarDias(iso: string, n: number): string {
 
 /**
  * Seletor de datas ao lado do Semana | Mês: mesma pílula do Segmentado (tom
- * claro, sobre a foto), com o intervalo escolhido no lugar do rótulo. O painel
- * abre fora da faixa do cabeçalho, no mesmo estilo do menu do +Lançar.
+ * claro, sobre a foto), com o intervalo escolhido no lugar do rótulo. Abre um
+ * calendário: um clique escolhe o dia, dois cliques um período.
  */
 export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervaloProps) {
   const [aberto, setAberto] = useState(false)
-  const hoje = diaDeHoje()
-  const [de, setDe] = useState(valor?.de ?? hoje)
-  const [ate, setAte] = useState(valor?.ate ?? hoje)
-  const ref = useRef<HTMLDivElement>(null)
-  const painelRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
-
-  // O painel vai pro <body>: a faixa do cabeçalho tem overflow hidden e cortava
-  // o painel, e nenhum z-index escapa disso. Posição calculada pelo botão.
-  useLayoutEffect(() => {
-    if (!aberto) return
-    const medir = () => {
-      const r = ref.current?.getBoundingClientRect()
-      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
-    }
-    medir()
-    window.addEventListener('resize', medir)
-    window.addEventListener('scroll', medir, true)
-    return () => {
-      window.removeEventListener('resize', medir)
-      window.removeEventListener('scroll', medir, true)
-    }
-  }, [aberto])
-
-  // Ao abrir, começa do intervalo ativo (ou de hoje).
-  useEffect(() => {
-    if (aberto) {
-      setDe(valor?.de ?? hoje)
-      setAte(valor?.ate ?? hoje)
-    }
-  }, [aberto]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!aberto) return
-    const fora = (e: MouseEvent) => {
-      const alvo = e.target as Node
-      if (ref.current && !ref.current.contains(alvo) && !painelRef.current?.contains(alvo)) setAberto(false)
-    }
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setAberto(false)
-    document.addEventListener('mousedown', fora)
-    document.addEventListener('keydown', esc)
-    return () => {
-      document.removeEventListener('mousedown', fora)
-      document.removeEventListener('keydown', esc)
-    }
-  }, [aberto])
-
-  const valido = !!de && !!ate && de <= ate
+  const botao = useRef<HTMLButtonElement>(null)
   const ativo = valor !== null
 
-  function aplicar(i: Intervalo) {
-    aoTrocar(i)
-    setAberto(false)
-  }
-
-  const atalhos: { rotulo: string; i: Intervalo }[] = [
-    { rotulo: 'Hoje', i: { de: hoje, ate: hoje } },
-    { rotulo: 'Ontem', i: { de: somarDias(hoje, -1), ate: somarDias(hoje, -1) } },
-    { rotulo: '30 dias', i: { de: somarDias(hoje, -29), ate: hoje } },
-  ]
-
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <div className="inline-flex rounded-botao bg-white/10 p-1 backdrop-blur-sm">
         <button
+          ref={botao}
           onClick={() => setAberto((v) => !v)}
           aria-haspopup="dialog"
           aria-expanded={aberto}
@@ -106,69 +50,79 @@ export function SeletorIntervalo({ valor, aoTrocar, aoLimpar }: SeletorIntervalo
         </button>
       </div>
 
-      {aberto && pos && createPortal(
-        <div
-          ref={painelRef}
-          style={{ top: pos.top, right: pos.right }}
-          role="dialog"
-          aria-label="Escolher período"
-          className="fixed z-[70] w-72 rounded-cartao border border-[rgba(46,95,115,0.14)] bg-superficie p-4 text-tinta shadow-cartao"
-        >
-          <div className="flex flex-wrap gap-2">
-            {atalhos.map((a) => (
-              <button
-                key={a.rotulo}
-                onClick={() => aplicar(a.i)}
-                className="rounded-chip border border-[rgba(46,95,115,0.18)] bg-superficie px-3 py-1.5 text-sm font-semibold text-tinta-2 transition hover:border-mar/50"
-              >
-                {a.rotulo}
-              </button>
-            ))}
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="rotulo text-tinta-4">De</span>
-              <input
-                type="date"
-                value={de}
-                max={ate || undefined}
-                onChange={(e) => setDe(e.target.value)}
-                className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-2 text-sm text-tinta outline-none focus:border-mar"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="rotulo text-tinta-4">Até</span>
-              <input
-                type="date"
-                value={ate}
-                min={de || undefined}
-                onChange={(e) => setAte(e.target.value)}
-                className="rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-2.5 py-2 text-sm text-tinta outline-none focus:border-mar"
-              />
-            </label>
-          </div>
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <button
-              onClick={() => {
-                aoLimpar()
-                setAberto(false)
-              }}
-              disabled={!ativo}
-              className="px-1 text-sm font-semibold text-tinta-3 transition hover:text-tinta disabled:opacity-40"
-            >
-              Limpar
-            </button>
-            <button
-              onClick={() => valido && aplicar({ de, ate })}
-              disabled={!valido}
-              className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
-            >
-              Aplicar
-            </button>
-          </div>
-        </div>,
-        document.body,
+      {aberto && (
+        <PainelIntervalo
+          ancora={botao}
+          valor={valor}
+          aoFechar={() => setAberto(false)}
+          aoLimpar={() => {
+            aoLimpar()
+            setAberto(false)
+          }}
+          aoAplicar={(i) => {
+            aoTrocar(i)
+            setAberto(false)
+          }}
+        />
       )}
     </div>
+  )
+}
+
+function PainelIntervalo({ ancora, valor, aoFechar, aoLimpar, aoAplicar }: {
+  ancora: React.RefObject<HTMLButtonElement | null>
+  valor: Intervalo | null
+  aoFechar: () => void
+  aoLimpar: () => void
+  aoAplicar: (i: Intervalo) => void
+}) {
+  const hoje = diaDeHoje()
+  const mesRef = useMesRef()
+  // Começa do intervalo ativo; sem ele, nada marcado.
+  const [selecao, setSelecao] = useState<Intervalo | null>(valor)
+
+  const atalhos: { rotulo: string; i: Intervalo }[] = [
+    { rotulo: 'Hoje', i: { de: hoje, ate: hoje } },
+    { rotulo: 'Ontem', i: { de: somarDias(hoje, -1), ate: somarDias(hoje, -1) } },
+    { rotulo: '7 dias', i: { de: somarDias(hoje, -6), ate: hoje } },
+    { rotulo: '30 dias', i: { de: somarDias(hoje, -29), ate: hoje } },
+  ]
+
+  return (
+    <Flutuante ancora={ancora} aoFechar={aoFechar} rotulo="Escolher período">
+      <div className="flex flex-wrap gap-2">
+        {atalhos.map((a) => (
+          <button
+            key={a.rotulo}
+            onClick={() => aoAplicar(a.i)}
+            className="rounded-chip border border-[rgba(46,95,115,0.18)] bg-superficie px-3 py-1.5 text-sm font-semibold text-tinta-2 transition hover:border-mar/50"
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </div>
+      <div className="mt-3">
+        <Calendario selecao={selecao} hoje={hoje} mesInicial={mesRef} aoClicar={(d) => setSelecao(proximaSelecao(selecao, d))} />
+      </div>
+      <p className="mt-2 text-xs text-tinta-4">
+        {selecao ? `Selecionado: ${rotuloIntervalo(selecao)}` : 'Toque num dia, ou em dois pra um período.'}
+      </p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <button
+          onClick={aoLimpar}
+          disabled={!valor}
+          className="px-1 text-sm font-semibold text-tinta-3 transition hover:text-tinta disabled:opacity-40"
+        >
+          Limpar
+        </button>
+        <button
+          onClick={() => selecao && aoAplicar(selecao)}
+          disabled={!selecao}
+          className="rounded-botao bg-mar px-4 py-2 text-sm font-bold text-creme transition hover:bg-mar-escuro disabled:opacity-50"
+        >
+          Aplicar
+        </button>
+      </div>
+    </Flutuante>
   )
 }

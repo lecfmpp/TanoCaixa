@@ -101,7 +101,7 @@ export function FluxoCaixa() {
 
       {porDia.length === 0 ? (
         <Cartao>
-          <p className="py-6 text-center text-sm text-tinta-4">Nenhuma conta {janela === 'dia' ? 'pra esse dia' : janela === 'semana' ? 'nessa semana' : 'nesse mês'}. 🎉</p>
+          <p className="py-6 text-center text-sm text-tinta-4">Nenhuma conta {janela === 'dia' ? 'pra esse dia' : janela === 'semana' ? 'nessa semana' : janela === 'periodo' ? 'nesse período' : 'nesse mês'}. 🎉</p>
         </Cartao>
       ) : (
         porDia.map(([dia, lista]) => {
@@ -144,7 +144,7 @@ function Linha({ conta: c, hoje, aoMarcar, mostrarData }: { conta: ContaDoFluxo;
       <div className="min-w-0 flex-1">
         <div className={cn('truncate font-semibold', c.pago ? 'text-tinta-3' : 'text-tinta')}>{c.fornecedor}</div>
         <div className="truncate text-xs text-tinta-4">
-          {[c.descricao, CONTA[c.categoria]?.nome, c.natureza === 'nota' ? 'nota fiscal' : null].filter(Boolean).join(' · ')}
+          {[c.parcela ? `Parcela ${c.parcela.numero} de ${c.parcela.total}` : null, c.descricao, CONTA[c.categoria]?.nome, c.natureza === 'nota' ? (c.numeroNota ? `NF ${c.numeroNota}` : 'nota fiscal') : null].filter(Boolean).join(' · ')}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {c.pago ? (

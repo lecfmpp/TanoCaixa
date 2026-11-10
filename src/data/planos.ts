@@ -28,17 +28,23 @@ export function estaPago(a: AssinaturaDoc | null | undefined): boolean {
   return a?.status === 'ativa' || a?.status === 'pagamento_falhou'
 }
 
-/** Sem doc ainda (o gatilho cria logo depois do cadastro) conta como teste. */
-export function acessoDaAssinatura(a: AssinaturaDoc | null | undefined, agora = new Date()): Acesso {
-  if (estaPago(a)) return 'pago'
-  if (!a) return 'teste'
-  return a.testeAte && new Date(a.testeAte).getTime() > agora.getTime() ? 'teste' : 'vencido'
+/** Ninguém perde o teste antes de 25/11/2026, 23:59 de Brasília. Igual a FIM_DO_TESTE em functions/src/assinatura.ts. */
+export const FIM_DO_TESTE = '2026-11-26T02:59:59.000Z'
+
+/** Fim do teste da loja: o gravado ou o piso FIM_DO_TESTE, o que vier depois. */
+function fimDoTeste(a: AssinaturaDoc | null | undefined): number {
+  const g = a?.testeAte ? Date.parse(a.testeAte) : NaN
+  return Math.max(Number.isFinite(g) ? g : 0, Date.parse(FIM_DO_TESTE))
 }
 
-/** Dias que faltam no teste, arredondando pra cima (null se não há data). */
-export function diasDeTeste(a: AssinaturaDoc | null | undefined, agora = new Date()): number | null {
-  if (!a?.testeAte) return null
-  return Math.max(0, Math.ceil((new Date(a.testeAte).getTime() - agora.getTime()) / (24 * 3600 * 1000)))
+export function acessoDaAssinatura(a: AssinaturaDoc | null | undefined, agora = new Date()): Acesso {
+  if (estaPago(a)) return 'pago'
+  return fimDoTeste(a) > agora.getTime() ? 'teste' : 'vencido'
+}
+
+/** Dias que faltam no teste, arredondando pra cima. */
+export function diasDeTeste(a: AssinaturaDoc | null | undefined, agora = new Date()): number {
+  return Math.max(0, Math.ceil((fimDoTeste(a) - agora.getTime()) / (24 * 3600 * 1000)))
 }
 
 export async function getAssinatura(restauranteId: string): Promise<AssinaturaDoc | null> {

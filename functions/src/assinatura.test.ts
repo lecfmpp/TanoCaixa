@@ -1,6 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { acessoDaAssinatura, eventoEhMaisNovo, fimDoTeste, itensDaAssinatura, statusDoStripe, totalMensalCentavos, urlSegura } from './assinatura'
+import {
+  acessoDaAssinatura,
+  eventoEhMaisNovo,
+  fimDoTeste,
+  fimDoTesteDaConta,
+  itensDaAssinatura,
+  situacaoDoPainel,
+  statusDoStripe,
+  totalMensalCentavos,
+  urlSegura,
+  FIM_DO_TESTE,
+} from './assinatura'
 
 test('status do Stripe vira o nosso; o que não conhecemos NÃO libera nada', () => {
   assert.equal(statusDoStripe('active'), 'ativa')
@@ -32,6 +43,24 @@ test('evento antigo não sobrescreve o mais novo', () => {
   assert.equal(eventoEhMaisNovo(50, 100), false)
 })
 
+test('teste grátis vai até 25/11 (Brasília) pra todo mundo; teste mais longo fica', () => {
+  assert.equal(fimDoTesteDaConta(undefined), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('2026-11-12T05:12:41.139Z'), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('lixo'), FIM_DO_TESTE)
+  assert.equal(fimDoTesteDaConta('2026-12-04T10:00:00.000Z'), '2026-12-04T10:00:00.000Z')
+  // 25/11 23:59 em Brasília ainda é dia 25
+  assert.equal(new Date(FIM_DO_TESTE).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }), '25/11/2026')
+})
+
+test('situação da barra: ativa some, pagamento falhou avisa, teste conta os dias', () => {
+  const agora = new Date('2026-11-06T15:00:00.000Z')
+  assert.deepEqual(situacaoDoPainel('ativa', FIM_DO_TESTE, agora), { situacao: 'ativa', diasRestantes: 0 })
+  assert.deepEqual(situacaoDoPainel('pagamento_falhou', FIM_DO_TESTE, agora), { situacao: 'pagamento_falhou', diasRestantes: 0 })
+  assert.deepEqual(situacaoDoPainel('teste', FIM_DO_TESTE, agora), { situacao: 'teste', diasRestantes: 20 })
+  assert.deepEqual(situacaoDoPainel(undefined, FIM_DO_TESTE, agora), { situacao: 'teste', diasRestantes: 20 })
+  assert.deepEqual(situacaoDoPainel('cancelada', FIM_DO_TESTE, new Date('2026-11-27T00:00:00.000Z')), { situacao: 'teste_acabou', diasRestantes: 0 })
+})
+
 test('pago, no teste ou vencido: o teste dura 14 dias', () => {
   const hoje = new Date('2026-10-29T12:00:00Z')
   const fim = fimDoTeste(hoje)
@@ -39,9 +68,13 @@ test('pago, no teste ou vencido: o teste dura 14 dias', () => {
   assert.equal(acessoDaAssinatura('ativa', undefined, hoje), 'pago')
   assert.equal(acessoDaAssinatura('pagamento_falhou', fim, hoje), 'pago')
   assert.equal(acessoDaAssinatura('teste', fim, hoje), 'teste')
-  assert.equal(acessoDaAssinatura('teste', fim, new Date('2026-11-13T00:00:00Z')), 'vencido')
-  assert.equal(acessoDaAssinatura('cancelada', undefined, hoje), 'vencido')
-  assert.equal(acessoDaAssinatura(undefined, undefined, hoje), 'vencido')
+  // Ninguém perde o teste antes de 25/11 (piso), mesmo com 14 dias acabando antes
+  assert.equal(acessoDaAssinatura('teste', fim, new Date('2026-11-13T00:00:00Z')), 'teste')
+  assert.equal(acessoDaAssinatura('teste', fim, new Date('2026-11-27T00:00:00Z')), 'vencido')
+  const depois = new Date('2026-12-01T12:00:00Z')
+  assert.equal(acessoDaAssinatura('teste', fimDoTeste(depois), depois), 'teste')
+  assert.equal(acessoDaAssinatura('teste', fimDoTeste(depois), new Date('2026-12-16T00:00:00Z')), 'vencido')
+  assert.equal(acessoDaAssinatura('cancelada', undefined, new Date('2026-11-27T00:00:00Z')), 'vencido')
 })
 
 test('primeira loja R$ 149, cada loja extra R$ 79', () => {
