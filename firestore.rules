@@ -51,6 +51,14 @@ service cloud.firestore {
       }
     }
 
+    // Sites públicos dos clientes ({sub}.tanocaixa.com.br). Leitura aberta (é o
+    // que o site mostra, e o app checa se um endereço está livre); escrita só
+    // pela Cloud Function publicarSite, que garante endereço único.
+    match /sites/{sub} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Redes (franquia ou várias lojas do mesmo dono) — só o dono da rede.
     // A leitura dos números de cada loja continua governada por memberUids
     // do restaurante, então entrar numa rede não dá acesso a nada sozinho.

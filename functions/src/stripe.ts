@@ -18,8 +18,8 @@
  * rede paga em `assinaturas/{restauranteId}`. Mudou o nº de lojas da rede?
  * O gatilho `lojasDaRedeNaAssinatura` acerta a quantidade no Stripe.
  *
- * Teste grátis: DIAS_TESTE a partir do 1º `statusAssinatura` (conta nova ou
- * conta antiga no 1º acesso depois desta regra). Fim do teste guardado no
+ * Teste grátis: DIAS_TESTE a partir do 1º `statusAssinatura`, nunca antes de
+ * FIM_DO_TESTE (25/11, igual pra todas as contas). Fim do teste guardado no
  * servidor (`assinaturas/*` não é gravável pelo app), então não dá pra esticar.
  *
  * PRÉ-REQUISITOS: plano Blaze + segredos (ver functions/README.md):
@@ -43,7 +43,9 @@ import {
   acessoDaConta,
   eventoEhMaisNovo,
   fimDoTeste,
+  fimDoTesteDaConta,
   itensDaAssinatura,
+  situacaoDoPainel,
   statusDoStripe,
   urlSegura,
   MAX_LOJAS,
@@ -51,6 +53,7 @@ import {
   PRECO_PRO_CENTAVOS,
   type Situacao,
 } from './assinatura'
+import { normalizarPapel } from './papel'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
@@ -154,7 +157,9 @@ export const statusAssinatura = onCall(async (req) => {
     return { ...atual, ...novo }
   })
 
-  const { acesso, diasRestantes } = acessoDaConta(dados.status as Situacao | undefined, dados.testeAte as string, new Date())
+  // Ninguém termina o teste antes de 25/11 (FIM_DO_TESTE); quem começou depois fica com os 14 dias dele.
+  const testeAte = fimDoTesteDaConta(dados.testeAte as string | undefined)
+  const { acesso, diasRestantes } = acessoDaConta(dados.status as Situacao | undefined, testeAte, new Date())
   let responsavel = false
   try {
     await exigirDonoOuGestao(uid, conta.contaId)
@@ -166,12 +171,34 @@ export const statusAssinatura = onCall(async (req) => {
     acesso,
     diasRestantes,
     testeIniciadoEm: (dados.testeIniciadoEm as string) ?? null,
-    testeAte: dados.testeAte as string,
+    testeAte,
     lojas: conta.lojas,
     lojasAssinadas: (dados.lojas as number | undefined) ?? null,
     contaId: conta.contaId,
     responsavel,
   }
+})
+
+/**
+ * Versão anterior da consulta (barra de teste por loja). O painel novo usa
+ * `statusAssinatura`; esta fica pra quem ainda está com o site antigo aberto.
+ */
+export const situacaoDaAssinatura = onCall(async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Faça login primeiro')
+  const rid = (req.data as Record<string, string> | undefined)?.restauranteId
+  if (!rid) throw new HttpsError('invalid-argument', 'restauranteId obrigatório')
+  const [rest, membro, assin] = await Promise.all([
+    db.doc(`restaurants/${rid}`).get(),
+    db.doc(`restaurants/${rid}/membros/${uid}`).get(),
+    db.doc(`assinaturas/${rid}`).get(),
+  ])
+  const membros = rest.data()?.memberUids as string[] | undefined
+  if (!membros?.includes(uid)) throw new HttpsError('permission-denied', 'Você não faz parte desta loja')
+  const dados = assin.data() ?? {}
+  const testeAte = fimDoTesteDaConta(dados.testeAte as string | undefined)
+  const { situacao, diasRestantes } = situacaoDoPainel(dados.status as string | undefined, testeAte, new Date())
+  return { situacao, diasRestantes, testeAte, ehDono: normalizarPapel(membro.data()?.papel as string | undefined) === 'dono' }
 })
 
 /** Inicia o checkout de assinatura (R$ 149/loja). Retorna a URL do Stripe. */

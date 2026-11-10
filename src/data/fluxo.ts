@@ -3,7 +3,8 @@
  *
  * Cada conta cai no dia do VENCIMENTO (sem vencimento, no dia da entrada).
  * Nota com mais de um lançamento (alimento + bebida) vira UMA linha — quem
- * paga o boleto paga a nota inteira. O juro pago vira lançamento à parte
+ * paga o boleto paga a nota inteira. Nota parcelada vira uma linha POR
+ * PARCELA, cada uma no seu vencimento e paga separada. O juro pago vira lançamento à parte
  * (`jurosDe`), e aqui ele aparece colado na conta de origem, não sozinho.
  * ------------------------------------------------------------------ */
 import { ehCompra } from './compras'
@@ -21,6 +22,10 @@ export interface ContaDoFluxo {
   formaPagamento: DespesaDoc['formaPagamento']
   /** Valor do boleto (soma dos lançamentos, sem juros). */
   valor: number
+  /** Nota parcelada: qual parcela é esta conta ("Parcela 2 de 3"). */
+  parcela?: { numero: number; total: number }
+  /** Número impresso na nota fiscal, quando a conta veio de uma nota. */
+  numeroNota?: string
   /** 'YYYY-MM-DD' — o dia em que a conta cai no fluxo. */
   dia: string
   temVencimento: boolean
@@ -31,12 +36,22 @@ export interface ContaDoFluxo {
   lancamentos: DespesaDoc[]
 }
 
+/**
+ * Chave da conta a pagar de um lançamento: a nota inteira (à vista) ou a
+ * parcela da nota (boleto parcelado), ou o próprio lançamento avulso. O aviso
+ * de vencimento do Início usa a mesma chave pra achar a conta certa.
+ */
+export function chaveDaConta(d: DespesaDoc): string {
+  if (!(ehCompra(d) && d.notaId)) return d.id
+  return (d.parcelas ?? 1) > 1 ? `${d.notaId}:${d.parcela ?? 1}` : d.notaId
+}
+
 /** Agrupa os lançamentos em contas a pagar (o juro não entra como conta própria). */
 export function contasDoFluxo(despesas: DespesaDoc[]): ContaDoFluxo[] {
   const grupos = new Map<string, DespesaDoc[]>()
   for (const d of despesas) {
     if (d.jurosDe) continue
-    const chave = ehCompra(d) && d.notaId ? d.notaId : d.id
+    const chave = chaveDaConta(d)
     grupos.set(chave, [...(grupos.get(chave) ?? []), d])
   }
   return [...grupos.entries()].map(([id, lancs]) => {
@@ -51,6 +66,8 @@ export function contasDoFluxo(despesas: DespesaDoc[]): ContaDoFluxo[] {
       categoria: base.categoria,
       formaPagamento: base.formaPagamento,
       valor: lancs.reduce((s, l) => s + l.valorTotal, 0),
+      ...((base.parcelas ?? 1) > 1 ? { parcela: { numero: base.parcela ?? 1, total: base.parcelas! } } : {}),
+      ...(base.numeroNota ? { numeroNota: base.numeroNota } : {}),
       dia: venc ?? base.dataCompetencia.slice(0, 10),
       temVencimento: !!venc,
       pago,

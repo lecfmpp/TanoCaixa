@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Inbox, Lock, CheckCircle2, ArrowRight } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Avatar } from '@/components/ui/Avatar'
 import { TagVencimento } from '@/components/ui/TagVencimento'
 import { useAuth } from '@/auth/AuthContext'
@@ -118,15 +119,12 @@ export function Inicio() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5 tab:grid-cols-12">
-        <div className="tab:col-span-7">
-          <GraficoBarras titulo={periodo === 'mes' ? 'Entrou × saiu, semana a semana' : periodo === 'semana' ? 'Entrou × saiu, dia a dia' : 'Entrou × saiu no período'} barras={r.barras} />
-        </div>
-        <div className="flex flex-col gap-3.5 tab:col-span-5">
-          {insight && <CartaoInsight texto={insight.texto} />}
-          <QuemMexeu feed={feed} />
-        </div>
-      </div>
+      {insight && <CartaoInsight texto={insight.texto} />}
+
+      <Secoes>
+        <GraficoBarras titulo={periodo === 'mes' ? 'Entrou × saiu, semana a semana' : periodo === 'semana' ? 'Entrou × saiu, dia a dia' : 'Entrou × saiu no período'} barras={r.barras} />
+        <QuemMexeu feed={feed} />
+      </Secoes>
     </div>
   )
 }
@@ -277,6 +275,25 @@ function CartaoSobrou({ valor, margem, visivel }: { valor: number; margem: numbe
  * layoutBarras.ts (testadas).
  */
 function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: string; entrou: number; saiu: number }[] }) {
+  return (
+    <Secao
+      titulo={titulo}
+      abertaPorPadrao
+      className="min-w-0"
+      acoes={
+        <div className="flex items-center gap-3 text-xs text-tinta-3">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" /> entrou</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" /> saiu</span>
+        </div>
+      }
+    >
+      <CorpoBarras barras={barras} />
+    </Secao>
+  )
+}
+
+/** O gráfico em si: fica dentro da seção pra medir a largura de novo cada vez que ela abre. */
+function CorpoBarras({ barras }: { barras: { rotulo: string; entrou: number; saiu: number }[] }) {
   const AREA = 150
   const max = Math.max(...barras.flatMap((b) => [b.entrou, b.saiu]), 1)
   const [ref, largura] = useLargura<HTMLDivElement>()
@@ -296,14 +313,7 @@ function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: s
   // O período pode trocar (e encolher) com um grupo escolhido.
   const ativo = escolhido !== null && escolhido < barras.length ? escolhido : null
   return (
-    <Cartao className="flex min-w-0 flex-col">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 className="text-[15px] font-bold text-tinta">{titulo}</h2>
-        <div className="flex items-center gap-3 text-xs text-tinta-3">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mar" /> entrou</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-telhado" /> saiu</span>
-        </div>
-      </div>
+    <div className="flex min-w-0 flex-col pt-2">
       <div ref={ref} className="flex items-end" style={{ gap }}>
         {barras.map((b, i) => {
           const sobraB = saldo(b)
@@ -348,7 +358,7 @@ function GraficoBarras({ titulo, barras }: { titulo: string; barras: { rotulo: s
           <span className="text-xs text-tinta-4">Toque numa barra para ver os valores.</span>
         ) : null}
       </p>
-    </Cartao>
+    </div>
   )
 }
 
@@ -378,11 +388,11 @@ function CartaoInsight({ texto }: { texto: string }) {
 
 function QuemMexeu({ feed }: { feed: { id: string; quem: string; quemInicial: string; quemCor: string; acao: string; entidade: string; valor?: number; criadoEm: string }[] }) {
   return (
-    <Cartao className="flex flex-col">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-tinta">Quem mexeu no quê</h2>
-        <Link to="/painel/ajustes#historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>
-      </div>
+    <Secao
+      titulo="Quem mexeu no quê"
+      corpoClassName="flex flex-col !pt-1"
+      acoes={<Link to="/painel/configuracoes/historico" className="text-sm font-bold text-mar hover:underline">Ver tudo</Link>}
+    >
       {feed.length === 0 && (
         <p className="py-3 text-sm text-tinta-4">
           Nada lançado ainda. Cada nota, venda e contagem aparece aqui com quem fez e quando.
@@ -400,6 +410,6 @@ function QuemMexeu({ feed }: { feed: { id: string; quem: string; quemInicial: st
           </li>
         ))}
       </ul>
-    </Cartao>
+    </Secao>
   )
 }

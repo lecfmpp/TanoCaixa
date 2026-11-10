@@ -30,9 +30,9 @@ import { DEMO_TENANT } from '@/data/tenant'
 import { ajustarDataDeReferencia, virouODia } from '@/data/derive'
 import { nomeDoMesAtual } from '@/data/planoMes'
 import { TETOS_PADRAO } from '@/data/planoContas'
-import { definirLojaAtiva } from '@/data/lojaAtiva'
+import { definirLojaAtiva, useLojaAtiva } from '@/data/lojaAtiva'
 import { restauranteDemo, usuarioDemo } from '@/data/mock'
-import { permissoesDoPapel, normalizarPapel, type Permissoes, type Sessao } from '@/types'
+import { permissoesDoPapel, normalizarPapel, type AcessoLoja, type Papel, type Permissoes, type Sessao } from '@/types'
 
 interface DadosCadastro {
   nome?: string
@@ -57,6 +57,21 @@ export const SENHA_MINIMA = 8
 
 /** Erro ao montar a sessão com uma mensagem pronta pra mostrar ao usuário. */
 class ErroSessao extends Error {}
+/** A loja da conta recusou o acesso (a pessoa foi tirada dela): desloga e explica. */
+class ErroAcesso extends ErroSessao {}
+
+/** Motivo de um logout forçado, mostrado na tela de entrar. Vive na aba, sobrevive ao recarregar. */
+const CHAVE_MOTIVO_SAIDA = 'tanocaixa:motivoSaida'
+
+/** Texto pra quem perdeu o acesso a uma loja. */
+export function msgSemAcesso(nomeLoja: string | null | undefined): string {
+  const loja = nomeLoja ? `à loja ${nomeLoja}` : 'à loja ligada à sua conta'
+  return `Você não tem mais acesso ${loja}. Quem cuida da loja tirou o seu acesso. Se foi engano, peça um convite novo a essa pessoa.`
+}
+
+function negado(e: unknown): boolean {
+  return (e as { code?: string })?.code === 'permission-denied'
+}
 
 interface AuthContextValor {
   sessao: Sessao | null
@@ -67,6 +82,11 @@ interface AuthContextValor {
   erroSessao: string | null
   /** Tenta montar a sessão de novo depois de um erroSessao. */
   tentarDeNovo: () => void
+  /** Por que a pessoa foi deslogada à força (perdeu acesso, papel mudou). */
+  motivoSaida: string | null
+  limparMotivoSaida: () => void
+  /** Desloga explicando o motivo na tela de entrar. */
+  encerrarPorAcesso: (motivo: string) => Promise<void>
   entrarDemo: () => void
   /** Retorna o uid autenticado — use pra saber quando `sessao` passou a
    * refletir ESTE login (e não uma sessão antiga que já estava ativa). */
@@ -85,7 +105,7 @@ export const CHAVE_CONVITE = 'tanocaixa:convite'
  * até o construirSessao rodar — ver comentário em criarConta sobre por quê. */
 const CHAVE_CADASTRO = 'tanocaixa:cadastro'
 
-export const aceitarConviteFn = httpsCallable<{ token: string; nome?: string }, { restauranteId: string }>(
+export const aceitarConviteFn = httpsCallable<{ token: string; nome?: string }, { restauranteId: string; lojas: string[] }>(
   functions,
   'aceitarConvite',
 )
@@ -164,10 +184,21 @@ async function construirSessao(user: User): Promise<Sessao> {
     }
   }
 
-  const [rSnap, mSnap] = await Promise.all([
-    getDoc(doc(db, 'restaurants', rid)),
-    getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
-  ])
+  // Com convite recém-aceito o users/{uid} mudou — relê pra pegar os acessos.
+  const uAtual = uSnap.exists() && uSnap.data().acessos ? uSnap : await getDoc(doc(db, 'users', user.uid))
+  const nomeGuardado = (uAtual.data()?.acessos as Record<string, { nome?: string }> | undefined)?.[rid]?.nome
+  let rSnap, mSnap
+  try {
+    ;[rSnap, mSnap] = await Promise.all([
+      getDoc(doc(db, 'restaurants', rid)),
+      getDoc(doc(db, 'restaurants', rid, 'membros', user.uid)),
+    ])
+  } catch (e) {
+    // As regras só deixam ler a loja quem está em memberUids: foi tirado dela.
+    if (negado(e)) throw new ErroAcesso(msgSemAcesso(nomeGuardado))
+    throw e
+  }
+  if (!rSnap.exists()) throw new ErroAcesso(msgSemAcesso(nomeGuardado))
   const r = rSnap.data() ?? {}
   const papel = normalizarPapel(mSnap.exists() ? (mSnap.data().papel as string) : 'dono')
   const nome = user.displayName || (uSnap.data()?.nome as string) || user.email?.split('@')[0] || 'Você'
@@ -193,10 +224,21 @@ async function construirSessao(user: User): Promise<Sessao> {
     },
     tenantId: rid,
     demo: false,
+    acessos: lerAcessos(uAtual.data()?.acessos),
     // Só o dono faz onboarding — quem entrou por convite cai direto no painel.
     // `tipoCozinha` preenchido cobre as contas criadas antes desta flag existir.
     precisaOnboarding: papel === 'dono' && !r.onboardingConcluido && !r.tipoCozinha,
   }
+}
+
+/** `users/{uid}.acessos` como gravado pelo aceitarConvite, com papéis normalizados. */
+function lerAcessos(bruto: unknown): Record<string, AcessoLoja> | undefined {
+  if (!bruto || typeof bruto !== 'object') return undefined
+  const saida: Record<string, AcessoLoja> = {}
+  for (const [rid, v] of Object.entries(bruto as Record<string, { nome?: string; papel?: string }>)) {
+    saida[rid] = { nome: v?.nome || 'Loja', papel: normalizarPapel(v?.papel) }
+  }
+  return Object.keys(saida).length ? saida : undefined
 }
 
 /** Mensagem para quando o aceitarConvite falha. Os erros "definitivos" da
@@ -244,6 +286,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessao, setSessaoState] = useState<Sessao | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erroSessao, setErroSessao] = useState<string | null>(null)
+  const [motivoSaida, setMotivoSaida] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(CHAVE_MOTIVO_SAIDA)
+    } catch {
+      return null
+    }
+  })
+
+  const limparMotivoSaida = useCallback(() => {
+    setMotivoSaida(null)
+    sessionStorage.removeItem(CHAVE_MOTIVO_SAIDA)
+  }, [])
+
+  const encerrarPorAcesso = useCallback(async (motivo: string) => {
+    sessionStorage.setItem(CHAVE_MOTIVO_SAIDA, motivo)
+    setMotivoSaida(motivo)
+    sessionStorage.removeItem(CHAVE_CONVITE)
+    definirLojaAtiva(null)
+    const uid = auth.currentUser?.uid
+    if (uid) sessaoCache.delete(uid)
+    setErroSessao(null)
+    await signOut(auth).catch((e) => console.warn('sair:', e))
+  }, [])
 
   // A data de referência dos cálculos acompanha a sessão: a demonstração fica
   // parada em julho de 2026 (onde estão os dados de exemplo) e a conta real usa
@@ -283,10 +348,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           setSessao(await construirSessaoCacheada(user))
           setErroSessao(null)
+          // Entrou de novo: o aviso do logout forçado já cumpriu o papel.
+          setMotivoSaida(null)
+          sessionStorage.removeItem(CHAVE_MOTIVO_SAIDA)
         } catch (e) {
           console.warn('sessão:', e)
           setSessao(null)
-          setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+          if (e instanceof ErroAcesso) {
+            await encerrarPorAcesso(e.message)
+          } else {
+            setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+          }
         }
       } else if (sessionStorage.getItem(CHAVE_DEMO) === '1') {
         setSessao(sessaoDemo())
@@ -297,7 +369,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCarregando(false)
     })
     return cancelar
-  }, [setSessao])
+  }, [setSessao, encerrarPorAcesso])
 
   const tentarDeNovo = useCallback(() => {
     const user = auth.currentUser
@@ -311,10 +383,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((s) => setSessao(s))
       .catch((e) => {
         console.warn('sessão:', e)
-        setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
+        if (e instanceof ErroAcesso) void encerrarPorAcesso(e.message)
+        else setErroSessao(e instanceof ErroSessao ? e.message : MSG_SESSAO_GENERICA)
       })
       .finally(() => setCarregando(false))
-  }, [setSessao])
+  }, [setSessao, encerrarPorAcesso])
 
   const entrarDemo = useCallback(() => {
     sessionStorage.setItem(CHAVE_DEMO, '1')
@@ -444,13 +517,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessao(null)
   }, [sessao, setSessao])
 
+  // Quem entrou por convite pode ter papéis diferentes em cada loja (gestão
+  // numa, caixa noutra): as permissões seguem a loja aberta. O papel vem do
+  // doc de membro daquela loja (fonte de verdade); `acessos` só cobre o
+  // instante em que ele ainda está carregando. O dono da rede não entra aqui
+  // (as lojas dele não estão em `acessos`) e segue com o papel do login.
+  const lojaAtiva = useLojaAtiva()
+  const acessoAtivo = lojaAtiva && lojaAtiva !== sessao?.tenantId ? sessao?.acessos?.[lojaAtiva] : undefined
+  const [papelDaLoja, setPapelDaLoja] = useState<{ rid: string; papel: Papel } | null>(null)
+  useEffect(() => {
+    if (!sessao || sessao.demo || !lojaAtiva || !acessoAtivo) return
+    let vivo = true
+    getDoc(doc(db, 'restaurants', lojaAtiva, 'membros', sessao.usuario.id))
+      .then((m) => {
+        if (vivo && m.exists()) setPapelDaLoja({ rid: lojaAtiva, papel: normalizarPapel(m.data().papel as string) })
+      })
+      .catch((e) => console.warn('papel da loja:', e))
+    return () => {
+      vivo = false
+    }
+  }, [sessao, lojaAtiva, acessoAtivo])
+
+  const papelEfetivo: Papel | null = !sessao
+    ? null
+    : acessoAtivo
+      ? papelDaLoja?.rid === lojaAtiva
+        ? papelDaLoja.papel
+        : acessoAtivo.papel
+      : sessao.usuario.papel
+
   const valor = useMemo<AuthContextValor>(
     () => ({
       sessao,
-      permissoes: sessao ? permissoesDoPapel(sessao.usuario.papel) : null,
+      permissoes: papelEfetivo ? permissoesDoPapel(papelEfetivo) : null,
       carregando,
       erroSessao,
       tentarDeNovo,
+      motivoSaida,
+      limparMotivoSaida,
+      encerrarPorAcesso,
       entrarDemo,
       entrarComEmail,
       criarConta,
@@ -458,7 +563,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sair,
       atualizarPerfil,
     }),
-    [sessao, carregando, erroSessao, tentarDeNovo, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
+    [sessao, papelEfetivo, carregando, erroSessao, tentarDeNovo, motivoSaida, limparMotivoSaida, encerrarPorAcesso, entrarDemo, entrarComEmail, criarConta, entrarComGoogle, sair, atualizarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

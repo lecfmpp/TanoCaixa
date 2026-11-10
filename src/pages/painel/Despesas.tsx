@@ -4,6 +4,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Avatar } from '@/components/ui/Avatar'
 import { Chip } from '@/components/ui/Chip'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { brl, brlInteiro, quando, dataCurta, dataDoDia } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useContexto, useRestaurante } from '@/data/hooks'
@@ -18,6 +19,7 @@ import { ehCompra, agruparEmNotas, type Nota } from '@/data/compras'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
 import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
 import type { ContaDoFluxo } from '@/data/fluxo'
+import { rotuloParcela } from '@/data/parcelas'
 import type { DespesaDoc } from '@/data/types'
 
 const STATUS: Record<DespesaDoc['status'], { txt: string; cls: string }> = {
@@ -167,118 +169,121 @@ export function Despesas() {
         <CartaoMini rotulo="Vence em 3 dias" valor={resumo.vence3} apoio={vence3?.fornecedor ?? '—'} tom="telha" />
       </div>
 
-      {/* Onde o dinheiro saiu */}
-      <Cartao>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-bold text-tinta">Onde o dinheiro saiu</h2>
-          <span className="text-xs text-tinta-4">% do faturamento do período</span>
-        </div>
-        <div className="flex h-3 w-full overflow-hidden rounded-full bg-preenchimento">
-          {cats.map((c) => (
-            <div key={c.cat} className="h-full" style={{ width: `${(c.valor / (resumo.saiu || 1)) * 100}%`, background: c.cor }} />
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 tab:grid-cols-4">
-          {cats.map((c) => (
-            <div key={c.cat} className="text-sm">
-              <span className="flex items-center gap-1.5 text-tinta-3">
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.cor }} />
-                {c.nome}
-              </span>
-              <div className="mono font-bold text-tinta">{brl(c.valor)} · {c.pct.toFixed(1)}%</div>
-            </div>
-          ))}
-        </div>
-      </Cartao>
-
-      {/* Busca + filtros */}
-      <div className="flex flex-col gap-3 cel:flex-row cel:items-center">
-        <div className="flex flex-1 items-center gap-2 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3.5 py-2.5 cel:min-w-[240px]">
-          <Search size={16} className="text-tinta-4" />
-          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar fornecedor…" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta-5" />
-        </div>
-        <select
-          value={fornecedor}
-          onChange={(e) => setFornecedor(e.target.value)}
-          aria-label="Filtrar por fornecedor"
-          className={cn(
-            'rounded-campo border bg-superficie px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-mar cel:max-w-[220px]',
-            fornecedor ? 'border-mar text-mar' : 'border-[rgba(46,95,115,0.14)] text-tinta-2',
-          )}
+      <Secoes>
+        <Secao
+          titulo={aba === 'compras' ? 'Compras de mercadoria' : 'Contas da casa'}
+          resumo={`${lista.length} ${lista.length === 1 ? 'lançamento' : 'lançamentos'} · ${brl(totalLista)}`}
+          abertaPorPadrao
+          corpoClassName="flex flex-col gap-4"
         >
-          <option value="">Todos os fornecedores</option>
-          {fornecedores.map((f) => <option key={f} value={f}>{f}</option>)}
-        </select>
-        <div className="flex shrink-0 items-center gap-1 rounded-botao bg-preenchimento p-1" role="group" aria-label="Filtrar o período pela data">
-          <span className="px-2 text-xs font-semibold text-tinta-4">Data:</span>
-          {(['entrada', 'vencimento'] as const).map((b) => (
-            <button
-              key={b}
-              onClick={() => setBaseData(b)}
-              aria-pressed={baseData === b}
-              className={cn('rounded-[10px] px-3 py-1.5 text-sm font-bold capitalize transition', baseData === b ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta')}
-            >
-              {b}
-            </button>
-          ))}
+        {/* Busca + filtros */}
+        <div className="flex flex-col gap-3 cel:flex-row cel:items-center">
+          <div className="flex flex-1 items-center gap-2 rounded-campo border border-[rgba(46,95,115,0.14)] bg-superficie px-3.5 py-2.5 cel:min-w-[240px]">
+            <Search size={16} className="text-tinta-4" />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar fornecedor…" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta-5" />
+          </div>
+          <select
+            value={fornecedor}
+            onChange={(e) => setFornecedor(e.target.value)}
+            aria-label="Filtrar por fornecedor"
+            className={cn(
+              'rounded-campo border bg-superficie px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-mar cel:max-w-[220px]',
+              fornecedor ? 'border-mar text-mar' : 'border-[rgba(46,95,115,0.14)] text-tinta-2',
+            )}
+          >
+            <option value="">Todos os fornecedores</option>
+            {fornecedores.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <div className="flex shrink-0 items-center gap-1 rounded-botao bg-preenchimento p-1" role="group" aria-label="Filtrar o período pela data">
+            <span className="px-2 text-xs font-semibold text-tinta-4">Data:</span>
+            {(['entrada', 'vencimento'] as const).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBaseData(b)}
+                aria-pressed={baseData === b}
+                className={cn('rounded-[10px] px-3 py-1.5 text-sm font-bold capitalize transition', baseData === b ? 'bg-superficie text-tinta shadow-sm' : 'text-tinta-3 hover:text-tinta')}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="-mt-1 flex flex-wrap gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Chip rotulo="Todas" selecionado={filtro === 'todas'} aoClicar={() => setFiltro('todas')} />
-          {gruposUsados.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={filtro === g.id} aoClicar={() => setFiltro(g.id)} />)}
+        <div className="-mt-1 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Chip rotulo="Todas" selecionado={filtro === 'todas'} aoClicar={() => setFiltro('todas')} />
+            {gruposUsados.map((g) => <Chip key={g.id} rotulo={g.simples} selecionado={filtro === g.id} aoClicar={() => setFiltro(g.id)} />)}
+          </div>
         </div>
-      </div>
 
-      {/* Um cartão por dia, no estilo do Fluxo de caixa */}
-      {porDia.length === 0 ? (
-        <Cartao>
+        {/* Um cartão por dia, no estilo do Fluxo de caixa */}
+        {porDia.length === 0 ? (
           <p className="py-6 text-center text-sm text-tinta-4">
             {aba === 'compras'
               ? 'Nenhuma nota fiscal lançada no período. A compra de mercadoria entra item a item, ligada aos seus produtos.'
               : 'Nenhuma conta da casa lançada no período.'}
           </p>
-        </Cartao>
-      ) : (
-        porDia.map(([dia, itens]) => {
-          const totalDia = itens.reduce((s, d) => s + d.valorTotal, 0)
-          const aberto = itens.filter((d) => d.status !== 'pago').reduce((s, d) => s + d.valorTotal, 0)
-          return (
-            <Cartao key={dia} className="p-0">
-              <div className="flex items-center justify-between border-b border-divisoria bg-preenchimento/40 px-4 py-2.5">
-                <span className="text-sm font-bold capitalize text-tinta">
-                  {dia === hoje ? 'Hoje' : diaDaSemana(dia)} · {ddmm(dia)}
-                </span>
-                <span className="text-xs text-tinta-4">
-                  <span className="mono font-bold text-tinta">{brl(totalDia)}</span>
-                  {' · '}
-                  {aberto > 0 ? <>a pagar <span className="mono font-bold text-tinta">{brl(aberto)}</span></> : <span className="font-bold text-mata">tudo pago ✓</span>}
-                </span>
-              </div>
-              {itens.map((d) => (
-                <LinhaDespesa
-                  key={d.id}
-                  d={d}
-                  hoje={hoje}
-                  baseData={baseData}
-                  conta={pagamento.contaDe(d.id)}
-                  aoMarcar={pagamento.alternar}
-                  alvo={
-                    aba === 'compras' && notaDoLancamento.get(d.id)
-                      ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
-                      : { tipo: 'conta', despesa: d }
-                  }
-                />
-              ))}
-            </Cartao>
-          )
-        })
-      )}
+        ) : (
+          porDia.map(([dia, itens]) => {
+            const totalDia = itens.reduce((s, d) => s + d.valorTotal, 0)
+            const aberto = itens.filter((d) => d.status !== 'pago').reduce((s, d) => s + d.valorTotal, 0)
+            return (
+              <Cartao key={dia} className="p-0">
+                <div className="flex items-center justify-between border-b border-divisoria bg-preenchimento/40 px-4 py-2.5">
+                  <span className="text-sm font-bold capitalize text-tinta">
+                    {dia === hoje ? 'Hoje' : diaDaSemana(dia)} · {ddmm(dia)}
+                  </span>
+                  <span className="text-xs text-tinta-4">
+                    <span className="mono font-bold text-tinta">{brl(totalDia)}</span>
+                    {' · '}
+                    {aberto > 0 ? <>a pagar <span className="mono font-bold text-tinta">{brl(aberto)}</span></> : <span className="font-bold text-mata">tudo pago ✓</span>}
+                  </span>
+                </div>
+                {itens.map((d) => (
+                  <LinhaDespesa
+                    key={d.id}
+                    d={d}
+                    hoje={hoje}
+                    baseData={baseData}
+                    conta={pagamento.contaDe(d.id)}
+                    aoMarcar={pagamento.alternar}
+                    alvo={
+                      aba === 'compras' && notaDoLancamento.get(d.id)
+                        ? { tipo: 'nota', nota: notaDoLancamento.get(d.id)! }
+                        : { tipo: 'conta', despesa: d }
+                    }
+                  />
+                ))}
+              </Cartao>
+            )
+          })
+        )}
 
-      <div className="flex items-center justify-between rounded-cartao bg-preenchimento/40 px-4 py-3 text-sm">
-        <span className="text-tinta-3">{lista.length} lançamentos</span>
-        <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
-      </div>
+        <div className="flex items-center justify-between rounded-cartao bg-preenchimento/40 px-4 py-3 text-sm">
+          <span className="text-tinta-3">{lista.length} lançamentos</span>
+          <span className="mono font-bold text-tinta">{brl(totalLista)}</span>
+        </div>
+        </Secao>
+
+        {/* Onde o dinheiro saiu */}
+        <Secao titulo="Onde o dinheiro saiu" descricao="% do faturamento do período">
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-preenchimento">
+            {cats.map((c) => (
+              <div key={c.cat} className="h-full" style={{ width: `${(c.valor / (resumo.saiu || 1)) * 100}%`, background: c.cor }} />
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 tab:grid-cols-4">
+            {cats.map((c) => (
+              <div key={c.cat} className="text-sm">
+                <span className="flex items-center gap-1.5 text-tinta-3">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.cor }} />
+                  {c.nome}
+                </span>
+                <div className="mono font-bold text-tinta">{brl(c.valor)} · {c.pct.toFixed(1)}%</div>
+              </div>
+            ))}
+          </div>
+        </Secao>
+      </Secoes>
 
       {pagamento.modal}
     </div>
@@ -291,7 +296,11 @@ function LinhaDespesa({ d, hoje, baseData, alvo, conta, aoMarcar }: { d: Despesa
     <div className={cn('flex items-center gap-3 border-b border-divisoria px-4 py-3 last:border-0', d.status === 'pago' && 'bg-mata/[0.04]')}>
       <div className="min-w-0 flex-1">
         <div className={cn('truncate font-semibold', d.status === 'pago' ? 'text-tinta-3' : 'text-tinta')}>{d.fornecedor}</div>
-        {d.descricao && <div className="truncate text-xs text-tinta-4">{d.descricao}</div>}
+        {(d.descricao || rotuloParcela(d)) && (
+          <div className="truncate text-xs text-tinta-4">
+            {[rotuloParcela(d) && `${rotuloParcela(d)}${d.numeroNota ? ` da NF ${d.numeroNota}` : ''}`, d.descricao].filter(Boolean).join(' · ')}
+          </div>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <EtiquetaConta categoria={d.categoria} />
           {d.recorrente && (

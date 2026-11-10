@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { brl } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { gerarCSV, baixarCSV } from '@/lib/csv'
@@ -101,92 +102,83 @@ export function DRE() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3.5 tab:grid-cols-12">
-        {/* Coluna esquerda: tabela + barra */}
-        <div className="flex flex-col gap-4 tab:col-span-8">
-          <Cartao className="overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead>
-                  <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                    <th className="px-4 py-2.5 rotulo text-tinta-4">Conta</th>
-                    <th className="px-4 py-2.5 rotulo text-tinta-4 text-right">{mesCurto}</th>
-                    <th className="px-4 py-2.5 rotulo text-tinta-4 text-right">% receita</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {linhas.map((l) => (
-                    <Linha
-                      key={l.id}
-                      linha={l}
-                      colapsavel={l.tipo === 'grupo' || l.id === 'receita_bruta'}
-                      fechado={!!fechados[chaveColapso(l)]}
-                      aoAlternar={() => alternar(chaveColapso(l))}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Cartao>
+      <Cartao className="flex flex-col gap-2">
+        <span className="rotulo text-tinta-4">Lucro líquido de {MESES[Number(dre.mes.split('-')[1]) - 1]}</span>
+        <span className="mono text-tinta" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>{brl(dre.lucroLiquido)}</span>
+        <span className="text-sm text-tinta-3">
+          {pct(dre.lucroLiquido).toFixed(1)}% do que entrou. No operacional, {brl(dre.lucroOperacional)}.
+        </span>
+      </Cartao>
 
-          <Cartao className="flex flex-col gap-3">
-            <h2 className="text-[15px] font-bold text-tinta">Pra onde vai cada R$ 100 que o cliente paga</h2>
-            <div className="flex h-4 w-full overflow-hidden rounded-full bg-preenchimento">
-              {segmentos.map((s) => (
-                <div key={s.nome} className="h-full" style={{ width: `${Math.max(0, pct(s.valor))}%`, background: s.cor }} />
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2 tab:grid-cols-3">
-              {segmentos.map((s) => (
-                <div key={s.nome} className="flex items-center gap-2 text-sm">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.cor }} />
-                  <span className="text-tinta-3">{s.nome}</span>
-                  <span className="mono ml-auto font-bold text-tinta">{brl(pct(s.valor))}</span>
-                </div>
-              ))}
-            </div>
-          </Cartao>
-        </div>
+      <Secoes>
+        <Secao titulo="Conta por conta" descricao={`O resultado de ${nomeMes(dre.mes)}, do que entrou ao que sobrou.`} abertaPorPadrao className="overflow-hidden" corpoClassName="!p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
+                  <th className="px-4 py-2.5 rotulo text-tinta-4">Conta</th>
+                  <th className="px-4 py-2.5 rotulo text-tinta-4 text-right">{mesCurto}</th>
+                  <th className="px-4 py-2.5 rotulo text-tinta-4 text-right">% receita</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhas.map((l) => (
+                  <Linha
+                    key={l.id}
+                    linha={l}
+                    colapsavel={l.tipo === 'grupo' || l.id === 'receita_bruta'}
+                    fechado={!!fechados[chaveColapso(l)]}
+                    aoAlternar={() => alternar(chaveColapso(l))}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Secao>
 
-        {/* Coluna direita */}
-        <div className="flex flex-col gap-4 tab:col-span-4">
-          <Cartao className="flex flex-col gap-2">
-            <span className="rotulo text-tinta-4">Lucro líquido de {MESES[Number(dre.mes.split('-')[1]) - 1]}</span>
-            <span className="mono text-tinta" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>{brl(dre.lucroLiquido)}</span>
-            <span className="text-sm text-tinta-3">
-              {pct(dre.lucroLiquido).toFixed(1)}% do que entrou. No operacional, {brl(dre.lucroOperacional)}.
-            </span>
-          </Cartao>
+        <Secao titulo="Pra onde vai cada R$ 100 que o cliente paga" corpoClassName="flex flex-col gap-3">
+          <div className="flex h-4 w-full overflow-hidden rounded-full bg-preenchimento">
+            {segmentos.map((s) => (
+              <div key={s.nome} className="h-full" style={{ width: `${Math.max(0, pct(s.valor))}%`, background: s.cor }} />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2 tab:grid-cols-3">
+            {segmentos.map((s) => (
+              <div key={s.nome} className="flex items-center gap-2 text-sm">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.cor }} />
+                <span className="text-tinta-3">{s.nome}</span>
+                <span className="mono ml-auto font-bold text-tinta">{brl(pct(s.valor))}</span>
+              </div>
+            ))}
+          </div>
+        </Secao>
 
-          <Cartao className="flex flex-col gap-1">
-            <h2 className="mb-2 text-[15px] font-bold text-tinta">Como o CMV fechou</h2>
-            <LinhaCMV rotulo="Compras do mês" valor={dre.cmv.compras} />
-            <LinhaCMV rotulo="(+) Estoque no início" valor={dre.cmv.estoqueInicial} />
-            <LinhaCMV rotulo="(−) Estoque no fim" valor={dre.cmv.estoqueFinal} />
-            <LinhaCMV rotulo="= CMV do mês" valor={dre.cmv.total} forte />
-            <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
-              {dre.cmv.temInventario
-                ? `${pct(dre.cmv.total).toFixed(1)}% da receita, com a contagem de estoque fechada.`
-                : 'Sem contagem fechada no mês — por enquanto o CMV é só o que você comprou.'}
-            </p>
-          </Cartao>
+        <Secao titulo="Como o CMV fechou" resumo={<span className="mono">{brl(dre.cmv.total)}</span>} corpoClassName="flex flex-col gap-1 !pt-2">
+          <LinhaCMV rotulo="Compras do mês" valor={dre.cmv.compras} />
+          <LinhaCMV rotulo="(+) Estoque no início" valor={dre.cmv.estoqueInicial} />
+          <LinhaCMV rotulo="(−) Estoque no fim" valor={dre.cmv.estoqueFinal} />
+          <LinhaCMV rotulo="= CMV do mês" valor={dre.cmv.total} forte />
+          <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
+            {dre.cmv.temInventario
+              ? `${pct(dre.cmv.total).toFixed(1)}% da receita, com a contagem de estoque fechada.`
+              : 'Sem contagem fechada no mês — por enquanto o CMV é só o que você comprou.'}
+          </p>
+        </Secao>
 
-          <Cartao className="flex flex-col gap-1">
-            <h2 className="mb-2 text-[15px] font-bold text-tinta">Pro contador</h2>
-            <div className="flex items-center justify-between py-2.5">
-              <span className="text-sm text-tinta-2">DRE em planilha</span>
-              <button onClick={baixarDRE} className="text-sm font-bold text-mar hover:underline">Baixar</button>
-            </div>
-            <div className="flex items-center justify-between border-t border-divisoria py-2.5">
-              <span className="text-sm text-tinta-2">Lançamentos do mês</span>
-              <button onClick={baixarLancamentos} className="text-sm font-bold text-mar hover:underline">Baixar</button>
-            </div>
-            <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
-              Sai no mesmo plano de contas do modelo padrão, conta por conta.
-            </p>
-          </Cartao>
-        </div>
-      </div>
+        <Secao titulo="Pro contador" corpoClassName="flex flex-col gap-1 !pt-1">
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-tinta-2">DRE em planilha</span>
+            <button onClick={baixarDRE} className="text-sm font-bold text-mar hover:underline">Baixar</button>
+          </div>
+          <div className="flex items-center justify-between border-t border-divisoria py-2.5">
+            <span className="text-sm text-tinta-2">Lançamentos do mês</span>
+            <button onClick={baixarLancamentos} className="text-sm font-bold text-mar hover:underline">Baixar</button>
+          </div>
+          <p className="border-t border-divisoria pt-3 text-xs text-tinta-4">
+            Sai no mesmo plano de contas do modelo padrão, conta por conta.
+          </p>
+        </Secao>
+      </Secoes>
     </div>
   )
 }

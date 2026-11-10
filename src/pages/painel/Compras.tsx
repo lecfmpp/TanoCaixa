@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { TagVencimento } from '@/components/ui/TagVencimento'
@@ -16,6 +17,13 @@ import { agruparEmNotas, precosPorItem, resumoPorFornecedor, altasDePreco, ALTA_
 import { diasAte, lembretes } from '@/data/vencimentos'
 import { gerarCSV, baixarCSV, arquivoDe } from '@/lib/csv'
 import { AcoesLancamento } from '@/components/lancamentos/AcoesLancamento'
+import type { Nota } from '@/data/compras'
+
+/** Vencimento da próxima parcela em aberto ("10/12"), ou vazio se todas foram pagas. */
+function proximaParcela(n: Nota): string {
+  const v = n.parcelas.find((p) => !p.pago)?.vencimento
+  return v ? v.split('-').reverse().slice(0, 2).join('/') : ''
+}
 import { useMarcarComoPago } from '@/components/pagamento/useMarcarComoPago'
 
 type Aba = 'notas' | 'precos' | 'fornecedores'
@@ -115,184 +123,246 @@ export function Compras() {
         </div>
       )}
 
-      {/* Alerta de preço — o que o dono precisa ver antes de comprar de novo */}
-      {altas.length > 0 && (
-        <Cartao>
-          <h2 className="mb-3 text-[15px] font-bold text-tinta">O que subiu de preço</h2>
-          <div className="flex flex-col gap-2">
-            {altas.slice(0, 5).map((p) => (
-              <div key={p.produtoId} className="flex items-center justify-between border-b border-divisoria pb-2 last:border-0 last:pb-0 text-sm">
-                <span className="text-tinta-2">
-                  <strong className="font-bold text-tinta">{p.produto}</strong>
-                  <span className="text-tinta-4"> · {p.fornecedor}</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="mono text-xs text-tinta-4">{brl(p.anterior ?? 0)} → {brl(p.atual)}</span>
-                  <span className="mono flex items-center gap-1 font-bold text-telha-alerta">
-                    <TrendingUp size={14} /> {p.variacao!.toFixed(0)}%
-                  </span>
-                </span>
-              </div>
-            ))}
+      <Secoes>
+        <Secao
+          titulo="Notas, preços e fornecedores"
+          resumo={`${notasDoMes.length} ${notasDoMes.length === 1 ? 'nota' : 'notas'} · ${brl(compradoNoMes)}`}
+          acoes={<Button variante="lancar" onClick={() => abrirGaveta('compra')}>Lançar nota fiscal</Button>}
+          abertaPorPadrao
+        >
+          <div className="flex flex-wrap gap-2">
+            <Chip rotulo={periodo === 'mes' ? 'Notas do mês' : periodo === 'semana' ? 'Notas da semana' : 'Notas do período'} selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
+            <Chip rotulo="Preço por item" selecionado={aba === 'precos'} aoClicar={() => setAba('precos')} />
+            <Chip rotulo="Fornecedores" selecionado={aba === 'fornecedores'} aoClicar={() => setAba('fornecedores')} />
           </div>
-        </Cartao>
-      )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Chip rotulo={periodo === 'mes' ? 'Notas do mês' : periodo === 'semana' ? 'Notas da semana' : 'Notas do período'} selecionado={aba === 'notas'} aoClicar={() => setAba('notas')} />
-          <Chip rotulo="Preço por item" selecionado={aba === 'precos'} aoClicar={() => setAba('precos')} />
-          <Chip rotulo="Fornecedores" selecionado={aba === 'fornecedores'} aoClicar={() => setAba('fornecedores')} />
-        </div>
-        <Button variante="lancar" onClick={() => abrirGaveta('compra')}>Lançar nota fiscal</Button>
-      </div>
-
-      {aba === 'notas' && (
-        <Cartao className="overflow-hidden p-0">
-          {notasDoMes.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-tinta-4">
-              Nenhuma compra no período. Lance a nota do fornecedor: cada item vira entrada de estoque e atualiza o
-              custo do produto.
-            </p>
-          ) : (
-            notasDoMes.map((n) => {
-              const aberto = aberta === n.id
-              const pago = n.status === 'pago'
-              const dias = n.vencimento ? diasAte(n.vencimento, hoje) : null
-              return (
-                <div key={n.id} className="border-b border-divisoria last:border-0">
-                  <div className="flex items-center pr-2 transition hover:bg-preenchimento/30">
-                  <button
-                    onClick={() => setAberta(aberto ? null : n.id)}
-                    className="flex flex-1 items-center gap-3 px-4 py-3 text-left"
-                  >
-                    {n.itens.length > 0
-                      ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
-                      : <span className="w-4 shrink-0" />}
-                    <span className="flex-1">
-                      <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
-                      <span className="block text-xs text-tinta-4">
-                        {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))}{n.vencimento ? ` · venc. ${n.vencimento.slice(0, 10).split('-').reverse().slice(0, 2).join('/')}` : ''} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
-                      </span>
-                    </span>
-                    {pago ? (
-                      <span className="text-xs font-bold text-mata">pago{n.pagoPorNome ? ` · ${n.pagoPorNome}` : ''}</span>
-                    ) : dias !== null ? (
-                      <TagVencimento dias={dias} />
-                    ) : (
-                      <span className="text-xs font-bold text-telha-alerta">a pagar · sem vencimento</span>
-                    )}
-                    <span className="mono w-28 text-right font-bold text-tinta">{brl(n.valorTotal)}</span>
-                  </button>
-                  {/* Corrigir/duplicar/apagar a nota inteira: os lançamentos do
-                   * DRE, as entradas de estoque e o custo dos produtos andam
-                   * juntos. Compra antiga sem itens não tem estoque atrás — ela
-                   * é corrigida como lançamento avulso, na gaveta de despesa. */}
-                  {!pago && pagamento.contaDe(n.lancamentos[0].id) && (
-                    // O check pergunta se teve juros; paga a nota inteira.
-                    <button
-                      onClick={() => pagamento.alternar(pagamento.contaDe(n.lancamentos[0].id)!)}
-                      className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-botao px-2.5 py-1.5 text-xs font-bold text-mar transition hover:bg-preenchimento"
-                    >
-                      <CheckCircle2 size={13} /> <span className="hidden cel:inline">Marcar como pago</span><span className="cel:hidden">Pagar</span>
-                    </button>
-                  )}
-                  <AcoesLancamento
-                    alvo={
-                      n.itens.length || n.lancamentos.length > 1
-                        ? { tipo: 'nota', nota: n }
-                        : { tipo: 'conta', despesa: n.lancamentos[0] }
-                    }
-                  />
-                  </div>
-                  {aberto && n.itens.length > 0 && (
-                    <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
-                      {n.itens.map((i, idx) => (
-                        <div key={`${i.produtoId}-${idx}`} className="flex items-center justify-between border-b border-divisoria py-2 last:border-0 text-sm">
-                          <span className="text-tinta-2">
-                            {i.produto}
-                            <span className="text-tinta-4"> · {i.quantidade} {i.unidade ?? ''} × {brl(i.precoUnitario)}</span>
+          {aba === 'notas' && (
+            <div className="-mx-5 -mb-5 mt-3 overflow-hidden rounded-b-cartao border-t border-divisoria">
+              {notasDoMes.length === 0 ? (
+                <p className="px-4 py-10 text-center text-sm text-tinta-4">
+                  Nenhuma compra no período. Lance a nota do fornecedor: cada item vira entrada de estoque e atualiza o
+                  custo do produto.
+                </p>
+              ) : (
+                notasDoMes.map((n) => {
+                  const aberto = aberta === n.id
+                  const pago = n.status === 'pago'
+                  // Nota parcelada: o que importa é a próxima parcela em aberto.
+                  const parcelada = n.parcelas.length > 1
+                  const proxima = n.parcelas.find((p) => !p.pago)
+                  const lancPagar = parcelada && proxima ? n.lancamentos.find((l) => (l.parcela ?? 1) === proxima.numero) : n.lancamentos[0]
+                  const vencRef = parcelada ? proxima?.vencimento : n.vencimento
+                  const dias = vencRef ? diasAte(vencRef, hoje) : null
+                  const expande = n.itens.length > 0 || parcelada
+                  return (
+                    <div key={n.id} className="border-b border-divisoria last:border-0">
+                      <div className="flex items-center pr-2 transition hover:bg-preenchimento/30">
+                      <button
+                        onClick={() => setAberta(aberto ? null : n.id)}
+                        className="flex flex-1 items-center gap-3 px-4 py-3 text-left"
+                      >
+                        {expande
+                          ? (aberto ? <ChevronDown size={16} className="shrink-0 text-tinta-4" /> : <ChevronRight size={16} className="shrink-0 text-tinta-4" />)
+                          : <span className="w-4 shrink-0" />}
+                        <span className="flex-1">
+                          <span className="block text-sm font-bold text-tinta">{n.fornecedor}</span>
+                          <span className="block text-xs text-tinta-4">
+                            {n.numeroNota ? `NF ${n.numeroNota} · ` : ''}{dataCurta(dataDoDia(n.data))}{n.parcelas.length > 1 ? ` · ${n.parcelas.length} parcelas${proximaParcela(n) ? ` (próx. ${proximaParcela(n)})` : ' (todas pagas)'}` : n.vencimento ? ` · venc. ${n.vencimento.slice(0, 10).split('-').reverse().slice(0, 2).join('/')}` : ''} · {n.itens.length ? `${n.itens.length} ${n.itens.length === 1 ? 'item' : 'itens'}` : 'sem itens detalhados'} · {n.quem}
                           </span>
-                          <span className="mono font-bold text-tinta">{brl(i.quantidade * i.precoUnitario)}</span>
+                        </span>
+                        {pago ? (
+                          <span className="text-xs font-bold text-mata">pago{n.pagoPorNome ? ` · ${n.pagoPorNome}` : ''}</span>
+                        ) : dias !== null ? (
+                          <TagVencimento dias={dias} />
+                        ) : (
+                          <span className="text-xs font-bold text-telha-alerta">a pagar · sem vencimento</span>
+                        )}
+                        <span className="mono w-28 text-right font-bold text-tinta">{brl(n.valorTotal)}</span>
+                      </button>
+                      {/* Corrigir/duplicar/apagar a nota inteira: os lançamentos do
+                       * DRE, as entradas de estoque e o custo dos produtos andam
+                       * juntos. Compra antiga sem itens não tem estoque atrás — ela
+                       * é corrigida como lançamento avulso, na gaveta de despesa. */}
+                      {!pago && lancPagar && pagamento.contaDe(lancPagar.id) && (
+                        // O check pergunta se teve juros. Nota à vista: paga a nota
+                        // inteira. Parcelada: paga a próxima parcela em aberto.
+                        <button
+                          onClick={() => pagamento.alternar(pagamento.contaDe(lancPagar.id)!)}
+                          className="mr-1 inline-flex shrink-0 items-center gap-1 rounded-botao px-2.5 py-1.5 text-xs font-bold text-mar transition hover:bg-preenchimento"
+                        >
+                          <CheckCircle2 size={13} />{' '}
+                          {parcelada && proxima ? (
+                            <>
+                              <span className="hidden cel:inline">Pagar parcela {proxima.numero}</span>
+                              <span className="cel:hidden">Pagar {proxima.numero}ª</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="hidden cel:inline">Marcar como pago</span>
+                              <span className="cel:hidden">Pagar</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <AcoesLancamento
+                        alvo={
+                          n.itens.length || n.lancamentos.length > 1
+                            ? { tipo: 'nota', nota: n }
+                            : { tipo: 'conta', despesa: n.lancamentos[0] }
+                        }
+                      />
+                      </div>
+                      {aberto && parcelada && (
+                        <div className="bg-preenchimento/30 px-4 pt-2 pl-11">
+                          <span className="rotulo text-tinta-4">Parcelas do boleto</span>
+                          {n.parcelas.map((p) => {
+                            const lanc = n.lancamentos.find((l) => (l.parcela ?? 1) === p.numero)
+                            const conta = lanc ? pagamento.contaDe(lanc.id) : undefined
+                            const d = p.vencimento ? diasAte(p.vencimento, hoje) : null
+                            return (
+                              <div key={p.numero} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-divisoria py-2 text-sm last:border-0">
+                                <span className="font-bold text-tinta">
+                                  {p.numero} de {n.parcelas.length}
+                                </span>
+                                <span className="text-tinta-3">
+                                  {p.vencimento ? `vence ${p.vencimento.split('-').reverse().join('/')}` : 'sem vencimento'}
+                                </span>
+                                <span className="flex-1" />
+                                {p.pago ? (
+                                  <span className="text-xs font-bold text-mata">paga{p.pagoPorNome ? ` · ${p.pagoPorNome}` : ''}</span>
+                                ) : (
+                                  d !== null && <TagVencimento dias={d} />
+                                )}
+                                <span className="mono w-24 text-right font-bold text-tinta">{brl(p.valor)}</span>
+                                {conta && (
+                                  <button
+                                    onClick={() => pagamento.alternar(conta)}
+                                    className={cn(
+                                      'inline-flex shrink-0 items-center gap-1 rounded-botao px-2 py-1 text-xs font-bold transition hover:bg-preenchimento',
+                                      p.pago ? 'text-tinta-4' : 'text-mar',
+                                    )}
+                                  >
+                                    {p.pago ? 'Desmarcar' : <><CheckCircle2 size={13} /> Pagar</>}
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                      ))}
-                      {(n.desconto > 0 || n.acrescimo > 0) && (
-                        <div className="mono flex flex-col items-end gap-0.5 pt-2 text-xs text-tinta-3">
-                          {n.desconto > 0 && <span>descontos − {brl(n.desconto)}</span>}
-                          {n.acrescimo > 0 && <span>acréscimos + {brl(n.acrescimo)}</span>}
+                      )}
+                      {aberto && n.itens.length > 0 && (
+                        <div className="bg-preenchimento/30 px-4 pb-3 pl-11">
+                          {n.itens.map((i, idx) => (
+                            <div key={`${i.produtoId}-${idx}`} className="flex items-center justify-between border-b border-divisoria py-2 last:border-0 text-sm">
+                              <span className="text-tinta-2">
+                                {i.produto}
+                                <span className="text-tinta-4"> · {i.quantidade} {i.unidade ?? ''} × {brl(i.precoUnitario)}</span>
+                              </span>
+                              <span className="mono font-bold text-tinta">{brl(i.quantidade * i.precoUnitario)}</span>
+                            </div>
+                          ))}
+                          {(n.desconto > 0 || n.acrescimo > 0) && (
+                            <div className="mono flex flex-col items-end gap-0.5 pt-2 text-xs text-tinta-3">
+                              {n.desconto > 0 && <span>descontos − {brl(n.desconto)}</span>}
+                              {n.acrescimo > 0 && <span>acréscimos + {brl(n.acrescimo)}</span>}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
+                  )
+                })
+              )}
+            </div>
+          )}
+
+          {aba === 'precos' && (
+            <div className="-mx-5 -mb-5 mt-3 overflow-hidden rounded-b-cartao border-t border-divisoria">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
+                      <Th>Produto</Th><Th>Última compra</Th><Th>Fornecedor</Th><Th className="text-right">Preço anterior</Th><Th className="text-right">Preço de hoje</Th><Th className="text-right">Variação</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {precos.map((p) => (
+                      <tr key={p.produtoId} className="border-b border-divisoria last:border-0">
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-tinta">{p.produto}</span>
+                          <span className="block text-xs text-tinta-4">{p.compras} {p.compras === 1 ? 'compra' : 'compras'} · por {p.unidade ?? 'un'}</span>
+                        </td>
+                        <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(p.ultimaCompra))}</td>
+                        <td className="px-4 py-3 text-tinta-2">{p.fornecedor}</td>
+                        <td className="mono px-4 py-3 text-right text-tinta-3">{p.anterior === null ? '—' : brl(p.anterior)}</td>
+                        <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(p.atual)}</td>
+                        <td className="px-4 py-3 text-right"><Variacao valor={p.variacao} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {precos.length === 0 && (
+                <p className="px-4 py-10 text-center text-sm text-tinta-4">
+                  O histórico de preço aparece a partir da segunda compra de cada item.
+                </p>
+              )}
+            </div>
+          )}
+
+          {aba === 'fornecedores' && (
+            <div className="-mx-5 -mb-5 mt-3 overflow-hidden rounded-b-cartao border-t border-divisoria">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
+                      <Th>Fornecedor</Th><Th className="text-right">Notas</Th><Th className="text-right">Itens</Th><Th>Última compra</Th><Th className="text-right">Preço médio</Th><Th className="text-right">Total no mês</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fornecedores.map((f) => (
+                      <tr key={f.fornecedor} className="border-b border-divisoria last:border-0">
+                        <td className="px-4 py-3 font-semibold text-tinta">{f.fornecedor}</td>
+                        <td className="mono px-4 py-3 text-right text-tinta-2">{f.notas}</td>
+                        <td className="mono px-4 py-3 text-right text-tinta-2">{f.itens}</td>
+                        <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(f.ultimaCompra))}</td>
+                        <td className="px-4 py-3 text-right"><Variacao valor={f.variacaoMedia} /></td>
+                        <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(f.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {fornecedores.length === 0 && (
+                <p className="px-4 py-10 text-center text-sm text-tinta-4">Nenhuma compra neste mês.</p>
+              )}
+            </div>
+          )}
+        </Secao>
+
+        {/* Alerta de preço — o que o dono precisa ver antes de comprar de novo */}
+        {altas.length > 0 && (
+          <Secao titulo="O que subiu de preço" resumo={`${altas.length} ${altas.length === 1 ? 'item' : 'itens'}`}>
+            <div className="flex flex-col gap-2">
+              {altas.slice(0, 5).map((p) => (
+                <div key={p.produtoId} className="flex items-center justify-between border-b border-divisoria pb-2 last:border-0 last:pb-0 text-sm">
+                  <span className="text-tinta-2">
+                    <strong className="font-bold text-tinta">{p.produto}</strong>
+                    <span className="text-tinta-4"> · {p.fornecedor}</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="mono text-xs text-tinta-4">{brl(p.anterior ?? 0)} → {brl(p.atual)}</span>
+                    <span className="mono flex items-center gap-1 font-bold text-telha-alerta">
+                      <TrendingUp size={14} /> {p.variacao!.toFixed(0)}%
+                    </span>
+                  </span>
                 </div>
-              )
-            })
-          )}
-        </Cartao>
-      )}
+              ))}
+            </div>
+          </Secao>
+        )}
+      </Secoes>
 
-      {aba === 'precos' && (
-        <Cartao className="overflow-hidden p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                  <Th>Produto</Th><Th>Última compra</Th><Th>Fornecedor</Th><Th className="text-right">Preço anterior</Th><Th className="text-right">Preço de hoje</Th><Th className="text-right">Variação</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {precos.map((p) => (
-                  <tr key={p.produtoId} className="border-b border-divisoria last:border-0">
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-tinta">{p.produto}</span>
-                      <span className="block text-xs text-tinta-4">{p.compras} {p.compras === 1 ? 'compra' : 'compras'} · por {p.unidade ?? 'un'}</span>
-                    </td>
-                    <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(p.ultimaCompra))}</td>
-                    <td className="px-4 py-3 text-tinta-2">{p.fornecedor}</td>
-                    <td className="mono px-4 py-3 text-right text-tinta-3">{p.anterior === null ? '—' : brl(p.anterior)}</td>
-                    <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(p.atual)}</td>
-                    <td className="px-4 py-3 text-right"><Variacao valor={p.variacao} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {precos.length === 0 && (
-            <p className="px-4 py-10 text-center text-sm text-tinta-4">
-              O histórico de preço aparece a partir da segunda compra de cada item.
-            </p>
-          )}
-        </Cartao>
-      )}
-
-      {aba === 'fornecedores' && (
-        <Cartao className="overflow-hidden p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
-                  <Th>Fornecedor</Th><Th className="text-right">Notas</Th><Th className="text-right">Itens</Th><Th>Última compra</Th><Th className="text-right">Preço médio</Th><Th className="text-right">Total no mês</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {fornecedores.map((f) => (
-                  <tr key={f.fornecedor} className="border-b border-divisoria last:border-0">
-                    <td className="px-4 py-3 font-semibold text-tinta">{f.fornecedor}</td>
-                    <td className="mono px-4 py-3 text-right text-tinta-2">{f.notas}</td>
-                    <td className="mono px-4 py-3 text-right text-tinta-2">{f.itens}</td>
-                    <td className="mono px-4 py-3 text-tinta-2">{dataCurta(dataDoDia(f.ultimaCompra))}</td>
-                    <td className="px-4 py-3 text-right"><Variacao valor={f.variacaoMedia} /></td>
-                    <td className="mono px-4 py-3 text-right font-bold text-tinta">{brl(f.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {fornecedores.length === 0 && (
-            <p className="px-4 py-10 text-center text-sm text-tinta-4">Nenhuma compra neste mês.</p>
-          )}
-        </Cartao>
-      )}
       {pagamento.modal}
     </div>
   )

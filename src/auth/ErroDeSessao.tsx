@@ -26,3 +26,22 @@ export function ErroDeSessao() {
     </div>
   )
 }
+
+/**
+ * Aviso de logout forçado: a pessoa perdeu o acesso à loja ou o papel dela
+ * mudou. Mostra o motivo real (vindo do vigia de acesso ou do login) até ela
+ * entrar de novo ou fechar o aviso.
+ */
+export function AvisoSaida() {
+  const { motivoSaida, limparMotivoSaida } = useAuth()
+  if (!motivoSaida) return null
+  return (
+    <div role="alert" className="rounded-campo border border-sol/50 bg-insight-fundo px-4 py-3 text-sm text-insight-texto">
+      <p className="font-bold text-tinta">Você foi desconectado</p>
+      <p className="pretty mt-1">{motivoSaida}</p>
+      <button type="button" onClick={limparMotivoSaida} className="mt-2 text-xs font-bold text-mar hover:underline">
+        Entendi
+      </button>
+    </div>
+  )
+}

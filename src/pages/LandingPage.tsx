@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ArrowRight, Star, Volume2, VolumeX } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
+import { useAuth } from '@/auth/AuthContext'
 import { fotos } from '@/lib/fotos'
 import { SeloEmBreve } from '@/components/ui/SeloEmBreve'
 import { DESCONTO_LOJA, PRECO_EXPANSAO, PRECO_LOJA, PRECO_LOJA_CHEIO } from '@/data/preco'
@@ -67,11 +68,36 @@ function Nav() {
           <a href="/blog" className="hover:text-tinta">Blog</a>
         </nav>
         <div className="flex items-center gap-2.5">
-          <Link to="/entrar" className="hidden text-sm font-bold text-tinta-2 hover:text-tinta cel:block">Entrar</Link>
-          <Link to="/criar" className="rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">Testar de graça</Link>
+          <AcessoConta />
         </div>
       </div>
     </header>
+  )
+}
+
+/**
+ * Botões de conta no topo: quem já está logado (conta real, não a demonstração)
+ * vê só "Entrar", que leva direto ao painel; quem não está vê "Login" e "Criar conta".
+ */
+function AcessoConta() {
+  const { sessao, carregando } = useAuth()
+  const logado = !carregando && !!sessao && !sessao.demo
+  if (logado) {
+    return (
+      <Link to="/painel" className="whitespace-nowrap rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">
+        Entrar
+      </Link>
+    )
+  }
+  return (
+    <>
+      <Link to="/entrar" className="whitespace-nowrap rounded-botao border border-[rgba(46,95,115,0.2)] bg-superficie px-3.5 py-2 text-sm font-bold text-tinta-2 transition hover:border-mar/50 hover:text-tinta">
+        Login
+      </Link>
+      <Link to="/criar" className="whitespace-nowrap rounded-botao bg-telhado px-4 py-2 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">
+        Criar conta
+      </Link>
+    </>
   )
 }
 
@@ -89,9 +115,6 @@ function Hero() {
           <Link to="/criar" className="rounded-botao bg-telhado px-5 py-3 text-sm font-bold text-creme shadow-telhado transition hover:brightness-95">
             Começar de graça por 14 dias
           </Link>
-          <a href="#painel" className="rounded-botao border border-[rgba(46,95,115,0.2)] bg-superficie px-5 py-3 text-sm font-bold text-tinta-2 transition hover:border-mar/50">
-            Ver as telas por dentro
-          </a>
         </div>
         <div className="mt-9 flex gap-8">
           {[['40s', 'pra lançar uma nota'], ['3s', 'pra saber se sobrou'], ['0', 'planilha pra manter']].map(([n, t]) => (

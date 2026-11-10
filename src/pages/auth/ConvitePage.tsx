@@ -11,7 +11,15 @@ import { mensagemDeErroAuth } from '@/auth/erros'
 import { functions } from '@/lib/firebase'
 import { rotuloPapel, normalizarPapel } from '@/types'
 
-const verConviteFn = httpsCallable<{ token: string }, { restauranteNome: string; papel: string; valido: boolean }>(
+interface LojaConvite {
+  restauranteNome: string
+  papel: string
+}
+
+const verConviteFn = httpsCallable<
+  { token: string },
+  { restauranteNome: string; papel: string; lojas?: LojaConvite[]; valido: boolean }
+>(
   functions,
   'verConvite',
 )
@@ -24,7 +32,7 @@ export function ConvitePage() {
   const { sessao, erroSessao, entrarComEmail, criarConta, entrarComGoogle } = useAuth()
 
   const [estado, setEstado] = useState<Estado>('carregando')
-  const [convite, setConvite] = useState<{ restauranteNome: string; papel: string } | null>(null)
+  const [convite, setConvite] = useState<{ restauranteNome: string; papel: string; lojas: LojaConvite[] } | null>(null)
   const [modo, setModo] = useState<'criar' | 'entrar'>('criar')
   const [nome, setNome] = useState('')
   const [senha, setSenha] = useState('')
@@ -58,7 +66,11 @@ export function ConvitePage() {
           setEstado('invalido')
           return
         }
-        setConvite({ restauranteNome: r.data.restauranteNome, papel: r.data.papel })
+        setConvite({
+          restauranteNome: r.data.restauranteNome,
+          papel: r.data.papel,
+          lojas: r.data.lojas?.length ? r.data.lojas : [{ restauranteNome: r.data.restauranteNome, papel: r.data.papel }],
+        })
         setEstado('valido')
       })
       .catch(() => setEstado('invalido'))
@@ -143,6 +155,17 @@ export function ConvitePage() {
   }
 
   const papelRotulo = rotuloPapel(normalizarPapel(convite.papel))
+  const varias = convite.lojas.length > 1
+  const listaLojas = varias && (
+    <ul className="mt-3 flex flex-col gap-1.5">
+      {convite.lojas.map((l, i) => (
+        <li key={i} className="flex items-center justify-between gap-3 rounded-campo bg-preenchimento/60 px-3 py-2 text-sm">
+          <span className="font-bold text-tinta">{l.restauranteNome}</span>
+          <span className="text-xs font-semibold text-tinta-3">{rotuloPapel(normalizarPapel(l.papel))}</span>
+        </li>
+      ))}
+    </ul>
+  )
 
   if (sessao) {
     return (
@@ -151,16 +174,23 @@ export function ConvitePage() {
           Você foi convidado
         </h2>
         <p className="pretty mt-2 text-sm text-tinta-3">
-          Pra entrar em <b>{convite.restauranteNome}</b> como <b>{papelRotulo}</b>, usando a conta{' '}
-          <b>{sessao.usuario.email}</b>.
+          {varias ? (
+            <>Pra entrar nestas {convite.lojas.length} lojas</>
+          ) : (
+            <>
+              Pra entrar em <b>{convite.restauranteNome}</b> como <b>{papelRotulo}</b>
+            </>
+          )}
+          , usando a conta <b>{sessao.usuario.email}</b>.
         </p>
+        {listaLojas}
         {erro && (
           <p className="mt-3 rounded-campo border border-telha-alerta/40 bg-telha-alerta/8 px-3 py-2 text-sm text-telha-alerta">
             {erro}
           </p>
         )}
         <Button variante="primario" bloco className="mt-4" disabled={enviando} onClick={aceitarJaLogado}>
-          {enviando ? 'Entrando…' : `Aceitar e entrar em ${convite.restauranteNome}`}
+          {enviando ? 'Entrando…' : varias ? 'Aceitar convite' : `Aceitar e entrar em ${convite.restauranteNome}`}
         </Button>
       </AuthLayout>
     )
@@ -173,9 +203,16 @@ export function ConvitePage() {
           Você foi convidado
         </h2>
         <p className="pretty mt-1.5 text-sm text-tinta-3">
-          Pra entrar em <b>{convite.restauranteNome}</b> como <b>{papelRotulo}</b>, crie sua conta ou entre com uma
-          já existente.
+          {varias ? (
+            <>Pra entrar nestas {convite.lojas.length} lojas</>
+          ) : (
+            <>
+              Pra entrar em <b>{convite.restauranteNome}</b> como <b>{papelRotulo}</b>
+            </>
+          )}
+          , crie sua conta ou entre com uma já existente.
         </p>
+        {listaLojas}
       </div>
 
       <div className="mb-5 flex gap-1 rounded-botao bg-preenchimento p-1 text-sm font-bold">

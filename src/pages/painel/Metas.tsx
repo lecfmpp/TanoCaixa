@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Cartao } from '@/components/ui/Cartao'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Campo } from '@/components/ui/Campo'
 import { Chip } from '@/components/ui/Chip'
 import { Button } from '@/components/ui/Button'
@@ -166,8 +166,8 @@ export function Metas() {
         </p>
       )}
 
-      <Cartao className="flex flex-col gap-4">
-        <h2 className="text-[15px] font-bold text-tinta">O restaurante</h2>
+      <Secoes>
+      <Secao titulo="O restaurante" abertaPorPadrao resumo={form.nome.trim() || undefined} corpoClassName="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-2">
           <Campo rotulo="Nome" value={form.nome} onChange={(e) => upd({ nome: e.target.value })} />
           <Campo rotulo="Bairro" value={form.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
@@ -182,16 +182,14 @@ export function Metas() {
             ))}
           </div>
         </div>
-      </Cartao>
+      </Secao>
 
-      <Cartao className="flex flex-col gap-4">
-        <div>
-          <h2 className="flex items-center gap-2 text-[15px] font-bold text-tinta">
-            Números de partida {pendente && <AlertaNumeros />}
-          </h2>
-          <p className="text-sm text-tinta-3">Chute redondo já serve. Servem de base pra sugerir os tetos.</p>
-        </div>
-
+      <Secao
+        titulo={<span className="flex items-center gap-2">Números de partida {pendente && <AlertaNumeros />}</span>}
+        descricao="Chute redondo já serve. Servem de base pra sugerir os tetos."
+        abertaPorPadrao={pendente}
+        corpoClassName="flex flex-col gap-4"
+      >
         <div className="flex flex-col gap-3">
           <span className="rotulo text-tinta-4">Vendas</span>
           <div className="grid grid-cols-1 gap-3 cel:grid-cols-3">
@@ -215,15 +213,15 @@ export function Metas() {
             <Campo rotulo="Compras de mercadoria (R$)" inputMode="numeric" value={inteiro(form.mercadoria) === '0' ? '' : inteiro(form.mercadoria)} onChange={(e) => upd({ mercadoria: soNumero(e.target.value) })} />
           </div>
         </div>
-      </Cartao>
+      </Secao>
 
-      <Cartao className="flex flex-col gap-4">
-        <div>
-          <h2 className="flex items-center gap-2 text-[15px] font-bold text-tinta">
-            Metas {pendente && <AlertaNumeros />}
-          </h2>
-          <p className="text-sm text-tinta-3">A meta de faturamento e o teto de cada gasto, em % da receita bruta. É contra isso que o Dashboard compara.</p>
-        </div>
+      <Secao
+        titulo={<span className="flex items-center gap-2">Metas {pendente && <AlertaNumeros />}</span>}
+        descricao="A meta de faturamento e o teto de cada gasto, em % da receita bruta. É contra isso que o Dashboard compara."
+        resumo={form.meta > 0 ? <span className="mono">{brlInteiro(form.meta)}</span> : undefined}
+        abertaPorPadrao={pendente}
+        corpoClassName="flex flex-col gap-4"
+      >
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-2">
           <Campo rotulo="Meta de faturamento do mês (R$)" destaque={pendente && !form.meta} inputMode="numeric" value={inteiro(form.meta) === '0' ? '' : inteiro(form.meta)} onChange={(e) => upd({ meta: soNumero(e.target.value) })} />
           <Campo rotulo="Imposto sobre venda (%) · alíquota estimada" inputMode="decimal" value={form.aliquota} onChange={(e) => upd({ aliquota: e.target.value })} />
@@ -253,7 +251,8 @@ export function Metas() {
             {form.meta > 0 && sobra > 0 ? ` — ${brlInteiro((form.meta * sobra) / 100)} se bater a meta` : ''}.
           </p>
         </div>
-      </Cartao>
+      </Secao>
+      </Secoes>
 
       <div className="flex justify-end">
         <Button onClick={gravar} disabled={salvar.isPending}>

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Loader2, Sparkles, Trash2, X } from 'lucide-
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
 import { Chip } from '@/components/ui/Chip'
+import { Secao, Secoes } from '@/components/ui/Acordeao'
 import { Button } from '@/components/ui/Button'
 import { SeletorProduto } from '@/components/ui/SeletorProduto'
 import { useUI } from '@/ui/UIProvider'
@@ -134,17 +135,16 @@ function VisaoAdicionados({
         />
       </div>
 
-      <InsightsIA produtos={produtos} contagens={contagens} movimentos={movimentos} aoContar={aoContar} />
-
+      <Secoes>
       {/* Total por produto */}
-      <Cartao className="overflow-hidden p-0">
-        <div className="flex items-center justify-between px-5 py-3.5">
-          <h2 className="text-[15px] font-bold text-tinta">Total de produtos adicionados ao estoque</h2>
-          <span className="text-xs text-tinta-4">{total.linhas.length} {total.linhas.length === 1 ? 'produto' : 'produtos'}</span>
-        </div>
-
+      <Secao
+        titulo="Total de produtos adicionados ao estoque"
+        resumo={`${total.linhas.length} ${total.linhas.length === 1 ? 'produto' : 'produtos'}`}
+        acoes={<span className="text-xs text-tinta-4">{total.linhas.length} {total.linhas.length === 1 ? 'produto' : 'produtos'}</span>}
+        abertaPorPadrao
+      >
         {total.linhas.length === 0 ? (
-          <p className="border-t border-divisoria px-5 py-10 text-center text-sm text-tinta-4">
+          <p className="py-6 text-center text-sm text-tinta-4">
             {periodo === 'mes'
               ? `Nenhuma mercadoria entrou em ${mesNome}. Lance a nota do fornecedor e cada item aparece aqui.`
               : 'Nada entrou no estoque ainda. Lance uma nota fiscal e cada item aparece aqui.'}
@@ -152,7 +152,7 @@ function VisaoAdicionados({
         ) : (
           <>
             {/* Celular: cartões */}
-            <ul className="flex flex-col border-t border-divisoria tab:hidden">
+            <ul className="-mx-5 -mt-4 -mb-5 flex flex-col tab:hidden">
               {total.linhas.map((l) => {
                 const cont = ultimaContagem.get(l.produtoId)
                 return (
@@ -173,7 +173,7 @@ function VisaoAdicionados({
               })}
             </ul>
 
-            <div className="hidden overflow-x-auto border-t border-divisoria tab:block">
+            <div className="-mx-5 -mt-4 -mb-5 hidden overflow-x-auto rounded-b-cartao tab:block">
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-b border-divisoria bg-preenchimento/40 text-left">
@@ -213,9 +213,12 @@ function VisaoAdicionados({
             </div>
           </>
         )}
-      </Cartao>
+      </Secao>
+
+      <InsightsIA produtos={produtos} contagens={contagens} movimentos={movimentos} aoContar={aoContar} />
 
       <LogDeEntradas movimentos={movimentos} aoRegistrarSaida={() => abrirGaveta('estoque')} />
+      </Secoes>
     </>
   )
 }
@@ -240,18 +243,17 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
   )
 
   return (
-    <Cartao className="overflow-hidden p-0">
-      <div className="flex flex-col gap-3 px-5 py-3.5 cel:flex-row cel:items-center cel:justify-between">
-        <div>
-          <h2 className="text-[15px] font-bold text-tinta">Log do estoque</h2>
-          <p className="text-xs text-tinta-4">Quando cada produto entrou, quem lançou e de qual fornecedor.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Secao
+      titulo="Log do estoque"
+      descricao="Quando cada produto entrou, quem lançou e de qual fornecedor."
+      resumo={`${movimentos.length} ${movimentos.length === 1 ? 'registro' : 'registros'}`}
+    >
+      <div className="-mx-5 -mt-4 -mb-5 overflow-hidden rounded-b-cartao">
+        <div className="flex flex-wrap items-center gap-2 px-5 py-3.5">
           <Chip rotulo="Entradas" selecionado={filtro === 'entradas'} aoClicar={() => { setFiltro('entradas'); setLimite(15) }} />
           <Chip rotulo="Vendas (PDV)" selecionado={filtro === 'vendas'} aoClicar={() => { setFiltro('vendas'); setLimite(15) }} />
           <Chip rotulo="Perdas e transferências" selecionado={filtro === 'outros'} aoClicar={() => { setFiltro('outros'); setLimite(15) }} />
         </div>
-      </div>
 
       {lista.length === 0 ? (
         <p className="border-t border-divisoria px-5 py-8 text-center text-sm text-tinta-4">
@@ -303,7 +305,8 @@ function LogDeEntradas({ movimentos, aoRegistrarSaida }: { movimentos: Movimento
           Registrar perda ou transferência
         </button>
       </div>
-    </Cartao>
+      </div>
+    </Secao>
   )
 }
 
@@ -357,18 +360,20 @@ function InsightsIA({
   const poucaContagem = ctx.contagens < 2
 
   return (
-    <div className="flex flex-col gap-4 rounded-cartao border border-[rgba(192,84,55,0.3)] bg-insight-fundo p-5">
-      <div className="flex items-start gap-2.5">
-        <Sparkles size={18} className="mt-0.5 shrink-0 text-telhado" />
-        <div>
-          <h2 className="text-[15px] font-bold text-insight-texto">Pergunte pra IA sobre o estoque</h2>
-          <p className="text-sm text-insight-texto/80">
-            Ela lê {ctx.contagens} {ctx.contagens === 1 ? 'contagem' : 'contagens'} e {ctx.entradas}{' '}
-            {ctx.entradas === 1 ? 'entrada' : 'entradas'} e explica o que saiu.
-          </p>
-        </div>
-      </div>
-
+    <Secao
+      titulo={
+        <span className="inline-flex items-center gap-2">
+          <Sparkles size={16} className="shrink-0 text-telhado" /> Pergunte pra IA sobre o estoque
+        </span>
+      }
+      descricao={
+        <>
+          Ela lê {ctx.contagens} {ctx.contagens === 1 ? 'contagem' : 'contagens'} e {ctx.entradas}{' '}
+          {ctx.entradas === 1 ? 'entrada' : 'entradas'} e explica o que saiu.
+        </>
+      }
+      corpoClassName="flex flex-col gap-4"
+    >
       {poucaContagem && (
         <p className="rounded-campo border border-[rgba(192,84,55,0.18)] bg-superficie/70 px-4 py-3 text-sm text-insight-texto/85">
           Pra saber o que saiu a IA precisa de pelo menos <strong>duas contagens em dias diferentes</strong>.{' '}
@@ -451,7 +456,7 @@ function InsightsIA({
           </ul>
         </div>
       )}
-    </div>
+    </Secao>
   )
 }
 
@@ -589,13 +594,13 @@ function AbaContagem({ produtos, contagens }: { produtos: ProdutoDoc[]; contagen
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <Cartao className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-[15px] font-bold text-tinta">Nova contagem</h2>
-          <p className="text-sm text-tinta-3">Escolha o dia, selecione cada produto e marque quanto tem na prateleira.</p>
-        </div>
-
+    <Secoes>
+      <Secao
+        titulo="Nova contagem"
+        descricao="Escolha o dia, selecione cada produto e marque quanto tem na prateleira."
+        abertaPorPadrao
+        corpoClassName="flex flex-col gap-4"
+      >
         <label className="flex flex-col gap-1.5">
           <span className="rotulo text-tinta-4">Dia da contagem</span>
           <input
@@ -687,7 +692,7 @@ function AbaContagem({ produtos, contagens }: { produtos: ProdutoDoc[]; contagen
             {registrar.isPending ? 'Salvando…' : 'Salvar contagem'}
           </Button>
         </div>
-      </Cartao>
+      </Secao>
 
       <HistoricoDeContagens
         contagens={historico}
@@ -714,22 +719,22 @@ function AbaContagem({ produtos, contagens }: { produtos: ProdutoDoc[]; contagen
           })
         }
       />
-    </div>
+    </Secoes>
   )
 }
 
 function HistoricoDeContagens({ contagens, aoApagar }: { contagens: ContagemDoc[]; aoApagar: (c: ContagemDoc) => void }) {
   const [aberta, setAberta] = useState<string | null>(null)
   return (
-    <Cartao className="overflow-hidden p-0">
-      <div className="px-5 py-3.5">
-        <h2 className="text-[15px] font-bold text-tinta">Contagens feitas</h2>
-        <p className="text-xs text-tinta-4">Quem contou, quando e quanto valia o estoque.</p>
-      </div>
+    <Secao
+      titulo="Contagens feitas"
+      descricao="Quem contou, quando e quanto valia o estoque."
+      resumo={`${contagens.length} ${contagens.length === 1 ? 'contagem' : 'contagens'}`}
+    >
       {contagens.length === 0 ? (
-        <p className="border-t border-divisoria px-5 py-8 text-center text-sm text-tinta-4">Nenhuma contagem feita ainda.</p>
+        <p className="py-4 text-center text-sm text-tinta-4">Nenhuma contagem feita ainda.</p>
       ) : (
-        <ul className="flex flex-col border-t border-divisoria">
+        <ul className="-mx-5 -mt-4 -mb-5 flex flex-col overflow-hidden rounded-b-cartao">
           {contagens.map((c) => {
             const expandida = aberta === c.id
             const valor = c.valorEstoque ?? c.itens.reduce((s, i) => s + i.quantidade * i.custoUnitario, 0)
@@ -774,7 +779,7 @@ function HistoricoDeContagens({ contagens, aoApagar }: { contagens: ContagemDoc[
           })}
         </ul>
       )}
-    </Cartao>
+    </Secao>
   )
 }
 

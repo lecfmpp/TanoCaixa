@@ -27,7 +27,7 @@ import { Franquias } from '@/pages/painel/Franquias'
 import { Metas } from '@/pages/painel/Metas'
 import { Cmv } from '@/pages/painel/Cmv'
 import { Dashboard } from '@/pages/painel/Numeros'
-import { Ajustes } from '@/pages/painel/Ajustes'
+import { Configuracoes } from '@/pages/painel/Configuracoes'
 import { Perfil } from '@/pages/painel/Perfil'
 import { ConvitePage } from '@/pages/auth/ConvitePage'
 import { Plano } from '@/pages/painel/Plano'
@@ -44,6 +44,12 @@ import { Kds } from '@/pages/pdv/Kds'
  * Com query (?acao=…, ?assinatura=ok) a página continua sendo o Início, pra não
  * perder o gesto do link; a rota segue existindo.
  */
+/** Antiga página Ajustes: hoje é Configurações (o #historico vira a aba Histórico). */
+function RedirecionaAjustes() {
+  const { hash } = useLocation()
+  return <Navigate to={hash === '#historico' ? '/painel/configuracoes/historico' : '/painel/configuracoes'} replace />
+}
+
 function PaginaInicial() {
   const { permissoes } = useAuth()
   const { search } = useLocation()
@@ -86,7 +92,10 @@ export default function App() {
                 <Route path="rede" element={<ExigePermissao chave="veRede"><Rede /></ExigePermissao>} />
                 <Route path="franquias" element={<ExigePermissao chave="veRede"><Franquias /></ExigePermissao>} />
                 <Route path="numeros" element={<ExigePermissao chave="veNumeros"><Dashboard /></ExigePermissao>} />
-                <Route path="ajustes" element={<ExigePermissao chave="veAjustes"><Ajustes /></ExigePermissao>} />
+                <Route path="configuracoes/:aba?" element={<ExigePermissao chave="veAjustes"><Configuracoes /></ExigePermissao>} />
+                {/* Endereço antigo do Meu site: agora é uma aba de Configurações. */}
+                <Route path="site" element={<Navigate to="/painel/configuracoes/site" replace />} />
+                <Route path="ajustes" element={<RedirecionaAjustes />} />
                 <Route path="pdv" element={<PdvLayout />}>
                   <Route index element={<Navigate to="pedidos" replace />} />
                   <Route path="pedido/novo" element={<NovoPedido />} />

@@ -9,6 +9,7 @@ import { DIAS_TESTE, emailValido } from '@/data/assinatura'
 import { PRECO_EXPANSAO, PRECO_LOJA, totalMensal } from '@/data/preco'
 import { cn } from '@/lib/cn'
 import { TIPOS_NEGOCIO, temRede } from '@/types'
+import { CampoLogo } from '@/components/ajustes/CampoLogo'
 
 type Upd = (p: Partial<RespostasOnboarding>) => void
 
@@ -28,6 +29,12 @@ export function PassoRestaurante({ r, upd }: { r: RespostasOnboarding; upd: Upd 
           onChange={(e) => upd({ nome: e.target.value })}
         />
         <CampoTexto rotulo="Bairro" placeholder="Onde fica a loja" value={r.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
+
+        {/* Logo — opcional, dá pra enviar depois em Ajustes */}
+        <div>
+          <Rotulo>Logo do restaurante (opcional)</Rotulo>
+          <CampoLogo compacto />
+        </div>
 
         {/* Tipo de negócio — define o DRE (linha de franqueadora) e a visão de rede */}
         <div>

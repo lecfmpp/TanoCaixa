@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Check, Store } from 'lucide-react'
 import { httpsCallable } from 'firebase/functions'
 import { useAuth } from '@/auth/AuthContext'
+import { useTenant } from '@/data/hooks'
 import { functions } from '@/lib/firebase'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Cartao } from '@/components/ui/Cartao'
@@ -26,6 +27,8 @@ const EM_BREVE = ['PDV (frente de caixa e KDS)', 'CMV por ficha técnica']
  * Expansão, opcional — a quantidade sai das lojas cadastradas na rede. */
 export function Plano() {
   const { sessao } = useAuth()
+  // A loja aberta agora (quem tem várias troca no seletor), não a do login.
+  const tenant = useTenant()
   const { adicionarToast } = useUI()
   const status = useAssinatura().data
   // O servidor cobra pelas lojas cadastradas na rede: Pro + (lojas − 1) Expansão.
@@ -37,7 +40,7 @@ export function Plano() {
     if (!sessao) return
     setAbrindo(true)
     try {
-      await abrirPortal(sessao.tenantId)
+      await abrirPortal(tenant)
     } catch (e) {
       console.error('portal:', e)
       adicionarToast({ tipo: 'erro', titulo: 'Não abriu o portal', texto: 'Tente de novo em instantes.' })
@@ -51,7 +54,8 @@ export function Plano() {
     try {
       const criarCheckout = httpsCallable(functions, 'criarCheckoutAssinatura')
       const res = await criarCheckout({
-        restauranteId: sessao.tenantId,
+        // A loja aberta; o servidor acha a conta que paga (a rede do dono, se houver).
+        restauranteId: tenant,
         email: sessao.usuario.email,
         sucessoUrl: `${window.location.origin}/painel?assinatura=ok`,
         cancelUrl: `${window.location.origin}/painel/assinatura`,

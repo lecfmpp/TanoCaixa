@@ -7,6 +7,8 @@ import { SeletorMes } from '@/components/ui/SeletorMes'
 import { SeletorIntervalo } from '@/components/ui/SeletorIntervalo'
 import { useUI, type TipoGaveta } from '@/ui/UIProvider'
 import { cn } from '@/lib/cn'
+import { useRestaurante } from '@/data/hooks'
+import { LogoDaLoja } from './LogoDaLoja'
 
 interface SectionHeaderProps {
   titulo: string
@@ -51,6 +53,9 @@ export function SectionHeader({
   const [menuAberto, setMenuAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { abrirGaveta } = useUI()
+  // Logo da loja aberta (cada loja tem a sua).
+  const cfgLoja = useRestaurante().data
+  const logo = cfgLoja?.logoUrl
 
   useEffect(() => {
     function fora(e: MouseEvent) {
@@ -72,7 +77,9 @@ export function SectionHeader({
           aria-hidden
         />
 
-        <div className="relative z-10 min-w-0">
+        <div className="relative z-10 flex min-w-0 items-center gap-3 cel:gap-4">
+          <LogoDaLoja url={logo} formato={cfgLoja?.logoFormato} />
+          <div className="min-w-0">
           <h1
             className="truncate text-creme"
             style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em' }}
@@ -80,6 +87,7 @@ export function SectionHeader({
             {titulo}
           </h1>
           <p className="mt-1 text-sm text-creme/85 tab:truncate">{subtitulo}</p>
+          </div>
         </div>
 
         <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-3">
