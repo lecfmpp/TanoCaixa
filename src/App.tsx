@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { LandingPage } from '@/pages/LandingPage'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/auth/AuthContext'
 import { DataProvider } from '@/data/Provider'
@@ -17,7 +18,6 @@ const EntrarPage = carrega(() => import('@/pages/auth/EntrarPage'), 'EntrarPage'
 const CriarContaPage = carrega(() => import('@/pages/auth/CriarContaPage'), 'CriarContaPage')
 const EsqueciSenhaPage = carrega(() => import('@/pages/auth/EsqueciSenhaPage'), 'EsqueciSenhaPage')
 const OnboardingPage = carrega(() => import('@/pages/onboarding/OnboardingPage'), 'OnboardingPage')
-const LandingPage = carrega(() => import('@/pages/LandingPage'), 'LandingPage')
 const Inicio = carrega(() => import('@/pages/painel/Inicio'), 'Inicio')
 const Caixa = carrega(() => import('@/pages/painel/Caixa'), 'Caixa')
 const Despesas = carrega(() => import('@/pages/painel/Despesas'), 'Despesas')

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { Outlet, useSearchParams } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
@@ -78,7 +79,9 @@ export function AppShell() {
 
         <main className={cn('scroll-fina flex-1 overflow-y-auto', 'px-5 py-5 tab:px-7 tab:py-6')}>
           <div className="mx-auto max-w-[1180px]">
-            <Outlet key={mes} />
+            <Suspense fallback={null}>
+              <Outlet key={mes} />
+            </Suspense>
           </div>
         </main>
       </div>
