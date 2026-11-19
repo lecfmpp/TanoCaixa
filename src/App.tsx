@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/auth/AuthContext'
 import { DataProvider } from '@/data/Provider'
@@ -8,36 +9,40 @@ import { GavetaHost } from '@/components/gaveta/GavetaHost'
 import { RotaProtegida } from '@/auth/RotaProtegida'
 import { ExigePermissao } from '@/auth/ExigePermissao'
 import { AppShell } from '@/components/layout/AppShell'
-import { EntrarPage } from '@/pages/auth/EntrarPage'
-import { CriarContaPage } from '@/pages/auth/CriarContaPage'
-import { EsqueciSenhaPage } from '@/pages/auth/EsqueciSenhaPage'
-import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
-import { LandingPage } from '@/pages/LandingPage'
-import { Inicio } from '@/pages/painel/Inicio'
-import { Caixa } from '@/pages/painel/Caixa'
-import { Despesas } from '@/pages/painel/Despesas'
-import { Compras } from '@/pages/painel/Compras'
-import { FluxoCaixa } from '@/pages/painel/FluxoCaixa'
-import { Produtos } from '@/pages/painel/Produtos'
-import { Estoque } from '@/pages/painel/Estoque'
-import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
-import { DRE } from '@/pages/painel/DRE'
-import { Rede } from '@/pages/painel/Rede'
-import { Franquias } from '@/pages/painel/Franquias'
-import { Metas } from '@/pages/painel/Metas'
-import { Cmv } from '@/pages/painel/Cmv'
-import { Dashboard } from '@/pages/painel/Numeros'
-import { Configuracoes } from '@/pages/painel/Configuracoes'
-import { Perfil } from '@/pages/painel/Perfil'
-import { ConvitePage } from '@/pages/auth/ConvitePage'
-import { Plano } from '@/pages/painel/Plano'
-import { PdvLayout } from '@/pages/pdv/PdvLayout'
-import { Cardapio } from '@/pages/pdv/Cardapio'
-import { NovoPedido } from '@/pages/pdv/NovoPedido'
-import { Pedidos } from '@/pages/pdv/Pedidos'
-import { CaixaPdv } from '@/pages/pdv/CaixaPdv'
-import { Historico } from '@/pages/pdv/Historico'
-import { Kds } from '@/pages/pdv/Kds'
+
+/** Cada página vira um chunk próprio: a landing (/) não baixa o código do painel, do PDV nem das telas de login. */
+const carrega = <T extends string>(imp: () => Promise<Record<T, React.ComponentType>>, nome: T) =>
+  lazy(() => imp().then((m) => ({ default: m[nome] })))
+const EntrarPage = carrega(() => import('@/pages/auth/EntrarPage'), 'EntrarPage')
+const CriarContaPage = carrega(() => import('@/pages/auth/CriarContaPage'), 'CriarContaPage')
+const EsqueciSenhaPage = carrega(() => import('@/pages/auth/EsqueciSenhaPage'), 'EsqueciSenhaPage')
+const OnboardingPage = carrega(() => import('@/pages/onboarding/OnboardingPage'), 'OnboardingPage')
+const LandingPage = carrega(() => import('@/pages/LandingPage'), 'LandingPage')
+const Inicio = carrega(() => import('@/pages/painel/Inicio'), 'Inicio')
+const Caixa = carrega(() => import('@/pages/painel/Caixa'), 'Caixa')
+const Despesas = carrega(() => import('@/pages/painel/Despesas'), 'Despesas')
+const Compras = carrega(() => import('@/pages/painel/Compras'), 'Compras')
+const FluxoCaixa = carrega(() => import('@/pages/painel/FluxoCaixa'), 'FluxoCaixa')
+const Produtos = carrega(() => import('@/pages/painel/Produtos'), 'Produtos')
+const Estoque = carrega(() => import('@/pages/painel/Estoque'), 'Estoque')
+const PlanoDoMes = carrega(() => import('@/pages/painel/PlanoDoMes'), 'PlanoDoMes')
+const DRE = carrega(() => import('@/pages/painel/DRE'), 'DRE')
+const Rede = carrega(() => import('@/pages/painel/Rede'), 'Rede')
+const Franquias = carrega(() => import('@/pages/painel/Franquias'), 'Franquias')
+const Metas = carrega(() => import('@/pages/painel/Metas'), 'Metas')
+const Cmv = carrega(() => import('@/pages/painel/Cmv'), 'Cmv')
+const Dashboard = carrega(() => import('@/pages/painel/Numeros'), 'Dashboard')
+const Configuracoes = carrega(() => import('@/pages/painel/Configuracoes'), 'Configuracoes')
+const Perfil = carrega(() => import('@/pages/painel/Perfil'), 'Perfil')
+const ConvitePage = carrega(() => import('@/pages/auth/ConvitePage'), 'ConvitePage')
+const Plano = carrega(() => import('@/pages/painel/Plano'), 'Plano')
+const PdvLayout = carrega(() => import('@/pages/pdv/PdvLayout'), 'PdvLayout')
+const Cardapio = carrega(() => import('@/pages/pdv/Cardapio'), 'Cardapio')
+const NovoPedido = carrega(() => import('@/pages/pdv/NovoPedido'), 'NovoPedido')
+const Pedidos = carrega(() => import('@/pages/pdv/Pedidos'), 'Pedidos')
+const CaixaPdv = carrega(() => import('@/pages/pdv/CaixaPdv'), 'CaixaPdv')
+const Historico = carrega(() => import('@/pages/pdv/Historico'), 'Historico')
+const Kds = carrega(() => import('@/pages/pdv/Kds'), 'Kds')
 
 /**
  * O Início está fora do menu por enquanto: quem abre /painel puro cai no Dashboard.
@@ -63,6 +68,7 @@ export default function App() {
       <DataProvider>
         <UIProvider>
           <BrowserRouter>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/entrar" element={<EntrarPage />} />
               <Route path="/criar" element={<CriarContaPage />} />
@@ -112,6 +118,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
 
             <ToastHost />
             <ModalHost />
