@@ -51,6 +51,13 @@ service cloud.firestore {
       }
     }
 
+    // Assinatura (teste de 14 dias / Pro): só o servidor grava (webhook do Stripe e
+    // functions, com Admin SDK). A equipe da loja lê pra saber o que está liberado.
+    match /assinaturas/{rid} {
+      allow read: if ehDemo(rid) || souMembro(rid);
+      allow write: if false;
+    }
+
     // Sites públicos dos clientes ({sub}.tanocaixa.com.br). Leitura aberta (é o
     // que o site mostra, e o app checa se um endereço está livre); escrita só
     // pela Cloud Function publicarSite, que garante endereço único.

@@ -11,7 +11,8 @@
 
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore'
 import { nomeDoMesAtual } from './planoMes'
-import { db } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '@/lib/firebase'
 import { TETOS_PADRAO } from './planoContas'
 import type { TipoNegocio } from '@/types'
 
@@ -78,47 +79,24 @@ export async function criarRede(p: {
 }
 
 /**
- * Abre uma loja nova dentro da rede: cria o tenant, põe o dono da rede em
- * memberUids (senão as regras barram a leitura) e registra na lista da rede.
+ * Abre uma loja nova dentro da rede, como loja extra do Pro (+ R$ 79/mês).
+ * Quem cria é a Cloud Function `abrirLojaExtra`: ela cobra no Stripe primeiro
+ * (sem pagamento, nada de loja), cria o tenant com o dono da rede em
+ * memberUids e registra na lista da rede. Aqui só completamos a configuração.
  */
 export async function abrirLoja(p: {
-  rede: RedeDoc
-  uid: string
+  restauranteId: string
   nome: string
   bairro: string
   cidade: string
   tipoNegocio: TipoNegocio
-  aliquotaImposto: number
-  metaFaturamento: number
 }): Promise<LojaDaRede> {
-  const rid = `${p.rede.id}-${p.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24)}-${Math.random().toString(36).slice(2, 6)}`
-  await setDoc(doc(db, 'restaurants', rid), {
-    nome: p.nome,
-    bairro: p.bairro,
-    cidade: p.cidade,
-    tipoOperacao: 'delivery_salao',
-    tipoCozinha: '',
-    cnpj: '',
-    regimeTributario: 'simples',
-    aliquotaImposto: p.aliquotaImposto,
-    metaFaturamento: p.metaFaturamento,
-    tetos: TETOS_PADRAO,
-    aberturaMes: nomeDoMesAtual(),
-    tipoNegocio: p.tipoNegocio,
-    redeId: p.rede.id,
-    bandeira: p.rede.nome,
-    memberUids: [p.uid],
-    criadoPor: p.uid,
-  })
-  await setDoc(doc(db, 'restaurants', rid, 'membros', p.uid), {
-    nome: 'Franqueador',
-    inicial: 'F',
-    cor: '#7B6A8C',
-    papel: 'franqueador',
-    conviteStatus: 'ativo',
-  })
-
-  const loja: LojaDaRede = { restauranteId: rid, nome: p.nome, bairro: p.bairro, cidade: p.cidade, propria: true }
-  await salvarRede(p.rede.id, { lojas: [...p.rede.lojas, loja] })
+  const abrir = httpsCallable<typeof p, LojaDaRede>(functions, 'abrirLojaExtra')
+  const loja = (await abrir(p)).data
+  await setDoc(
+    doc(db, 'restaurants', loja.restauranteId),
+    { tetos: TETOS_PADRAO, aberturaMes: nomeDoMesAtual() },
+    { merge: true },
+  )
   return loja
 }
