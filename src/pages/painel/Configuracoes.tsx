@@ -2,7 +2,6 @@ import { Navigate, NavLink, useParams } from 'react-router-dom'
 import { Store, Users, Bell, Globe, Plug, History } from 'lucide-react'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Secoes } from '@/components/ui/Acordeao'
-import { Cartao } from '@/components/ui/Cartao'
 import { PlanoDeContas } from '@/components/plano/PlanoDeContas'
 import { LembretesWhatsapp } from '@/components/ajustes/LembretesWhatsapp'
 import {
@@ -106,7 +105,7 @@ export function Configuracoes() {
         {atual === 'notificacoes' && (
           <Secoes>
             <OndeTeAvisar />
-            {whatsappLiberado ? <LembretesWhatsapp semGrupo={<SemGrupo />} /> : <WhatsappEmBreve />}
+            {whatsappLiberado ? <LembretesWhatsapp /> : <WhatsappEmBreve />}
           </Secoes>
         )}
         {atual === 'site' && <TelaMeuSite />}
@@ -122,17 +121,5 @@ export function Configuracoes() {
         )}
       </div>
     </div>
-  )
-}
-
-function SemGrupo() {
-  return (
-    <Cartao className="flex flex-col gap-1.5">
-      <h2 className="text-[15px] font-bold text-tinta">Notificações de WhatsApp</h2>
-      <p className="text-sm text-tinta-3">
-        Esta loja ainda não tem um grupo de WhatsApp ligado ao Tá no Caixa. Quando o grupo estiver
-        cadastrado, os avisos de rotina aparecem aqui para você ligar e desligar.
-      </p>
-    </Cartao>
   )
 }

@@ -39,15 +39,57 @@ service cloud.firestore {
       return rid.matches('demo-.*');
     }
 
+    // Campos que a escrita mexe, e se quem escreve é dono/franqueador da loja.
+    function mudou(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
+    }
+    function souDonoDe(rid) {
+      return souMembro(rid)
+        && get(/databases/$(database)/documents/restaurants/$(rid)/membros/$(request.auth.uid)).data.papel in ['dono', 'franqueador'];
+    }
+
     // Restaurantes reais — só os membros.
     match /restaurants/{rid} {
       allow read, write: if ehDemo(rid);
       allow read: if souMembro(rid);
       allow create: if logado() && (request.auth.uid in request.resource.data.memberUids);
-      allow update, delete: if souMembro(rid);
+      // Membro edita os dados da loja, mas a lista de quem entra (memberUids)
+      // e quem criou (criadoPor) não: entrar na loja é só por convite (Cloud
+      // Functions). O dono pode tirar gente da lista, nunca pôr.
+      allow update: if souMembro(rid) && !mudou(['criadoPor']) && (
+        !mudou(['memberUids'])
+        || (souDonoDe(rid) && request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet()).size() == 0)
+      );
+      allow delete: if souDonoDe(rid);
 
-      match /{document=**} {
-        allow read, write: if ehDemo(rid) || souMembro(rid);
+      // Tudo da loja, menos a equipe (regras próprias logo abaixo).
+      match /{colecao}/{document=**} {
+        allow read, write: if colecao != 'membros' && (ehDemo(rid) || souMembro(rid));
+      }
+
+      // Equipe. O papel e o celular de cada um decidem quem manda na loja
+      // (e o celular do dono confere o grupo de WhatsApp), então:
+      //  - cada pessoa edita o próprio cadastro, mas não o próprio papel nem
+      //    o status do convite;
+      //  - só o dono (ou o franqueador) mexe no cadastro dos outros;
+      //  - quem cria a loja cria o próprio cadastro (como dono/franqueador).
+      // Convites entram pelas Cloud Functions (Admin SDK, fora destas regras).
+      match /membros/{uid} {
+        function souDonoDaLoja() {
+          return souDonoDe(rid);
+        }
+        function criouALoja() {
+          return logado() && dadosRestaurante(rid).criadoPor == request.auth.uid;
+        }
+        function mexeEmPapel() {
+          return request.resource.data.diff(resource.data).affectedKeys().hasAny(['papel', 'conviteStatus']);
+        }
+
+        allow read: if ehDemo(rid) || souMembro(rid);
+        allow write: if ehDemo(rid);
+        allow create: if (request.auth.uid == uid && criouALoja()) || souDonoDaLoja();
+        allow update: if (request.auth.uid == uid && souMembro(rid) && !mexeEmPapel()) || souDonoDaLoja();
+        allow delete: if (request.auth.uid == uid && souMembro(rid)) || souDonoDaLoja();
       }
     }
 

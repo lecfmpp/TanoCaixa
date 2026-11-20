@@ -20,7 +20,7 @@
  * ------------------------------------------------------------------ */
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
-import { defineSecret, defineString } from 'firebase-functions/params'
+import { defineString } from 'firebase-functions/params'
 import { getFirestore } from 'firebase-admin/firestore'
 import {
   LEMBRETE_FIM_DO_MES,
@@ -33,56 +33,43 @@ import {
 } from './whatsappTexto'
 import type { IdLembrete } from './lembretesCatalogo'
 import { montarLembrete, type Variaveis } from './lembretesTexto'
+import { SEGREDOS_PROVEDOR, configurado, enviarImagem, enviarTexto, type ResultadoEnvio } from './whatsappProvedor'
 
-const GREEN_API_URL = defineSecret('GREEN_API_URL')
-const GREEN_API_ID = defineSecret('GREEN_API_ID')
-const GREEN_API_TOKEN = defineSecret('GREEN_API_TOKEN')
 const WHATSAPP_GRUPO = defineString('WHATSAPP_GRUPO', { default: '' })
 /** Se preenchido (ex.: "Fernando"), o resumo do dia fala só do que esse usuário fez. Vazio = todos. */
 const RESUMO_USUARIO = defineString('RESUMO_USUARIO', { default: '' })
-export const SEGREDOS = [GREEN_API_URL, GREEN_API_ID, GREEN_API_TOKEN]
+export const SEGREDOS = SEGREDOS_PROVEDOR
 export const FUSO = 'America/Sao_Paulo'
 
-/** Best-effort: falhar aqui nunca pode derrubar a função que chamou. */
-async function chamar(metodo: 'sendMessage' | 'sendFileByUrl', corpo: Record<string, unknown>): Promise<boolean> {
-  try {
-    const url = `${GREEN_API_URL.value()}/waInstance${GREEN_API_ID.value()}/${metodo}/${GREEN_API_TOKEN.value()}`
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(corpo),
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!resp.ok) console.error(`WhatsApp ${metodo} -> HTTP ${resp.status}`, (await resp.text()).slice(0, 200))
-    return resp.ok
-  } catch (e) {
-    console.error(`WhatsApp ${metodo} falhou (rede)`, e)
-    return false
-  }
-}
+/** ID do grupo interno de operação (avisos gerais). Nunca é o grupo de um cliente. */
+export const grupoInterno = () => WHATSAPP_GRUPO.value()
 
 /**
- * Envia texto ou, com `imagem`, a imagem com o texto como legenda (sendFileByUrl).
+ * Envia texto ou, com `imagem`, a imagem com o texto como legenda.
  * Se a imagem falhar, o texto vai sozinho: o lembrete nunca se perde por causa dela.
+ * Sem `chatId`, vai para o grupo interno. Nunca lança: devolve o resultado.
  */
-export async function enviar(texto: string, imagem?: { url: string; arquivo: string }, chatId?: string): Promise<void> {
+export async function enviar(texto: string, imagem?: { url: string; arquivo: string }, chatId?: string): Promise<ResultadoEnvio> {
   const grupo = chatId || WHATSAPP_GRUPO.value()
-  if (!grupo || !GREEN_API_URL.value() || !GREEN_API_ID.value() || !GREEN_API_TOKEN.value()) {
+  if (!grupo || !configurado()) {
     console.log('WhatsApp não configurado — mensagem não enviada:', texto)
-    return
+    return { ok: false, erro: 'WhatsApp não configurado' }
   }
   if (imagem) {
-    const ok = await chamar('sendFileByUrl', { chatId: grupo, urlFile: imagem.url, fileName: imagem.arquivo, caption: texto })
-    if (ok) return
-    console.error('WhatsApp: imagem falhou, enviando só o texto')
+    const r = await enviarImagem(grupo, imagem.url, imagem.arquivo, texto)
+    // Tempo esgotado: a imagem pode ter chegado; mandar o texto duplicaria.
+    if (r.ok || r.incerto) return r
+    console.error('WhatsApp: imagem falhou, enviando só o texto', r.erro)
   }
-  await chamar('sendMessage', { chatId: grupo, message: texto, linkPreview: false })
+  const r = await enviarTexto(grupo, texto)
+  if (!r.ok) console.error('WhatsApp: envio falhou', r.erro)
+  return r
 }
 
 /** Lembrete de rotina: imagem fixa do tipo + legenda com os dados do dia. */
-export async function enviarLembrete(id: IdLembrete, vars: Variaveis, variante?: string, chatId?: string): Promise<void> {
+export async function enviarLembrete(id: IdLembrete, vars: Variaveis, variante?: string, chatId?: string): Promise<ResultadoEnvio> {
   const { legenda, imagemUrl, arquivo } = montarLembrete(id, vars, variante)
-  await enviar(legenda, { url: imagemUrl, arquivo }, chatId)
+  return enviar(legenda, { url: imagemUrl, arquivo }, chatId)
 }
 
 export const ehDemo = (rid: string) => rid.startsWith('demo-') || rid.startsWith('rede-demo')
