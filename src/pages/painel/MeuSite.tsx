@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, ImagePlus, MessageSquareQuote, Plus, Star, Trash2, EyeOff } from 'lucide-react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Cartao } from '@/components/ui/Cartao'
 import { useAuth } from '@/auth/AuthContext'
 import { useSiteLiberado } from '@/auth/site'
@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
 import { CelebracaoSite } from '@/components/site/CelebracaoSite'
 import { useUI } from '@/ui/UIProvider'
-import { usePratos, useTenant } from '@/data/hooks'
+import { useProdutos, usePratos, useRestaurante, useTenant } from '@/data/hooks'
+import { PratoEditor } from '@/components/pdv/PratoEditor'
+import { tetosNormalizados } from '@/data/planoContas'
+import { CATEGORIAS_SUGERIDAS } from '@/data/cardapio'
+import type { PratoDoc } from '@/data/types'
 import { enviarImagemDoSite, mesmoConteudo, subdominioLivre, useDespublicarSite, usePublicarSite, useSalvarSite, useSite } from '@/data/site'
 import { mensagemDeErro } from '@/lib/erros'
 import { cn } from '@/lib/cn'
@@ -237,6 +241,19 @@ export function TelaMeuSite() {
   const site = useSite()
   const pratosQ = usePratos().data
   const pratos = useMemo(() => pratosQ ?? [], [pratosQ])
+  const produtosQ = useProdutos().data
+  const produtos = useMemo(() => produtosQ ?? [], [produtosQ])
+  const restaurante = useRestaurante().data
+  const metaCmv = tetosNormalizados(restaurante?.tetos as Record<string, number> | undefined).cmv ?? 30
+  const categoriasPratos = useMemo(() => {
+    const ordem = (c: string) => {
+      const i = CATEGORIAS_SUGERIDAS.indexOf(c)
+      return i === -1 ? 99 : i
+    }
+    return [...new Set(pratos.map((p) => p.categoria))].sort((a, b) => ordem(a) - ordem(b) || a.localeCompare(b, 'pt-BR'))
+  }, [pratos])
+  /** Editor de prato aberto aqui mesmo, sem sair da tela do site (não perde o que não foi salvo). */
+  const [editorPrato, setEditorPrato] = useState<{ prato?: PratoDoc } | null>(null)
   const salvar = useSalvarSite()
   const publicar = usePublicarSite()
   const despublicar = useDespublicarSite()
@@ -417,6 +434,17 @@ export function TelaMeuSite() {
   return (
     <div className="flex flex-col gap-4">
       {festa && <CelebracaoSite url={festa.url} emitindo={festa.emitindo} aoFechar={fecharFesta} />}
+      {editorPrato && (
+        <PratoEditor
+          key={editorPrato.prato?.id ?? 'novo'}
+          prato={editorPrato.prato}
+          produtos={produtos}
+          pratos={pratos}
+          categorias={categoriasPratos}
+          metaCmv={metaCmv}
+          aoFechar={() => setEditorPrato(null)}
+        />
+      )}
       {/* Cabeçalho */}
       <div className="relative overflow-clip rounded-cartao-g bg-mar px-5 py-5 text-creme sm:px-6">
         <div className="pointer-events-none absolute -right-8 -top-14 h-36 w-36 rounded-full bg-sol" aria-hidden />
@@ -720,8 +748,13 @@ export function TelaMeuSite() {
 
           {/* Cardápio */}
           <Bloco titulo="Cardápio no site" dica={`${itens.length} itens no site`}>
-            <p className="text-xs text-tinta-4">Itens e preços vêm do seu Cardápio no Tá no Caixa. Aqui você põe a foto, marca os mais pedidos, cola avaliações de clientes e esconde o que não vai para o site. Tocar no prato abre os detalhes com as avaliações.</p>
-            {pratos.filter((p) => p.ativo !== false).length === 0 && <p className="text-sm text-tinta-3">Nenhum prato ativo no Cardápio ainda.</p>}
+            <p className="text-xs text-tinta-4">Itens e preços vêm do seu <Link to="/painel/pdv/cardapio" className="font-bold text-mar underline">Cardápio</Link> no Tá no Caixa. Aqui você põe a foto, marca os mais pedidos, cola avaliações de clientes e esconde o que não vai para o site. Tocar no prato abre os detalhes com as avaliações.</p>
+            <div>
+              <Button variante="lancar" onClick={() => setEditorPrato({})}>
+                <Plus size={16} strokeWidth={2.5} /> Novo prato
+              </Button>
+            </div>
+            {pratos.filter((p) => p.ativo !== false).length === 0 && <p className="text-sm text-tinta-3">Nenhum prato ativo no Cardápio ainda. Toque em Novo prato para cadastrar o primeiro.</p>}
             <ul className="flex max-h-[560px] flex-col gap-1.5 overflow-y-auto pr-1">
               {pratos
                 .filter((p) => p.ativo !== false)
