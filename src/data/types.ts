@@ -27,6 +27,8 @@ export interface RestauranteDoc {
   tipoNegocio?: TipoNegocio
   /** Onboarding finalizado. Enquanto for falso, o dono cai nele ao entrar. */
   onboardingConcluido?: boolean
+  /** Falso enquanto o dono não conferir faturamento e meta em "Metas e números". */
+  numerosConferidos?: boolean
   /** Rede/franquia a que a loja pertence. */
   redeId?: string
   /** Nome da bandeira, quando faz parte de uma rede. */

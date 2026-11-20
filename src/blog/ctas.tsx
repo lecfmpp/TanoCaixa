@@ -23,7 +23,7 @@ const TESTE: Record<
   numero: {
     etiqueta: 'Comece hoje',
     titulo: 'Descubra o seu número em 40 segundos',
-    texto: 'Faça o cadastro, lance o fechamento de ontem e veja quanto sobrou. Sem cartão. Depois do teste de 14 dias, o plano é R$ 149 por loja, por mês.',
+    texto: 'Faça o cadastro, lance o fechamento de ontem e veja quanto sobrou. Sem cartão. Depois do teste de 14 dias, o Pro custa R$ 149 por mês com 1 loja.',
     compacto: 'Descubra o seu número em 40 segundos: cadastro sem cartão e 14 dias de teste.',
   },
   nota: {
@@ -42,7 +42,7 @@ const TESTE: Record<
   rede: {
     etiqueta: 'Mais de uma loja',
     titulo: 'Cada loja com o seu resultado, e o todo junto',
-    texto: 'Para quem tem duas casas ou mais: a visão de cada loja e a do conjunto, lado a lado. O plano é R$ 149 por loja, e duas lojas custam R$ 298.',
+    texto: 'Para quem tem duas casas ou mais: a visão de cada loja e a do conjunto, lado a lado. O Pro custa R$ 149 com 1 loja, e a Expansão soma R$ 79 por loja a mais: duas lojas, R$ 228.',
     compacto: 'Tem mais de uma loja? Veja o resultado de cada uma e o do conjunto no Tá no Caixa.',
     imagem: { src: '/landing/franquias.webp', alt: 'Tela de franquias e rede do Tá no Caixa com o resultado de cada loja', url: 'app.tanocaixa.com/painel/franquias' },
   },

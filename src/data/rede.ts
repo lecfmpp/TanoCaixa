@@ -110,15 +110,18 @@ export async function abrirLoja(p: {
     memberUids: [p.uid],
     criadoPor: p.uid,
   })
+  // Lojas da própria rede: quem abriu é o dono. Na franquia, é a franqueadora.
+  const franquia = p.rede.tipo === 'franquia'
   await setDoc(doc(db, 'restaurants', rid, 'membros', p.uid), {
-    nome: 'Franqueador',
-    inicial: 'F',
-    cor: '#7B6A8C',
-    papel: 'franqueador',
+    nome: franquia ? 'Franqueador' : 'Dono',
+    inicial: franquia ? 'F' : 'D',
+    cor: franquia ? '#7B6A8C' : '#2E5F73',
+    papel: franquia ? 'franqueador' : 'dono',
     conviteStatus: 'ativo',
   })
 
   const loja: LojaDaRede = { restauranteId: rid, nome: p.nome, bairro: p.bairro, cidade: p.cidade, propria: true }
+  // A lista da rede muda o nº de lojas cobradas (gatilho lojasDaRedeNaAssinatura).
   await salvarRede(p.rede.id, { lojas: [...p.rede.lojas, loja] })
   return loja
 }

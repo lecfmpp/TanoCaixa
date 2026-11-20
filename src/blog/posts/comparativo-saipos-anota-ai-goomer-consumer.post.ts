@@ -196,7 +196,7 @@ const post: Post = {
         { dim: 'Lançamento por canal', a: 'Vem do pedido, quando o sistema recebe o canal', b: 'Você lança Pix, cartão, dinheiro e cada app, todo dia' },
         { dim: 'Compras, despesas e DRE', a: 'Depende do sistema e do módulo contratado', b: 'Faz parte: notas por foto, despesas, DRE e plano do mês' },
         { dim: 'PDV e integração automática com apps', a: 'Sim, é a função principal', b: 'Em breve. Hoje o lançamento é manual' },
-        { dim: 'Preço', a: 'Varia, como visto na tabela acima', b: 'R$ 149 por loja/mês, com 14 dias grátis sem cartão' },
+        { dim: 'Preço', a: 'Varia, como visto na tabela acima', b: 'R$ 149/mês com 1 loja (+ R$ 79 por loja a mais), com 14 dias grátis sem cartão' },
       ],
     },
     {
@@ -275,7 +275,7 @@ const post: Post = {
         },
         {
           p: 'O Tá no Caixa substitui o PDV ou o cardápio digital?',
-          r: 'Não. Ele mostra quanto entrou, saiu e sobrou, e complementa o PDV ou o cardápio que você já usa. PDV e integração automática com apps de delivery estão em breve. O plano é R$ 149 por loja/mês, com 14 dias grátis sem cartão.',
+          r: 'Não. Ele mostra quanto entrou, saiu e sobrou, e complementa o PDV ou o cardápio que você já usa. PDV e integração automática com apps de delivery estão em breve. O plano é R$ 149/mês com 1 loja (+ R$ 79 por loja a mais), com 14 dias grátis sem cartão.',
         },
       ],
     },

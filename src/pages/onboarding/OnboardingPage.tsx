@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
@@ -6,57 +6,31 @@ import { Button } from '@/components/ui/Button'
 import { fotos } from '@/lib/fotos'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthContext'
-import { pctDaMeta, TAXA_APP_TETO_PADRAO, usePersistirOnboarding, type RespostasOnboarding } from '@/data/hooks'
-import { HORARIO_PADRAO } from '@/components/ui/HorarioSemana'
-import {
-  Passo1Restaurante,
-  Passo2Canais,
-  Passo3Numeros,
-  Passo4Equipe,
-  Passo5Metas,
-  Passo6Avisos,
-  Passo7Pronto,
-} from './passos'
+import { usePersistirOnboarding, type RespostasOnboarding } from '@/data/hooks'
+import { useUI } from '@/ui/UIProvider'
+import { PassoPronto, PassoRestaurante } from './passos'
 
+// Só o que o app usa desde o primeiro dia. Faturamento, meta e gastos ficam em
+// "Metas e números", com "!" no menu até o dono conferir.
 const PASSOS = [
   { indice: 1, nome: 'O restaurante' },
-  { indice: 2, nome: 'Canais de venda' },
-  { indice: 3, nome: 'Números de partida' },
-  { indice: 4, nome: 'Sua equipe' },
-  { indice: 5, nome: 'Metas' },
-  { indice: 6, nome: 'Avisos' },
-  { indice: 7, nome: 'Tudo pronto' },
+  { indice: 2, nome: 'Tudo pronto' },
 ]
 
 /** Dados de exemplo — só pra quem entrou explicitamente na demonstração. */
 const RESPOSTAS_DEMO: RespostasOnboarding = {
   nome: 'Zaatar Cozinha Árabe',
   bairro: 'Botafogo',
-  lojas: '3',
   tipoNegocio: 'franqueadora',
   nomeRede: 'Zaatar',
   royalties: 0,
   fundoPromocao: 0,
-  operacao: 'Delivery + salão',
-  cozinha: 'Árabe',
-  cnpj: '',
-  canais: ['apps', 'balcao'],
-  ticket: '68',
-  pedidos: '48',
-  horarios: HORARIO_PADRAO,
-  faturamento: '50.000',
-  folha: 10900,
-  contasFixas: 6300,
-  mercadoria: 15000,
-  pessoas: '6',
-  meta: '50.000',
-  avisos: { whatsapp: true, email: true, sms: false },
+  gestorEmail: '',
+  outrasLojas: [],
 }
 
 /** Semeia o onboarding com o que a pessoa já digitou no cadastro (nome do
- * restaurante, bairro). Os dados de exemplo só aparecem na demonstração. O
- * resto (números, metas) começa em branco/no padrão, porque o cadastro não
- * pergunta isso — só o onboarding pergunta. */
+ * restaurante, bairro). Os dados de exemplo só aparecem na demonstração. */
 function respostasIniciais(sessao: NonNullable<ReturnType<typeof useAuth>['sessao']>): RespostasOnboarding {
   if (sessao.demo) return RESPOSTAS_DEMO
   const rest = sessao.restaurante
@@ -64,22 +38,10 @@ function respostasIniciais(sessao: NonNullable<ReturnType<typeof useAuth>['sessa
     ...RESPOSTAS_DEMO,
     nome: rest.nome && rest.nome !== 'Meu restaurante' ? rest.nome : '',
     bairro: rest.bairro || '',
-    lojas: '1',
     tipoNegocio: 'loja_unica',
     nomeRede: '',
-    // Nada de escolha marcada por padrão: canal e tipo de operação são do
-    // negócio da pessoa, não nosso palpite.
-    operacao: '',
-    canais: [],
-    cozinha: '',
-    ticket: '',
-    pedidos: '',
-    faturamento: '',
-    folha: 0,
-    contasFixas: 0,
-    mercadoria: 0,
-    pessoas: '',
-    meta: '',
+    royalties: 0,
+    fundoPromocao: 0,
   }
 }
 
@@ -108,19 +70,10 @@ function FluxoOnboarding({ sessao }: { sessao: NonNullable<ReturnType<typeof use
   const navegar = useNavigate()
   const { sair } = useAuth()
   const persistir = usePersistirOnboarding()
+  const { adicionarToast } = useUI()
   const [passo, setPasso] = useState(1)
   const [r, setR] = useState<RespostasOnboarding>(() => respostasIniciais(sessao))
   const upd = (patch: Partial<RespostasOnboarding>) => setR((atual) => ({ ...atual, ...patch }))
-
-  const pontoEquilibrio = useMemo(
-    () => Math.round((r.folha + r.contasFixas) / 0.415 / 100) * 100,
-    [r.folha, r.contasFixas],
-  )
-  const sobraPct =
-    100 -
-    (pctDaMeta(r.contasFixas, r.meta) + pctDaMeta(r.folha, r.meta) + pctDaMeta(r.mercadoria, r.meta) + TAXA_APP_TETO_PADRAO)
-  // Sem meta digitada não dá pra dizer quanto sobra em reais — só o percentual.
-  const sobraReais = Math.round(((Number(r.meta.replace(/\D/g, '')) || 0) * sobraPct) / 100)
 
   const ehUltimo = passo === PASSOS.length
   const rotuloProximo = ehUltimo ? 'Ver meu painel' : 'Continuar'
@@ -131,7 +84,14 @@ function FluxoOnboarding({ sessao }: { sessao: NonNullable<ReturnType<typeof use
       // não grava nada (o tenant de exemplo é compartilhado).
       if (!sessao.demo) {
         try {
-          await persistir.mutateAsync(r)
+          const res = await persistir.mutateAsync(r)
+          if (res.convitesSemEmail.length) {
+            adicionarToast({
+              tipo: 'atencao',
+              titulo: 'Convite de gestor não saiu',
+              texto: `Não deu pra mandar o e-mail para ${res.convitesSemEmail.map((c) => c.email).join(', ')}. Reenvie pela página Rede.`,
+            })
+          }
         } catch (e) {
           console.warn('persistir onboarding:', e)
         }
@@ -162,7 +122,7 @@ function FluxoOnboarding({ sessao }: { sessao: NonNullable<ReturnType<typeof use
             className="mt-8 text-creme"
             style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}
           >
-            Sete perguntas e seu painel fica pronto
+            Um minuto e seu painel fica pronto
           </h1>
           <p className="pretty mt-2 text-sm text-creme/85">
             Dá pra mudar tudo depois. O que você não souber agora, deixa em branco.
@@ -231,38 +191,8 @@ function FluxoOnboarding({ sessao }: { sessao: NonNullable<ReturnType<typeof use
         {/* Conteúdo do passo */}
         <div className="scroll-fina flex-1 overflow-y-auto px-6 py-8 tab:px-10">
           <div className="mx-auto max-w-[640px]">
-            {passo === 1 && <Passo1Restaurante r={r} upd={upd} />}
-            {passo === 2 && <Passo2Canais r={r} upd={upd} />}
-            {passo === 3 && (
-              <Passo3Numeros
-                folha={r.folha}
-                contasFixas={r.contasFixas}
-                onFolha={(n) => upd({ folha: n })}
-                onContasFixas={(n) => upd({ contasFixas: n })}
-                pontoEquilibrio={pontoEquilibrio}
-                faturamento={r.faturamento}
-                pessoas={r.pessoas}
-                onFaturamento={(v) => upd({ faturamento: v })}
-                onPessoas={(v) => upd({ pessoas: v })}
-              />
-            )}
-            {passo === 4 && <Passo4Equipe nomeDono={sessao.usuario.nome.split(' ')[0]} />}
-            {passo === 5 && (
-              <Passo5Metas
-                meta={r.meta}
-                onMeta={(v) => upd({ meta: v })}
-                contasFixas={r.contasFixas}
-                onContasFixas={(n) => upd({ contasFixas: n })}
-                folha={r.folha}
-                onFolha={(n) => upd({ folha: n })}
-                mercadoria={r.mercadoria}
-                onMercadoria={(n) => upd({ mercadoria: n })}
-                sobraPct={sobraPct}
-                sobraReais={sobraReais}
-              />
-            )}
-            {passo === 6 && <Passo6Avisos avisos={r.avisos} onAvisos={(a) => upd({ avisos: a })} />}
-            {passo === 7 && <Passo7Pronto r={r} />}
+            {passo === 1 && <PassoRestaurante r={r} upd={upd} />}
+            {passo === 2 && <PassoPronto r={r} />}
           </div>
         </div>
 

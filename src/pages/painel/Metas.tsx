@@ -5,12 +5,12 @@ import { Campo } from '@/components/ui/Campo'
 import { Chip } from '@/components/ui/Chip'
 import { Button } from '@/components/ui/Button'
 import { useUI } from '@/ui/UIProvider'
-import { useRestaurante, useSalvarRestaurante } from '@/data/hooks'
+import { numerosPendentes, useRestaurante, useSalvarRestaurante } from '@/data/hooks'
 import { MES_REF } from '@/data/derive'
 import { nomeDoMes } from '@/data/planoMes'
 import { GRUPO, GRUPOS_COM_TETO, tetosNormalizados, type Tetos } from '@/data/planoContas'
 import { pagaFranqueadora } from '@/types'
-import { apenasDigitos, brlInteiro, inteiro } from '@/lib/format'
+import { apenasDigitos, brlInteiro, inteiro, mascararCNPJ } from '@/lib/format'
 import { mensagemDeErro } from '@/lib/erros'
 import type { RestauranteDoc } from '@/data/types'
 
@@ -32,6 +32,7 @@ interface Form {
   bairro: string
   cozinha: string
   operacao: string
+  cnpj: string
   faturamentoMensal: number
   meta: number
   ticket: string
@@ -51,6 +52,7 @@ function formDe(cfg: RestauranteDoc): Form {
     bairro: cfg.bairro ?? '',
     cozinha: cfg.tipoCozinha ?? '',
     operacao: cfg.tipoOperacao ?? 'delivery_salao',
+    cnpj: cfg.cnpj ?? '',
     faturamentoMensal: cfg.faturamentoMensal ?? 0,
     meta: cfg.metaFaturamento ?? 0,
     ticket: cfg.ticketMedio ? String(cfg.ticketMedio).replace('.', ',') : '',
@@ -65,7 +67,9 @@ function formDe(cfg: RestauranteDoc): Form {
 }
 
 /**
- * Metas e números: as respostas do onboarding, editáveis a qualquer hora.
+ * Metas e números: o que o onboarding deixou pra depois (faturamento, meta,
+ * gastos do mês), editável a qualquer hora. Até o primeiro "Salvar", o menu e o
+ * Dashboard mostram "!" — `numerosPendentes`.
  * O que se grava aqui é o que o Dashboard lê — metas dos KPIs (tetos), meta de
  * faturamento e alíquota do imposto estimado.
  */
@@ -89,6 +93,7 @@ export function Metas() {
   const somaTetos = grupos.reduce((s, g) => s + decimal(form.tetos[g] ?? ''), 0)
   const sobra = 100 - somaTetos
   const impliedFat = Math.round(decimal(form.ticket) * form.pedidosDia * 30)
+  const pendente = numerosPendentes(cfg)
 
   /** Tetos a partir de folha, contas fixas e compras ÷ meta — a mesma conta do onboarding. */
   function calcularTetos() {
@@ -118,6 +123,7 @@ export function Metas() {
         bairro: f.bairro.trim(),
         tipoCozinha: f.cozinha.trim(),
         tipoOperacao: f.operacao,
+        cnpj: f.cnpj,
         faturamentoMensal: f.faturamentoMensal,
         metaFaturamento: f.meta,
         ticketMedio: decimal(f.ticket),
@@ -128,6 +134,7 @@ export function Metas() {
         mercadoria: f.mercadoria,
         aliquotaImposto: decimal(f.aliquota) / 100,
         tetos,
+        numerosConferidos: true,
       })
       adicionarToast({ tipo: 'sucesso', titulo: 'Metas salvas', texto: 'O Dashboard já usa os números novos.' })
     } catch (e) {
@@ -144,16 +151,28 @@ export function Metas() {
         lancar={false}
       />
 
-      <p className="text-sm text-tinta-3">
-        São as mesmas respostas do começo. Mude quando o negócio mudar — o Dashboard passa a usar na hora.
-      </p>
+      {pendente ? (
+        <div className="flex items-start gap-3 rounded-cartao border border-sol/60 bg-superficie px-4 py-3.5">
+          <AlertaNumeros />
+          <p className="text-sm text-tinta-2">
+            <strong className="font-bold text-tinta">Confira seus números.</strong> No cadastro a gente não perguntou
+            faturamento nem meta. Preencha os campos marcados (chute redondo serve) e salve — o Dashboard passa a
+            comparar com eles.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-tinta-3">
+          Mude quando o negócio mudar — o Dashboard passa a usar na hora.
+        </p>
+      )}
 
       <Secoes>
       <Secao titulo="O restaurante" abertaPorPadrao resumo={form.nome.trim() || undefined} corpoClassName="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-3 cel:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 cel:grid-cols-2">
           <Campo rotulo="Nome" value={form.nome} onChange={(e) => upd({ nome: e.target.value })} />
           <Campo rotulo="Bairro" value={form.bairro} onChange={(e) => upd({ bairro: e.target.value })} />
           <Campo rotulo="Tipo de cozinha" value={form.cozinha} onChange={(e) => upd({ cozinha: e.target.value })} />
+          <Campo rotulo="CNPJ · aparece no DRE" inputMode="numeric" placeholder="00.000.000/0001-00" value={form.cnpj} onChange={(e) => upd({ cnpj: mascararCNPJ(e.target.value) })} />
         </div>
         <div>
           <span className="rotulo mb-1.5 block text-tinta-4">Como opera</span>
@@ -166,34 +185,45 @@ export function Metas() {
       </Secao>
 
       <Secao
-        titulo="Números de partida"
+        titulo={<span className="flex items-center gap-2">Números de partida {pendente && <AlertaNumeros />}</span>}
         descricao="Chute redondo já serve. Servem de base pra sugerir os tetos."
+        abertaPorPadrao={pendente}
         corpoClassName="flex flex-col gap-4"
       >
-        <div className="grid grid-cols-1 gap-3 cel:grid-cols-2 tab:grid-cols-3">
-          <Campo rotulo="Faturamento de um mês normal (R$)" inputMode="numeric" value={inteiro(form.faturamentoMensal) === '0' ? '' : inteiro(form.faturamentoMensal)} onChange={(e) => upd({ faturamentoMensal: soNumero(e.target.value) })} />
-          <Campo rotulo="Ticket médio (R$)" inputMode="decimal" value={form.ticket} onChange={(e) => upd({ ticket: e.target.value })} />
-          <Campo rotulo="Pedidos por dia" inputMode="numeric" value={form.pedidosDia ? String(form.pedidosDia) : ''} onChange={(e) => upd({ pedidosDia: soNumero(e.target.value) })} />
-          <Campo rotulo="Folha por mês (R$)" inputMode="numeric" value={inteiro(form.folha) === '0' ? '' : inteiro(form.folha)} onChange={(e) => upd({ folha: soNumero(e.target.value) })} />
-          <Campo rotulo="Contas fixas por mês (R$)" inputMode="numeric" value={inteiro(form.contasFixas) === '0' ? '' : inteiro(form.contasFixas)} onChange={(e) => upd({ contasFixas: soNumero(e.target.value) })} />
-          <Campo rotulo="Compras de mercadoria por mês (R$)" inputMode="numeric" value={inteiro(form.mercadoria) === '0' ? '' : inteiro(form.mercadoria)} onChange={(e) => upd({ mercadoria: soNumero(e.target.value) })} />
-          <Campo rotulo="Pessoas na equipe" inputMode="numeric" value={form.pessoas ? String(form.pessoas) : ''} onChange={(e) => upd({ pessoas: soNumero(e.target.value) })} />
+        <div className="flex flex-col gap-3">
+          <span className="rotulo text-tinta-4">Vendas</span>
+          <div className="grid grid-cols-1 gap-3 cel:grid-cols-3">
+            <Campo rotulo="Faturamento de um mês normal (R$)" destaque={pendente && !form.faturamentoMensal} inputMode="numeric" value={inteiro(form.faturamentoMensal) === '0' ? '' : inteiro(form.faturamentoMensal)} onChange={(e) => upd({ faturamentoMensal: soNumero(e.target.value) })} />
+            <Campo rotulo="Ticket médio (R$)" inputMode="decimal" value={form.ticket} onChange={(e) => upd({ ticket: e.target.value })} />
+            <Campo rotulo="Pedidos por dia" inputMode="numeric" value={form.pedidosDia ? String(form.pedidosDia) : ''} onChange={(e) => upd({ pedidosDia: soNumero(e.target.value) })} />
+          </div>
+          {impliedFat > 0 && (
+            <p className="text-xs text-tinta-4">
+              Ticket × pedidos × 30 dias dá cerca de <strong className="font-bold text-tinta-2">{brlInteiro(impliedFat)}</strong> por mês.
+            </p>
+          )}
         </div>
-        {impliedFat > 0 && (
-          <p className="text-xs text-tinta-4">
-            Ticket × pedidos × 30 dias dá cerca de <strong className="font-bold text-tinta-2">{brlInteiro(impliedFat)}</strong> por mês.
-          </p>
-        )}
+
+        <div className="flex flex-col gap-3 border-t border-divisoria pt-4">
+          <span className="rotulo text-tinta-4">Gastos de um mês normal</span>
+          <div className="grid grid-cols-1 gap-3 cel:grid-cols-2 tab:grid-cols-4">
+            <Campo rotulo="Folha (R$)" placeholder="Salários e encargos" inputMode="numeric" value={inteiro(form.folha) === '0' ? '' : inteiro(form.folha)} onChange={(e) => upd({ folha: soNumero(e.target.value) })} />
+            <Campo rotulo="Pessoas na equipe" inputMode="numeric" value={form.pessoas ? String(form.pessoas) : ''} onChange={(e) => upd({ pessoas: soNumero(e.target.value) })} />
+            <Campo rotulo="Contas fixas (R$)" placeholder="Aluguel, luz, água, gás" inputMode="numeric" value={inteiro(form.contasFixas) === '0' ? '' : inteiro(form.contasFixas)} onChange={(e) => upd({ contasFixas: soNumero(e.target.value) })} />
+            <Campo rotulo="Compras de mercadoria (R$)" inputMode="numeric" value={inteiro(form.mercadoria) === '0' ? '' : inteiro(form.mercadoria)} onChange={(e) => upd({ mercadoria: soNumero(e.target.value) })} />
+          </div>
+        </div>
       </Secao>
 
       <Secao
-        titulo="Metas"
+        titulo={<span className="flex items-center gap-2">Metas {pendente && <AlertaNumeros />}</span>}
         descricao="A meta de faturamento e o teto de cada gasto, em % da receita bruta. É contra isso que o Dashboard compara."
         resumo={form.meta > 0 ? <span className="mono">{brlInteiro(form.meta)}</span> : undefined}
+        abertaPorPadrao={pendente}
         corpoClassName="flex flex-col gap-4"
       >
         <div className="grid grid-cols-1 gap-3 cel:grid-cols-2">
-          <Campo rotulo="Meta de faturamento do mês (R$)" inputMode="numeric" value={inteiro(form.meta) === '0' ? '' : inteiro(form.meta)} onChange={(e) => upd({ meta: soNumero(e.target.value) })} />
+          <Campo rotulo="Meta de faturamento do mês (R$)" destaque={pendente && !form.meta} inputMode="numeric" value={inteiro(form.meta) === '0' ? '' : inteiro(form.meta)} onChange={(e) => upd({ meta: soNumero(e.target.value) })} />
           <Campo rotulo="Imposto sobre venda (%) · alíquota estimada" inputMode="decimal" value={form.aliquota} onChange={(e) => upd({ aliquota: e.target.value })} />
         </div>
 
@@ -230,5 +260,17 @@ export function Metas() {
         </Button>
       </div>
     </div>
+  )
+}
+
+/** O "!" de "falta conferir" — o mesmo do menu. */
+function AlertaNumeros() {
+  return (
+    <span
+      title="Falta conferir"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sol text-xs font-extrabold text-noite"
+    >
+      !
+    </span>
   )
 }
