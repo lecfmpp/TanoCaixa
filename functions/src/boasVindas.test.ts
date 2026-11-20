@@ -31,9 +31,24 @@ test('envia uma vez com remetente, idempotency key e sem promessa de integraçã
   const corpo = JSON.parse(chamadas[0].init.body as string)
   assert.equal(corpo.from, REMETENTE)
   assert.deepEqual(corpo.to, ['m@x.com'])
-  assert.match(corpo.text, /Oi, Maria!/)
-  assert.match(corpo.text, /Em breve/)
-  assert.doesNotMatch(corpo.text, /conectad|sincroniz/i)
+  assert.equal(corpo.template.id, 'tnc-boas-vindas')
+  assert.equal(corpo.template.variables.OI, 'Oi, Maria!')
+  const texto = montarEmail('maria silva', 'm@x.com').text
+  assert.match(texto, /Oi, Maria!/)
+  assert.match(texto, /Em breve/)
+  assert.doesNotMatch(texto, /conectad|sincroniz/i)
+})
+
+test('template recusado (422): manda o mesmo texto montado no código', async () => {
+  const { c } = cadeadoMemoria()
+  const chamadas: string[] = []
+  const f = (async (_u: string, init: RequestInit) => {
+    const corpo = JSON.parse(init.body as string)
+    chamadas.push(corpo.template ? 'template' : 'html')
+    return new Response('{"id":"x"}', { status: corpo.template ? 422 : 200 })
+  }) as unknown as typeof fetch
+  assert.equal(await enviarBoasVindas('u1', { nome: 'Ana', email: 'a@x.com' }, { apiKey: 'k', cadeado: c, fetchFn: f }), 'enviado')
+  assert.deepEqual(chamadas, ['template', 'html'])
 })
 
 test('segunda chamada para o mesmo usuário não envia', async () => {
@@ -65,5 +80,5 @@ test('sem e-mail ou sem chave não chama a rede nem toma o cadeado', async () =>
 
 test('nome é escapado no HTML e cai para o e-mail quando vazio', () => {
   assert.equal(primeiroNome('', 'joao.silva@x.com'), 'Joao.silva')
-  assert.match(montarEmail('<b>x</b>', 'a@b.c').html, /&lt;b&gt;x&lt;\/b&gt;/)
+  assert.doesNotMatch(montarEmail('<b>x</b>', 'a@b.c').html, /<b>x/)
 })

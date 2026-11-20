@@ -30,6 +30,11 @@ import { getFirestore } from 'firebase-admin/firestore'
 import { exigirDonoOuGestao } from './acesso'
 import { eventoEhMaisNovo, fimDoTesteDaConta, situacaoDoPainel, statusDoStripe, urlSegura } from './assinatura'
 import { normalizarPapel } from './papel'
+import { emailDoEvento, montarEmailCobranca, type EmailCobranca } from './email/cobranca'
+import { donosDaLoja } from './email/donos'
+import { enviarUmaVez } from './email/enviarUmaVez'
+import { EMAIL_TESTE_PARA, modoAtual, RESEND_API_KEY } from './email/params'
+import { clienteResend } from './email/resend'
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
@@ -104,8 +109,8 @@ export const criarCheckoutAssinatura = onCall(
       customer_email: email || undefined,
       subscription_data: { metadata: { restauranteId, plano: 'loja', lojas: String(lojas) } },
       metadata: { restauranteId, plano: 'loja', lojas: String(lojas) },
-      success_url: urlSegura(sucessoUrl, 'https://tanocaixa.web.app/painel?assinatura=ok'),
-      cancel_url: urlSegura(cancelUrl, 'https://tanocaixa.web.app/painel/assinatura'),
+      success_url: urlSegura(sucessoUrl, 'https://tanocaixa.com/painel?assinatura=ok'),
+      cancel_url: urlSegura(cancelUrl, 'https://tanocaixa.com/painel/assinatura'),
     }, comContexto)
     return { url: session.url }
   },
@@ -120,7 +125,7 @@ export const portalAssinatura = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (
   if (!customerId) throw new HttpsError('failed-precondition', 'Este restaurante ainda não tem assinatura')
   const portal = await cliente().billingPortal.sessions.create({
     customer: customerId,
-    return_url: urlSegura(returnUrl, 'https://tanocaixa.web.app/painel'),
+    return_url: urlSegura(returnUrl, 'https://tanocaixa.com/painel'),
   }, comContexto)
   return { url: portal.url }
 })
@@ -136,9 +141,28 @@ function metaDoEvento(tipo: string, obj: Record<string, unknown>): Record<string
   return (obj.metadata ?? {}) as Record<string, string>
 }
 
+/** E-mail de cobrança pros donos da loja (uma vez por evento e por dono). Nunca derruba o webhook. */
+async function avisarDonos(rid: string, e: EmailCobranca) {
+  try {
+    const [loja, donos] = await Promise.all([db.doc(`restaurants/${rid}`).get(), donosDaLoja(db, rid)])
+    const lojaNome = (loja.data()?.nome as string | undefined) ?? 'sua loja'
+    const deps = { db, resend: clienteResend({ apiKey: RESEND_API_KEY.value() }), modo: modoAtual(), testePara: EMAIL_TESTE_PARA.value() }
+    for (const dono of donos) {
+      const email = montarEmailCobranca(e, { primeiroNome: dono.primeiroNome, lojaNome, rid })
+      const r = await enviarUmaVez(
+        { chave: `${e.chave}_${dono.uid}`, para: dono.email, email, tipo: `cobranca_${e.tipo}`, uid: dono.uid, restauranteId: rid },
+        deps,
+      )
+      console.log(`cobrança ${e.tipo} ${rid}/${dono.uid}: ${r}`)
+    }
+  } catch (erro) {
+    console.error(`e-mail de cobrança ${e.chave} (${rid}):`, erro instanceof Error ? erro.message : erro)
+  }
+}
+
 /** Webhook do Stripe → grava o status da assinatura em `assinaturas/{restauranteId}`. */
 export const stripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY] },
   async (req, res) => {
     const s = cliente()
     let evento: Stripe.Event
@@ -168,9 +192,11 @@ export const stripeWebhook = onRequest(
       // Coleção só do servidor (nenhuma regra do app a libera): quem é membro do restaurante
       // consegue escrever em restaurants/{id}/**, então o status não pode morar lá.
       const assinaturaRef = db.doc(`assinaturas/${restauranteId}`)
-      const gravadoEm = (await assinaturaRef.get()).data()?.eventoEm as number | undefined
+      const gravado = (await assinaturaRef.get()).data()
+      const gravadoEm = gravado?.eventoEm as number | undefined
       const eventoEm = evento.created
-      if (eventoEhMaisNovo(eventoEm, gravadoEm)) {
+      const maisNovo = eventoEhMaisNovo(eventoEm, gravadoEm)
+      if (maisNovo) {
         const agora = new Date().toISOString()
         if (evento.type === 'checkout.session.completed') {
           // `status` da sessão é "complete" (não da assinatura): só guarda quem é o cliente.
@@ -198,11 +224,17 @@ export const stripeWebhook = onRequest(
             { merge: true },
           )
         } else if (evento.type === 'invoice.paid') {
-          await assinaturaRef.set({ status: 'ativa', ultimaFaturaPagaEm: agora, eventoEm }, { merge: true })
+          await assinaturaRef.set(
+            { status: 'ativa', ultimaFaturaPagaEm: agora, ...(gravado?.primeiraFaturaPagaEm ? {} : { primeiraFaturaPagaEm: agora }), eventoEm },
+            { merge: true },
+          )
         } else if (evento.type === 'invoice.payment_failed') {
           await assinaturaRef.set({ status: 'pagamento_falhou', atualizadoEm: agora, eventoEm }, { merge: true })
         }
       }
+      // Aviso de pagamento que falhou só vale se não chegou coisa mais nova (ex.: já pagou).
+      const email = emailDoEvento(evento.type, obj)
+      if (email && (email.tipo !== 'falhou' || maisNovo)) await avisarDonos(restauranteId, email)
     }
 
     await eventoRef.set({ tipo: evento.type, recebidoEm: new Date().toISOString() })

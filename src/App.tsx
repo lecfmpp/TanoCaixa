@@ -39,16 +39,23 @@ const Pedidos = lazy(() => import('@/pages/pdv/Pedidos').then((m) => ({ default:
 const CaixaPdv = lazy(() => import('@/pages/pdv/CaixaPdv').then((m) => ({ default: m.CaixaPdv })))
 const Historico = lazy(() => import('@/pages/pdv/Historico').then((m) => ({ default: m.Historico })))
 const Kds = lazy(() => import('@/pages/pdv/Kds').then((m) => ({ default: m.Kds })))
+const AcaoContaPage = lazy(() => import('@/pages/auth/AcaoContaPage').then((m) => ({ default: m.AcaoContaPage })))
+const EmailsPage = lazy(() => import('@/pages/auth/EmailsPage').then((m) => ({ default: m.EmailsPage })))
 
 /**
  * O Início está fora do menu por enquanto: quem abre /painel puro cai no Dashboard.
  * Com query (?acao=…, ?assinatura=ok) a página continua sendo o Início, pra não
  * perder o gesto do link; a rota segue existindo.
  */
-/** Antiga página Ajustes: hoje é Configurações (o #historico vira a aba Histórico). */
+/**
+ * Antiga página Ajustes: hoje é Configurações. Links velhos (e-mails já
+ * enviados, mensagens no grupo) mantêm o ?loja= e caem na aba da âncora.
+ */
+const ABA_DA_ANCORA: Record<string, string> = { '#historico': 'historico', '#equipe': 'equipe', '#emails': 'notificacoes' }
 function RedirecionaAjustes() {
-  const { hash } = useLocation()
-  return <Navigate to={hash === '#historico' ? '/painel/configuracoes/historico' : '/painel/configuracoes'} replace />
+  const { hash, search } = useLocation()
+  const aba = ABA_DA_ANCORA[hash]
+  return <Navigate to={`/painel/configuracoes${aba ? `/${aba}` : ''}${search}`} replace />
 }
 
 function PaginaInicial() {
@@ -71,6 +78,8 @@ export default function App() {
               <Route path="/esqueci" element={<EsqueciSenhaPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/convite/:token" element={<ConvitePage />} />
+              <Route path="/conta/acao" element={<AcaoContaPage />} />
+              <Route path="/emails" element={<EmailsPage />} />
 
               <Route
                 path="/painel"

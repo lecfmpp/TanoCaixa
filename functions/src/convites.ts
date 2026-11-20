@@ -56,8 +56,12 @@ export const criarConvite = onCall(async (req) => {
     criadoEm: new Date().toISOString(),
     status: 'pendente',
   }
-  await db.doc(`convites/${token}`).set(convite)
-  return { token, url: `https://tanocaixa.com/convite/${token}`, lojas }
+  // E-mail opcional: o convite também sai por e-mail (gatilho em email/convitesEmail.ts).
+  // Não trava o aceite nesse e-mail — o link continua valendo pra quem receber.
+  const bruto = (req.data as { email?: unknown } | undefined)?.email
+  const emailConvidado = typeof bruto === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(bruto.trim()) ? bruto.trim().toLowerCase() : undefined
+  await db.doc(`convites/${token}`).set(emailConvidado ? { ...convite, emailConvidado } : convite)
+  return { token, url: `https://tanocaixa.com/convite/${token}`, lojas, emailEnviado: !!emailConvidado }
 })
 
 /** Consulta pública (sem login) de um convite — pra mostrar antes do cadastro/login. */

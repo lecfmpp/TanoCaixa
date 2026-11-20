@@ -9,6 +9,8 @@
  *  - A chave do Resend NUNCA fica no código (secret RESEND_API_KEY).
  * ------------------------------------------------------------------ */
 
+import { renderizar, type EmailPronto } from './email/catalogo'
+
 export const REMETENTE = 'Tá no Caixa <ola@tanocaixa.com>'
 export const RESPONDER_PARA = 'ola@tanocaixa.com'
 export const ASSUNTO = 'Bem-vindo ao Tá no Caixa'
@@ -21,28 +23,11 @@ export function primeiroNome(nome: string | undefined, email: string): string {
   return p ? p[0].toUpperCase() + p.slice(1) : ''
 }
 
-function escapaHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
-}
 
-export function montarEmail(nome: string | undefined, email: string): { html: string; text: string } {
+/** Mesmo texto do template `tnc-boas-vindas` (catálogo), montado no código. */
+export function montarEmail(nome: string | undefined, email: string): EmailPronto {
   const n = primeiroNome(nome, email)
-  const oi = n ? `Oi, ${n}!` : 'Oi!'
-  const linhas = [
-    'Sua conta no Tá no Caixa está criada. Que bom ter você aqui.',
-    'O Tá no Caixa ajuda você a enxergar o dinheiro do seu restaurante: lance faturamento e despesas (inclusive por foto da nota) e acompanhe lucro, margem e custos no painel.',
-    'Para começar, lance o faturamento de hoje e uma despesa. Leva poucos minutos.',
-    'As integrações com lojas e plataformas estão marcadas como "Em breve" no app. Quando estiverem prontas, a gente avisa por aqui.',
-    'Dúvidas? É só responder este e-mail.',
-  ]
-  const text = [oi, '', ...linhas.flatMap((l) => [l, '']), `Abrir o Tá no Caixa: ${URL_APP}`, '', 'Equipe Tá no Caixa'].join('\n')
-  const html =
-    `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#1d2b2a;max-width:520px">` +
-    `<p><strong>${escapaHtml(oi)}</strong></p>` +
-    linhas.map((l) => `<p>${escapaHtml(l)}</p>`).join('') +
-    `<p><a href="${URL_APP}" style="display:inline-block;background:#2E5F73;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px">Abrir o Tá no Caixa</a></p>` +
-    `<p>Equipe Tá no Caixa</p></div>`
-  return { html, text }
+  return renderizar('boas-vindas', { OI: n ? `Oi, ${n}!` : 'Oi!' })
 }
 
 /** Cadeado de idempotência por usuário (Firestore em produção, memória nos testes). */
@@ -66,25 +51,24 @@ export async function enviarBoasVindas(
   if (!deps.apiKey) return 'sem-chave'
   if (!(await deps.cadeado.tomar(uid))) return 'ja-enviado'
 
-  const { html, text } = montarEmail(user?.nome, email)
-  try {
-    const resp = await (deps.fetchFn ?? fetch)(RESEND_URL, {
+  const pronto = montarEmail(user?.nome, email)
+  const post = (corpo: Record<string, unknown>, chave: string) =>
+    (deps.fetchFn ?? fetch)(RESEND_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${deps.apiKey}`,
         'Content-Type': 'application/json',
         // Segunda camada contra duplicidade, no próprio Resend.
-        'Idempotency-Key': `boas-vindas/${uid}`,
+        'Idempotency-Key': chave,
       },
-      body: JSON.stringify({
-        from: REMETENTE,
-        to: [email],
-        reply_to: RESPONDER_PARA,
-        subject: ASSUNTO,
-        html,
-        text,
-      }),
+      body: JSON.stringify({ from: REMETENTE, to: [email], reply_to: RESPONDER_PARA, subject: ASSUNTO, ...corpo }),
     })
+  try {
+    // Pelo template do Resend (editável no painel); se ele recusar, o mesmo texto montado aqui.
+    let resp = await post({ template: pronto.template }, `boas-vindas/${uid}`)
+    if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) {
+      resp = await post({ html: pronto.html, text: pronto.text }, `boas-vindas/${uid}/html`)
+    }
     if (!resp.ok) {
       // Não registra o corpo inteiro (pode ecoar dados); só o status.
       await deps.cadeado.liberar(uid, `resend http ${resp.status}`)

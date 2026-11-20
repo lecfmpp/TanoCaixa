@@ -107,6 +107,13 @@ export function Secao({
   const ancorada = typeof window !== 'undefined' && !!id && window.location.hash === `#${id}`
   const [aberta, setAberta] = useState(abertaPorPadrao || ancorada)
 
+  // Link com #id (ex.: e-mail "Convidar a equipe" → /painel/ajustes#equipe): abre e rola até a seção.
+  useEffect(() => {
+    if (!ancorada || !id) return
+    const t = setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    return () => clearTimeout(t)
+  }, [ancorada, id])
+
   // Segue o "Abrir tudo / Fechar tudo" do grupo (vez 0 = ainda ninguém clicou).
   const vez = grupo?.comando.vez ?? 0
   const abrir = grupo?.comando.abrir ?? true

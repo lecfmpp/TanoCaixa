@@ -361,6 +361,7 @@ function InsightsIA({
 
   return (
     <Secao
+      id="perguntar"
       titulo={
         <span className="inline-flex items-center gap-2">
           <Sparkles size={16} className="shrink-0 text-telhado" /> Pergunte pra IA sobre o estoque
