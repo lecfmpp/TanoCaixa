@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/auth/AuthContext'
 import { DataProvider } from '@/data/Provider'
@@ -8,36 +9,36 @@ import { GavetaHost } from '@/components/gaveta/GavetaHost'
 import { RotaProtegida } from '@/auth/RotaProtegida'
 import { ExigePermissao } from '@/auth/ExigePermissao'
 import { AppShell } from '@/components/layout/AppShell'
-import { EntrarPage } from '@/pages/auth/EntrarPage'
-import { CriarContaPage } from '@/pages/auth/CriarContaPage'
-import { EsqueciSenhaPage } from '@/pages/auth/EsqueciSenhaPage'
-import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
+const EntrarPage = lazy(() => import('@/pages/auth/EntrarPage').then((m) => ({ default: m.EntrarPage })))
+const CriarContaPage = lazy(() => import('@/pages/auth/CriarContaPage').then((m) => ({ default: m.CriarContaPage })))
+const EsqueciSenhaPage = lazy(() => import('@/pages/auth/EsqueciSenhaPage').then((m) => ({ default: m.EsqueciSenhaPage })))
+const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 import { LandingPage } from '@/pages/LandingPage'
-import { Inicio } from '@/pages/painel/Inicio'
-import { Caixa } from '@/pages/painel/Caixa'
-import { Despesas } from '@/pages/painel/Despesas'
-import { Compras } from '@/pages/painel/Compras'
-import { FluxoCaixa } from '@/pages/painel/FluxoCaixa'
-import { Produtos } from '@/pages/painel/Produtos'
-import { Estoque } from '@/pages/painel/Estoque'
-import { PlanoDoMes } from '@/pages/painel/PlanoDoMes'
-import { DRE } from '@/pages/painel/DRE'
-import { Rede } from '@/pages/painel/Rede'
-import { Franquias } from '@/pages/painel/Franquias'
-import { Metas } from '@/pages/painel/Metas'
-import { Cmv } from '@/pages/painel/Cmv'
-import { Dashboard } from '@/pages/painel/Numeros'
-import { Configuracoes } from '@/pages/painel/Configuracoes'
-import { Perfil } from '@/pages/painel/Perfil'
-import { ConvitePage } from '@/pages/auth/ConvitePage'
-import { Plano } from '@/pages/painel/Plano'
-import { PdvLayout } from '@/pages/pdv/PdvLayout'
-import { Cardapio } from '@/pages/pdv/Cardapio'
-import { NovoPedido } from '@/pages/pdv/NovoPedido'
-import { Pedidos } from '@/pages/pdv/Pedidos'
-import { CaixaPdv } from '@/pages/pdv/CaixaPdv'
-import { Historico } from '@/pages/pdv/Historico'
-import { Kds } from '@/pages/pdv/Kds'
+const Inicio = lazy(() => import('@/pages/painel/Inicio').then((m) => ({ default: m.Inicio })))
+const Caixa = lazy(() => import('@/pages/painel/Caixa').then((m) => ({ default: m.Caixa })))
+const Despesas = lazy(() => import('@/pages/painel/Despesas').then((m) => ({ default: m.Despesas })))
+const Compras = lazy(() => import('@/pages/painel/Compras').then((m) => ({ default: m.Compras })))
+const FluxoCaixa = lazy(() => import('@/pages/painel/FluxoCaixa').then((m) => ({ default: m.FluxoCaixa })))
+const Produtos = lazy(() => import('@/pages/painel/Produtos').then((m) => ({ default: m.Produtos })))
+const Estoque = lazy(() => import('@/pages/painel/Estoque').then((m) => ({ default: m.Estoque })))
+const PlanoDoMes = lazy(() => import('@/pages/painel/PlanoDoMes').then((m) => ({ default: m.PlanoDoMes })))
+const DRE = lazy(() => import('@/pages/painel/DRE').then((m) => ({ default: m.DRE })))
+const Rede = lazy(() => import('@/pages/painel/Rede').then((m) => ({ default: m.Rede })))
+const Franquias = lazy(() => import('@/pages/painel/Franquias').then((m) => ({ default: m.Franquias })))
+const Metas = lazy(() => import('@/pages/painel/Metas').then((m) => ({ default: m.Metas })))
+const Cmv = lazy(() => import('@/pages/painel/Cmv').then((m) => ({ default: m.Cmv })))
+const Dashboard = lazy(() => import('@/pages/painel/Numeros').then((m) => ({ default: m.Dashboard })))
+const Configuracoes = lazy(() => import('@/pages/painel/Configuracoes').then((m) => ({ default: m.Configuracoes })))
+const Perfil = lazy(() => import('@/pages/painel/Perfil').then((m) => ({ default: m.Perfil })))
+const ConvitePage = lazy(() => import('@/pages/auth/ConvitePage').then((m) => ({ default: m.ConvitePage })))
+const Plano = lazy(() => import('@/pages/painel/Plano').then((m) => ({ default: m.Plano })))
+const PdvLayout = lazy(() => import('@/pages/pdv/PdvLayout').then((m) => ({ default: m.PdvLayout })))
+const Cardapio = lazy(() => import('@/pages/pdv/Cardapio').then((m) => ({ default: m.Cardapio })))
+const NovoPedido = lazy(() => import('@/pages/pdv/NovoPedido').then((m) => ({ default: m.NovoPedido })))
+const Pedidos = lazy(() => import('@/pages/pdv/Pedidos').then((m) => ({ default: m.Pedidos })))
+const CaixaPdv = lazy(() => import('@/pages/pdv/CaixaPdv').then((m) => ({ default: m.CaixaPdv })))
+const Historico = lazy(() => import('@/pages/pdv/Historico').then((m) => ({ default: m.Historico })))
+const Kds = lazy(() => import('@/pages/pdv/Kds').then((m) => ({ default: m.Kds })))
 
 /**
  * O Início está fora do menu por enquanto: quem abre /painel puro cai no Dashboard.
@@ -63,6 +64,7 @@ export default function App() {
       <DataProvider>
         <UIProvider>
           <BrowserRouter>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/entrar" element={<EntrarPage />} />
               <Route path="/criar" element={<CriarContaPage />} />
@@ -112,6 +114,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
 
             <ToastHost />
             <ModalHost />
